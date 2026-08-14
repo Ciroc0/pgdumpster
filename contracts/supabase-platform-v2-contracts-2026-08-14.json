@@ -1,0 +1,466 @@
+{
+  "schemaVersion": 1,
+  "source": "https://api.supabase.com/api/v2-json",
+  "sourceBytes": 362295,
+  "sourceSha256": "6e0c9d8b71023edaa3d3abe066a781dc0645b64635e4896b3b2addf8103e691a",
+  "retrievedAt": "2026-08-14T01:18:28.647Z",
+  "operations": {
+    "GET /v2/projects/{ref}/analytics/log-drains": {
+      "operationId": "v2-list-log-drains",
+      "summary": "List project log drains",
+      "oauthScope": "analytics_config:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListLogDrainsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Forbidden action",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Rate limit exceeded",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Failed to fetch log drains",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "GET /v2/projects/{ref}/private-link/associations": {
+      "operationId": "v2-list-private-link-associations",
+      "summary": "List AWS accounts attached to the project PrivateLink share",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V2ListPrivateLinkAssociationsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        },
+        "403": {
+          "description": "Forbidden action",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        },
+        "429": {
+          "description": "Rate limit exceeded",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Failed to retrieve AWS accounts for project",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ErrorResponseBody"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "responseSchemas": {
+    "GET /v2/projects/{ref}/analytics/log-drains": {
+      "$ref": "#/components/schemas/ListLogDrainsResponse"
+    },
+    "GET /v2/projects/{ref}/private-link/associations": {
+      "$ref": "#/components/schemas/V2ListPrivateLinkAssociationsResponse"
+    }
+  },
+  "schemas": {
+    "ListLogDrainsResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Resource type.",
+                "enum": ["log_drain"]
+              },
+              "id": {
+                "type": "string"
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "config": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "schema": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "password": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "port": {
+                            "type": "number",
+                            "nullable": true
+                          },
+                          "hostname": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "postgres"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "url": {
+                            "type": "string"
+                          },
+                          "http": {
+                            "type": "string",
+                            "enum": ["http1", "http2"]
+                          },
+                          "gzip": {
+                            "type": "boolean"
+                          },
+                          "headers": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "webhook"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "project_id": {
+                            "type": "string"
+                          },
+                          "dataset_id": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "bigquery"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "api_key": {
+                            "type": "string"
+                          },
+                          "region": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "datadog"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "url": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "password": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "headers": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "loki"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "dsn": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "sentry"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "domain": {
+                            "type": "string"
+                          },
+                          "api_token": {
+                            "type": "string"
+                          },
+                          "dataset_name": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "axiom"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "host": {
+                            "type": "string"
+                          },
+                          "port": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 65535
+                          },
+                          "tls": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "structured_data": {
+                            "type": "string"
+                          },
+                          "cipher_key": {
+                            "type": "string"
+                          },
+                          "ca_cert": {
+                            "type": "string"
+                          },
+                          "client_cert": {
+                            "type": "string"
+                          },
+                          "client_key": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false,
+                        "title": "syslog"
+                      }
+                    ]
+                  },
+                  "backend_type": {
+                    "type": "string",
+                    "enum": [
+                      "postgres",
+                      "bigquery",
+                      "clickhouse",
+                      "webhook",
+                      "datadog",
+                      "loki",
+                      "sentry",
+                      "s3",
+                      "axiom",
+                      "last9",
+                      "otlp",
+                      "syslog"
+                    ]
+                  }
+                },
+                "required": ["name", "config", "backend_type"]
+              }
+            },
+            "required": ["type", "id", "attributes"]
+          }
+        }
+      },
+      "required": ["data"]
+    },
+    "V2ListPrivateLinkAssociationsResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Resource type.",
+                "enum": ["private_link_association"]
+              },
+              "id": {
+                "type": "string"
+              },
+              "attributes": {
+                "type": "object",
+                "properties": {
+                  "aws_account_id": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 12,
+                    "pattern": "^\\d{12}$",
+                    "description": "The AWS account ID this PrivateLink share is associated with."
+                  },
+                  "account_name": {
+                    "description": "Human-readable name for the AWS account.",
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "CREATING",
+                      "READY",
+                      "ASSOCIATION_REQUEST_EXPIRED",
+                      "ASSOCIATION_ACCEPTED",
+                      "CREATION_FAILED",
+                      "DELETING"
+                    ],
+                    "description": "\n  - `CREATING`: The PrivateLink resources and the Association are in the process of being created. The PrivateLink Share cannot be accepted yet.\n  - `READY`: The PrivateLink resources have been created and the PrivateLink Share can be accepted for the duration of 12h after sharing. See `shared_at`.\n  - `ASSOCIATION_REQUEST_EXPIRED`: The PrivateLink Share has not been accepted within the 12h time limit. This association can now be deleted.\n  - `ASSOCIATION_ACCEPTED`: The PrivateLink Share was successfully accepted.\n  - `CREATION_FAILED`: The PrivateLink resources failed to create. This likely means something went wrong on Supabase's and and support should be contacted.\n  - `DELETING`: The PrivateLink resources and the Association are in the process of being deleted. The PrivateLink Share cannot be accepted yet.\n"
+                  },
+                  "shared_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                    "description": "The time and date at which the AWS Resource Share Association was requested from Supabase. `null` means that the association was not yet requested while the PrivateLink Association is pending.",
+                    "nullable": true
+                  },
+                  "database_type": {
+                    "type": "string",
+                    "enum": ["PRIMARY", "READ_REPLICA"],
+                    "description": "Whether this PrivateLink share targets the primary database or a read replica."
+                  },
+                  "database_identifier": {
+                    "type": "string",
+                    "description": "Identifier of the database this PrivateLink share targets - the project ref for the primary, or the read replica identifier."
+                  },
+                  "resource_access_manager_resource_config_id": {
+                    "description": "ID of the AWS VPC Lattice resource configuration backing this PrivateLink share.",
+                    "type": "string"
+                  },
+                  "resource_access_manager_resource_config_arn": {
+                    "description": "ARN of the AWS VPC Lattice resource configuration backing this PrivateLink share.",
+                    "type": "string"
+                  },
+                  "resource_access_manager_share_arn": {
+                    "description": "ARN of the AWS Resource Access Manager resource share for this association.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "aws_account_id",
+                  "status",
+                  "shared_at",
+                  "database_type",
+                  "database_identifier"
+                ]
+              }
+            },
+            "required": ["type", "id", "attributes"]
+          }
+        }
+      },
+      "required": ["data"]
+    }
+  }
+}

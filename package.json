@@ -1,0 +1,63 @@
+{
+  "name": "pgdumpster",
+  "version": "0.0.0-development",
+  "description": "Backup, inspect, verify, and restore hosted Supabase projects without silent coverage gaps.",
+  "type": "module",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Mathias Kjær Pedersen, trading as MKP Digital (CVR 45731170)",
+  "engines": {
+    "node": ">=22.15.0 <23 || >=24 <25"
+  },
+  "packageManager": "pnpm@11.21.0",
+  "bin": {
+    "pgdumpster": "./dist/cli/main.js"
+  },
+  "files": [
+    "dist",
+    "contracts",
+    "spec",
+    "schemas",
+    "LICENSE",
+    "NOTICE",
+    "LICENSING.md",
+    "README.md"
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "contracts:check": "node scripts/check-official-contracts.mjs",
+    "test": "vitest run",
+    "test:contracts": "pnpm contracts:check && vitest run tests/unit/management-client.test.ts tests/unit/doctor.test.ts",
+    "test:coverage": "vitest run --coverage",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build && pnpm test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1105.0",
+    "@aws-sdk/lib-storage": "3.1105.0",
+    "@supabase/storage-js": "2.111.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "pg": "8.22.0",
+    "tar-stream": "3.2.0",
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "@types/pg": "8.20.4",
+    "@types/tar-stream": "3.1.4",
+    "@vitest/coverage-v8": "4.1.10",
+    "eslint": "10.8.0",
+    "fast-check": "4.9.0",
+    "prettier": "3.9.6",
+    "supabase": "2.111.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.66.0",
+    "vitest": "4.1.10"
+  }
+}

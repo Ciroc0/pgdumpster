@@ -1,0 +1,39 @@
+# Example only. Adapt after pgDumpster has a real published install path.
+# Do not copy this as a release workflow without pinning third-party actions
+# by immutable commit SHA and reviewing secret exposure.
+
+name: Supabase backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Install pgDumpster
+        run: |
+          echo "Replace with the verified install command for the published release."
+          exit 1
+
+      - name: Run backup
+        env:
+          PGDUMPSTER_ACCESS_TOKEN: ${{ secrets.PGDUMPSTER_ACCESS_TOKEN }}
+          PGDUMPSTER_PROJECT_REF: ${{ secrets.PGDUMPSTER_PROJECT_REF }}
+          PGDUMPSTER_DB_URL: ${{ secrets.PGDUMPSTER_DB_URL }}
+          PGDUMPSTER_STORAGE_KEY: ${{ secrets.PGDUMPSTER_STORAGE_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          PGDUMPSTER_S3_ENDPOINT: ${{ secrets.PGDUMPSTER_S3_ENDPOINT }}
+          PGDUMPSTER_S3_BUCKET: ${{ secrets.PGDUMPSTER_S3_BUCKET }}
+        run: |
+          pgdumpster backup \
+            --project-ref "$PGDUMPSTER_PROJECT_REF" \
+            --destination s3 \
+            --consistency verified \
+            --non-interactive

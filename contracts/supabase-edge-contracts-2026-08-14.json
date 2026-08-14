@@ -1,0 +1,601 @@
+{
+  "schemaVersion": 1,
+  "source": "https://api.supabase.com/api/v1-json",
+  "sourceBytes": 334072,
+  "sourceSha256": "846aef2b9188ae843d8f782cc7f7ee1bed9dde63ba0ff8fc511d9627c98ea751",
+  "retrievedAt": "2026-08-13T23:31:25.737Z",
+  "operations": {
+    "GET /v1/projects/{ref}/functions": {
+      "operationId": "v1-list-all-functions",
+      "summary": "List all functions",
+      "oauthScope": "edge_functions:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FunctionResponse"
+                }
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to retrieve project's functions"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/functions/{function_slug}": {
+      "operationId": "v1-get-a-function",
+      "summary": "Retrieve a function",
+      "oauthScope": "edge_functions:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "function_slug",
+          "required": true,
+          "in": "path",
+          "description": "Function slug",
+          "schema": {
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "example": "hello-world",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FunctionSlugResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to retrieve function with given slug"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/functions/{function_slug}/body": {
+      "operationId": "v1-get-a-function-body",
+      "summary": "Retrieve a function body",
+      "oauthScope": "edge_functions:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "function_slug",
+          "required": true,
+          "in": "path",
+          "description": "Function slug",
+          "schema": {
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "example": "hello-world",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StreamableFile"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to retrieve function body with given slug"
+        }
+      }
+    },
+    "POST /v1/projects/{ref}/functions/deploy": {
+      "operationId": "v1-deploy-a-function",
+      "summary": "Deploy a function",
+      "oauthScope": "edge_functions:write",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "slug",
+          "required": false,
+          "in": "query",
+          "schema": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
+            "example": "hello-world",
+            "type": "string"
+          }
+        },
+        {
+          "name": "bundleOnly",
+          "required": false,
+          "in": "query",
+          "schema": {
+            "example": false,
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "$ref": "#/components/schemas/FunctionDeployBody"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeployFunctionResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "402": {
+          "description": "Maximum number of functions reached for Plan"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to deploy function"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/secrets": {
+      "operationId": "v1-list-all-secrets",
+      "summary": "List all secrets",
+      "oauthScope": "secrets:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SecretResponse"
+                }
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to retrieve project's secrets"
+        }
+      }
+    },
+    "POST /v1/projects/{ref}/secrets": {
+      "operationId": "v1-bulk-create-secrets",
+      "summary": "Bulk create secrets",
+      "oauthScope": "secrets:write",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateSecretBody"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": ""
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to create project's secrets"
+        }
+      }
+    }
+  },
+  "schemas": {
+    "SecretResponse": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "value"]
+    },
+    "CreateSecretBody": {
+      "maxItems": 100,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "pattern": "^(?!SUPABASE_).*",
+            "description": "Secret name must not start with the SUPABASE_ prefix."
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 24576
+          }
+        },
+        "required": ["name", "value"]
+      },
+      "example": [
+        {
+          "name": "OPENAI_API_KEY",
+          "value": "sk-example-secret"
+        },
+        {
+          "name": "STRIPE_WEBHOOK_SECRET",
+          "value": "whsec_example"
+        }
+      ]
+    },
+    "FunctionResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "REMOVED", "THROTTLED"]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "format": "int64"
+        },
+        "verify_jwt": {
+          "type": "boolean"
+        },
+        "import_map": {
+          "type": "boolean"
+        },
+        "entrypoint_path": {
+          "type": "string"
+        },
+        "import_map_path": {
+          "type": "string"
+        },
+        "ezbr_sha256": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "slug",
+        "name",
+        "status",
+        "version",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "FunctionSlugResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "REMOVED", "THROTTLED"]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "format": "int64"
+        },
+        "updated_at": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "format": "int64"
+        },
+        "verify_jwt": {
+          "type": "boolean"
+        },
+        "import_map": {
+          "type": "boolean"
+        },
+        "entrypoint_path": {
+          "type": "string"
+        },
+        "import_map_path": {
+          "type": "string"
+        },
+        "ezbr_sha256": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "slug",
+        "name",
+        "status",
+        "version",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "FunctionDeployBody": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "entrypoint_path": {
+              "type": "string"
+            },
+            "import_map_path": {
+              "type": "string"
+            },
+            "static_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "verify_jwt": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": ["entrypoint_path"]
+        }
+      },
+      "required": ["file", "metadata"],
+      "example": {
+        "file": ["./supabase/functions/hello-world/index.ts"],
+        "metadata": {
+          "entrypoint_path": "index.ts",
+          "verify_jwt": true,
+          "name": "Hello World"
+        }
+      }
+    },
+    "DeployFunctionResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "REMOVED", "THROTTLED"]
+        },
+        "version": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "created_at": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "updated_at": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "verify_jwt": {
+          "type": "boolean"
+        },
+        "import_map": {
+          "type": "boolean"
+        },
+        "entrypoint_path": {
+          "type": "string"
+        },
+        "import_map_path": {
+          "type": "string"
+        },
+        "ezbr_sha256": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "slug", "name", "status", "version"]
+    },
+    "StreamableFile": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}

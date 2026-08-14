@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "status": "restored_with_platform_limits",
+  "sourceProjectRef": "abcdefghijklmnopqrst",
+  "targetProjectRef": "uvwxyzabcdefghijklmn",
+  "integrity": "verified",
+  "parity": "verified_with_documented_substitutions",
+  "substitutions": [
+    {
+      "component": "api.modern_keys",
+      "kind": "credential_rotation",
+      "secretValueIncluded": false,
+      "protectedRotationMap": "restore/rotation-map.age"
+    }
+  ],
+  "manualActions": [
+    {
+      "component": "external.dns",
+      "action": "Create/validate required external DNS records for restored custom domain."
+    }
+  ]
+}

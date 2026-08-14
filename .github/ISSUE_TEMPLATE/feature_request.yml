@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a product or platform-coverage improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What recovery/backup problem is not handled?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: supabase_surface
+    attributes:
+      label: Supabase surface/API
+      description: Link official Supabase documentation if this concerns a new platform state surface.
+
+  - type: textarea
+    id: completeness
+    attributes:
+      label: Completeness/restore implications
+      description: Explain how this affects coverage, bundle format, restore or security.
+
+  - type: checkboxes
+    id: secret_check
+    attributes:
+      label: Secret check
+      options:
+        - label: I included no real credentials or sensitive project data.
+          required: true

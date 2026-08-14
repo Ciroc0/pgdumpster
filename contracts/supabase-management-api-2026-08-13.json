@@ -1,0 +1,44 @@
+{
+  "source": "https://api.supabase.com/api/v1-json",
+  "retrievedAt": "2026-08-13T23:56:52.9137674+02:00",
+  "openapi": "3.0.0",
+  "title": "Supabase API (v1)",
+  "version": "1.0.0",
+  "bytes": 334072,
+  "sha256": "846aef2b9188ae843d8f782cc7f7ee1bed9dde63ba0ff8fc511d9627c98ea751",
+  "validatedOperations": [
+    {
+      "operationId": "v1-get-project",
+      "method": "GET",
+      "path": "/v1/projects/{ref}",
+      "success": [200],
+      "errors": [401, 403, 429, 500],
+      "schema": "V1ProjectWithDatabaseResponse"
+    },
+    {
+      "operationId": "v1-get-services-health",
+      "method": "GET",
+      "path": "/v1/projects/{ref}/health",
+      "success": [200],
+      "errors": [401, 403, 429, 500],
+      "schema": "V1ServiceHealthResponse[]"
+    },
+    {
+      "operationId": "v1-get-pgsodium-config",
+      "method": "GET",
+      "path": "/v1/projects/{ref}/pgsodium",
+      "success": [200],
+      "errors": [401, 403, 429, 500],
+      "schema": "PgsodiumConfigResponse"
+    },
+    {
+      "operationId": "v1-update-pgsodium-config",
+      "method": "PUT",
+      "path": "/v1/projects/{ref}/pgsodium",
+      "success": [200],
+      "errors": [401, 403, 429, 500],
+      "schema": "PgsodiumConfigResponse",
+      "requestSchema": "UpdatePgsodiumConfigBody"
+    }
+  ]
+}

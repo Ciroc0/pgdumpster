@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a reproducible pgDumpster problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include access tokens, database URLs/passwords, project secret keys,
+        Vault keys, Edge secrets, S3 credentials, or sensitive backup contents.
+        Security vulnerabilities belong in the private process described in SECURITY.md.
+
+  - type: input
+    id: version
+    attributes:
+      label: pgDumpster version
+      placeholder: "e.g. 1.0.0 or commit SHA"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node.js version, Supabase CLI version
+    validations:
+      required: true
+
+  - type: dropdown
+    id: command
+    attributes:
+      label: Command
+      options:
+        - doctor
+        - backup
+        - inspect
+        - verify
+        - coverage
+        - restore
+        - other
+    validations:
+      required: true
+
+  - type: input
+    id: error_code
+    attributes:
+      label: Structured error code
+      placeholder: "e.g. SOURCE_DID_NOT_STABILIZE"
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Use a test project if possible. Sanitize all secrets.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      render: shell
+
+  - type: checkboxes
+    id: secret_check
+    attributes:
+      label: Secret check
+      options:
+        - label: I verified this report contains no credentials or sensitive backup data.
+          required: true

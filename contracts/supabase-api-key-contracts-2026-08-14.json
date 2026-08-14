@@ -1,0 +1,455 @@
+{
+  "schemaVersion": 1,
+  "source": "https://api.supabase.com/api/v1-json",
+  "sourceBytes": 334072,
+  "sourceSha256": "846aef2b9188ae843d8f782cc7f7ee1bed9dde63ba0ff8fc511d9627c98ea751",
+  "retrievedAt": "2026-08-13T23:19:35.455Z",
+  "operations": {
+    "GET /v1/projects/{ref}/api-keys": {
+      "operationId": "v1-get-project-api-keys",
+      "summary": "Get project api keys",
+      "oauthScope": "secrets:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "reveal",
+          "required": false,
+          "in": "query",
+          "description": "Boolean string.\n\nTruthy values: `true`, `1`, `yes`, `on`, `y`, `enabled`\n\nFalsy values: `false`, `0`, `no`, `off`, `n`, `disabled`",
+          "schema": {
+            "example": "true",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiKeyResponse"
+                }
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    },
+    "POST /v1/projects/{ref}/api-keys": {
+      "operationId": "v1-create-project-api-key",
+      "summary": "Creates a new API key for the project",
+      "oauthScope": "secrets:write",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "reveal",
+          "required": false,
+          "in": "query",
+          "description": "Boolean string.\n\nTruthy values: `true`, `1`, `yes`, `on`, `y`, `enabled`\n\nFalsy values: `false`, `0`, `no`, `off`, `n`, `disabled`",
+          "schema": {
+            "example": "true",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "201": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/api-keys/legacy": {
+      "operationId": "v1-get-project-legacy-api-keys",
+      "summary": "Check whether JWT based legacy (anon, service_role) API keys are enabled. This API endpoint will be removed in the future, check for HTTP 404 Not Found.",
+      "oauthScope": "secrets:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegacyApiKeysResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    },
+    "PUT /v1/projects/{ref}/api-keys/legacy": {
+      "operationId": "v1-update-project-legacy-api-keys",
+      "summary": "Disable or re-enable JWT based legacy (anon, service_role) API keys. This API endpoint will be removed in the future, check for HTTP 404 Not Found.",
+      "oauthScope": "secrets:write",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "enabled",
+          "required": true,
+          "in": "query",
+          "description": "Boolean string.\n\nTruthy values: `true`, `1`, `yes`, `on`, `y`, `enabled`\n\nFalsy values: `false`, `0`, `no`, `off`, `n`, `disabled`",
+          "schema": {
+            "example": "true",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LegacyApiKeysResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/api-keys/{id}": {
+      "operationId": "v1-get-project-api-key",
+      "summary": "Get API key",
+      "oauthScope": "secrets:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "id",
+          "required": true,
+          "in": "path",
+          "schema": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "22222222-2222-4222-8222-222222222222",
+            "type": "string"
+          }
+        },
+        {
+          "name": "reveal",
+          "required": false,
+          "in": "query",
+          "description": "Boolean string.\n\nTruthy values: `true`, `1`, `yes`, `on`, `y`, `enabled`\n\nFalsy values: `false`, `0`, `no`, `off`, `n`, `disabled`",
+          "schema": {
+            "example": "true",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    },
+    "PATCH /v1/projects/{ref}/api-keys/{id}": {
+      "operationId": "v1-update-project-api-key",
+      "summary": "Updates an API key for the project",
+      "oauthScope": "secrets:write",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "id",
+          "required": true,
+          "in": "path",
+          "schema": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "22222222-2222-4222-8222-222222222222",
+            "type": "string"
+          }
+        },
+        {
+          "name": "reveal",
+          "required": false,
+          "in": "query",
+          "description": "Boolean string.\n\nTruthy values: `true`, `1`, `yes`, `on`, `y`, `enabled`\n\nFalsy values: `false`, `0`, `no`, `off`, `n`, `disabled`",
+          "schema": {
+            "example": "true",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    }
+  },
+  "schemas": {
+    "ApiKeyResponse": {
+      "type": "object",
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "nullable": true
+        },
+        "id": {
+          "type": "string",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "enum": ["legacy", "publishable", "secret", null],
+          "nullable": true
+        },
+        "prefix": {
+          "type": "string",
+          "nullable": true
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "hash": {
+          "type": "string",
+          "nullable": true
+        },
+        "secret_jwt_template": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {},
+          "nullable": true
+        },
+        "inserted_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "nullable": true
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "nullable": true
+        }
+      },
+      "required": ["name"]
+    },
+    "LegacyApiKeysResponse": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["enabled"]
+    },
+    "CreateApiKeyBody": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["publishable", "secret"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-z_][a-z0-9_]+$"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "secret_jwt_template": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {},
+          "nullable": true
+        }
+      },
+      "required": ["type", "name"],
+      "example": {
+        "type": "secret",
+        "name": "ci_secret_key",
+        "description": "CI deploy key"
+      }
+    },
+    "UpdateApiKeyBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 64,
+          "pattern": "^[a-z_][a-z0-9_]+$"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true
+        },
+        "secret_jwt_template": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {},
+          "nullable": true
+        }
+      },
+      "example": {
+        "name": "ci_secret_key_rotated",
+        "description": "Rotated after March release"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+projectRef: abcdefghijklmnopqrst
+
+backup:
+  output: ./backups
+  consistency: verified
+  maxStorageConcurrency: 8
+  maxApiConcurrency: 3
+  maxConsistencyRetries: 3
+
+encryption:
+  mode: age
+  recipient: age1replace_with_real_recipient
+
+destination:
+  type: local
+
+logging:
+  level: info
+  file: null

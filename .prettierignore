@@ -1,0 +1,6 @@
+coverage/
+supabase/.temp/
+dist/
+node_modules/
+pnpm-lock.yaml
+LICENSE

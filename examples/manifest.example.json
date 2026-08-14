@@ -1,0 +1,42 @@
+{
+  "formatVersion": "1.0.0",
+  "tool": {
+    "name": "pgdumpster",
+    "version": "1.0.0"
+  },
+  "operation": {
+    "id": "019ffcf4-d0b6-7b40-847b-668eb570a987",
+    "startedAt": "2026-08-13T20:00:00.000Z",
+    "completedAt": "2026-08-13T20:15:00.000Z"
+  },
+  "source": {
+    "projectRef": "abcdefghijklmnopqrst",
+    "projectName": "example",
+    "region": "example-region"
+  },
+  "result": {
+    "status": "complete_with_platform_limits",
+    "consistency": "verified"
+  },
+  "coverageFile": "coverage.json",
+  "checksumFile": "checksums.sha256",
+  "checksumFileSha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "components": [
+    {
+      "id": "database.schema",
+      "status": "backed_up"
+    },
+    {
+      "id": "storage.file_objects",
+      "status": "backed_up"
+    },
+    {
+      "id": "auth.signing_keys",
+      "status": "not_exportable"
+    }
+  ],
+  "statistics": {
+    "files": 42,
+    "bytes": 123456789
+  }
+}

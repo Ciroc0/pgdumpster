@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pgdumpster:schema:coverage:1.0.0",
+  "title": "pgDumpster Coverage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "components"],
+  "properties": {
+    "formatVersion": { "const": "1.0.0" },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "sensitivity", "artifacts"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "status": {
+            "enum": [
+              "backed_up",
+              "not_configured",
+              "not_applicable",
+              "not_exportable",
+              "failed"
+            ]
+          },
+          "reasonCode": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "sensitivity": {
+            "enum": ["public", "internal", "sensitive", "secret"]
+          },
+          "artifacts": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "children": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "sourceContract": { "type": "object" }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": { "enum": ["not_exportable", "failed"] }
+              },
+              "required": ["status"]
+            },
+            "then": {
+              "properties": {
+                "reasonCode": { "type": "string", "minLength": 1 }
+              },
+              "required": ["reasonCode"]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

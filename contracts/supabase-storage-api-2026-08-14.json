@@ -1,0 +1,32 @@
+{
+  "source": "https://supabase.github.io/storage/api.json",
+  "retrievedAt": "2026-08-14T00:37:00.000+02:00",
+  "title": "Supabase Storage API",
+  "version": "0.0.0",
+  "bytes": 97161,
+  "sha256": "fb46458a9e367dbbed68785e7ba6965bab329e9486f1969f36a124b9c662241c",
+  "validatedOperations": [
+    {
+      "method": "HEAD",
+      "path": "/bucket",
+      "success": [200],
+      "pagination": ["limit", "offset", "sortColumn", "sortOrder"]
+    },
+    {
+      "method": "POST",
+      "path": "/object/list/{bucketName}",
+      "success": [200],
+      "pagination": ["prefix", "limit", "offset", "sortBy"]
+    },
+    {
+      "method": "GET",
+      "path": "/object/{bucketName}/{*}",
+      "semantics": "authenticated original object bytes"
+    },
+    {
+      "method": "GET",
+      "path": "/object/info/{bucketName}/{*}",
+      "semantics": "authenticated object metadata"
+    }
+  ]
+}

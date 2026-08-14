@@ -1,0 +1,318 @@
+version: 1
+product: pgdumpster
+scope: hosted_supabase_project
+
+status_values:
+  - backed_up
+  - not_configured
+  - not_applicable
+  - not_exportable
+  - failed
+
+# This is the canonical top-level component registry.
+# Adapters may attach child records (for individual extensions, buckets,
+# functions, keys, etc.), but every top-level component below MUST receive
+# exactly one terminal status in every backup.
+components:
+  # PostgreSQL logical state
+  - id: database.roles
+    class: database
+    required: true
+    sensitivity: sensitive
+    restore_policy: psql
+  - id: database.schema
+    class: database
+    required: true
+    sensitivity: sensitive
+    restore_policy: psql
+  - id: database.data
+    class: database
+    required: true
+    sensitivity: secret
+    restore_policy: psql
+  - id: database.migrations
+    class: database
+    required: true
+    sensitivity: internal
+    restore_policy: explicit_restore
+  - id: database.auth_storage_customizations
+    class: database
+    required: true
+    sensitivity: sensitive
+    restore_policy: explicit_delta_restore
+  - id: database.extensions
+    class: database
+    required: true
+    sensitivity: internal
+    restore_policy: enable_compatible_before_state
+  - id: database.extension_state
+    class: database
+    required: true
+    sensitivity: secret
+    restore_policy: per_extension_adapter
+    notes: "Captures persistent project/user state in extension-owned schemas excluded by the normal Supabase CLI dump."
+  - id: database.cron
+    class: database
+    required: true
+    sensitivity: sensitive
+    restore_policy: enable_pg_cron_then_restore_jobs
+  - id: database.queues
+    class: database
+    required: true
+    sensitivity: secret
+    restore_policy: enable_pgmq_then_restore_queues_messages_permissions
+  - id: database.webhooks
+    class: database
+    required: true
+    sensitivity: sensitive
+    restore_policy: enable_prerequisites_then_restore_triggers
+  - id: database.vault_data
+    class: database
+    required: true
+    sensitivity: secret
+    restore_policy: restore_after_root_key_prerequisite
+    exact_restore_may_be_impossible: true
+  - id: database.publications
+    class: database
+    required: true
+    sensitivity: internal
+    restore_policy: explicit_restore
+  - id: database.postgres_config
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: compare_or_apply
+  - id: database.pooler
+    class: control_plane
+    required: true
+    sensitivity: secret
+    restore_policy: compare_or_apply
+  - id: database.pgbouncer
+    class: control_plane
+    required: true
+    sensitivity: secret
+    restore_policy: capability_dependent
+  - id: database.ssl
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: late_apply
+  - id: database.backup_schedule
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: compare_or_apply
+  - id: database.vault_root_key
+    class: cryptographic
+    required: true
+    sensitivity: secret
+    restore_policy: apply_before_vault_database_state
+    never_log: true
+
+  # Auth
+  - id: auth.data
+    class: auth
+    required: true
+    sensitivity: secret
+    restore_policy: dedicated_auth_schema_restore
+  - id: auth.config
+    class: auth
+    required: true
+    sensitivity: sensitive
+    restore_policy: apply_after_database
+  - id: auth.sso
+    class: auth
+    required: true
+    sensitivity: secret
+    restore_policy: apply_after_database
+  - id: auth.tpa
+    class: auth
+    required: true
+    sensitivity: secret
+    restore_policy: apply_after_database
+  - id: auth.signing_keys
+    class: cryptographic
+    required: true
+    sensitivity: secret
+    restore_policy: recreate_when_possible
+    exact_restore_may_be_impossible: true
+  - id: auth.legacy_signing_key
+    class: cryptographic
+    required: true
+    sensitivity: secret
+    restore_policy: capability_dependent
+
+  # Project API keys
+  - id: api.modern_keys
+    class: cryptographic
+    required: true
+    sensitivity: secret
+    restore_policy: generate_replacements_and_rotation_map
+    exact_restore_may_be_impossible: true
+  - id: api.legacy_keys_state
+    class: cryptographic
+    required: true
+    sensitivity: secret
+    restore_policy: capability_dependent
+
+  # Edge
+  - id: edge.functions
+    class: edge
+    required: true
+    sensitivity: sensitive
+    restore_policy: deploy
+    notes: "Capture deployed representation plus metadata; do not claim this is the original source repository."
+  - id: edge.secrets
+    class: edge
+    required: true
+    sensitivity: secret
+    restore_policy: apply_before_function_deploy
+
+  # Storage
+  - id: storage.service_config
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: compare_or_apply
+  - id: storage.file_buckets
+    class: storage
+    required: true
+    sensitivity: sensitive
+    restore_policy: create_or_update
+  - id: storage.file_objects
+    class: storage
+    required: true
+    sensitivity: secret
+    restore_policy: streaming_upload
+  - id: storage.file_metadata
+    class: storage
+    required: true
+    sensitivity: sensitive
+    restore_policy: semantic_restore
+  - id: storage.vector_buckets
+    class: storage
+    required: true
+    sensitivity: sensitive
+    restore_policy: capability_detected
+  - id: storage.vector_indexes
+    class: storage
+    required: true
+    sensitivity: sensitive
+    restore_policy: capability_detected
+  - id: storage.vectors
+    class: storage
+    required: true
+    sensitivity: secret
+    restore_policy: capability_detected
+  - id: storage.analytics_catalog
+    class: storage
+    required: true
+    sensitivity: sensitive
+    restore_policy: capability_detected
+  - id: storage.analytics_data
+    class: storage
+    required: true
+    sensitivity: secret
+    restore_policy: capability_detected
+    notes: "If current Supabase APIs do not expose complete data export, report not_exportable."
+
+  # Runtime/API service configuration
+  - id: realtime.config
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: apply_after_database
+  - id: rest.postgrest_config
+    class: control_plane
+    required: true
+    sensitivity: secret
+    restore_policy: apply_after_database
+
+  # Domains/network
+  - id: domains.custom_hostname
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: manual_dns_then_apply
+  - id: domains.vanity_subdomain
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: capability_dependent
+  - id: network.restrictions
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: late_apply
+  - id: network.private_link
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: opt_in_billable
+
+  # Project/platform
+  - id: project.metadata
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: recreate_or_compare
+  - id: project.disk_autoscale
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: opt_in_billable
+  - id: project.addons
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: opt_in_billable
+  - id: project.read_replicas
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: opt_in_billable
+  - id: project.log_drains
+    class: control_plane
+    required: true
+    sensitivity: secret
+    restore_policy: late_apply
+  - id: project.jit_access
+    class: control_plane
+    required: true
+    sensitivity: sensitive
+    restore_policy: config_only
+  - id: project.branches
+    class: control_plane
+    required: true
+    sensitivity: internal
+    restore_policy: topology_inventory
+    notes: "Each branch with its own data is a separate backup source."
+
+  # Diagnostics intentionally inventoried, normally not restored
+  - id: diagnostics.readonly
+    class: diagnostics
+    required: true
+    sensitivity: internal
+    restore_policy: inventory_only
+  - id: diagnostics.health
+    class: diagnostics
+    required: true
+    sensitivity: internal
+    restore_policy: inventory_only
+
+  # External dependencies: only configured dependencies become platform limits.
+  - id: external.dns
+    class: external
+    required: true
+    sensitivity: internal
+    restore_policy: manual
+  - id: external.smtp_provider
+    class: external
+    required: true
+    sensitivity: secret
+    restore_policy: manual_external_resource
+  - id: external.oauth_provider
+    class: external
+    required: true
+    sensitivity: secret
+    restore_policy: manual_external_resource

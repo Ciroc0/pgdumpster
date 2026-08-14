@@ -1,0 +1,1212 @@
+{
+  "schemaVersion": 1,
+  "source": "https://api.supabase.com/api/v1-json",
+  "sourceBytes": 334072,
+  "sourceSha256": "846aef2b9188ae843d8f782cc7f7ee1bed9dde63ba0ff8fc511d9627c98ea751",
+  "retrievedAt": "2026-08-14T01:15:25.454Z",
+  "operations": {
+    "GET /v1/projects/{ref}": {
+      "operationId": "v1-get-project",
+      "summary": "Gets a specific project that belongs to the authenticated user",
+      "oauthScope": "projects:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1ProjectWithDatabaseResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to retrieve project"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/config/disk/autoscale": {
+      "operationId": "v1-get-project-disk-autoscale-config",
+      "summary": "Gets project disk autoscale config",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiskAutoscaleConfig"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to get project disk autoscale config"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/billing/addons": {
+      "operationId": "v1-list-project-addons",
+      "summary": "List billing addons and compute instance selections",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListProjectAddonsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to list project addons"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/jit-access": {
+      "operationId": "v1-get-jit-access-config",
+      "summary": "[Beta] Get project's temporary access configuration.",
+      "oauthScope": "database:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "enum": ["enabled", "disabled"]
+                      },
+                      "appliedSuccessfully": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["state"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "state": {
+                        "type": "string",
+                        "const": "unavailable"
+                      },
+                      "unavailableReason": {
+                        "type": "string",
+                        "enum": [
+                          "postgres_upgrade_required",
+                          "ssl_enforcement_required",
+                          "temporarily_unavailable"
+                        ]
+                      }
+                    },
+                    "required": ["state", "unavailableReason"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to retrieve project's temporary access configuration."
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/branches": {
+      "operationId": "v1-list-all-branches",
+      "summary": "List all database branches",
+      "oauthScope": "environment:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BranchResponse"
+                }
+              }
+            }
+          }
+        },
+        "500": {
+          "description": "Failed to retrieve database branches"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/health": {
+      "operationId": "v1-get-services-health",
+      "summary": "Gets project's service health status",
+      "oauthScope": "projects:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "services",
+          "required": true,
+          "in": "query",
+          "description": "Comma-separated list of enums or array of enums.",
+          "schema": {
+            "example": ["auth,db", "auth"],
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Comma-separated list of enums:\n\n- `auth`\n- `db`\n- `db_postgres_user`\n- `pooler`\n- `realtime`\n- `rest`\n- `storage`\n- `pg_bouncer`",
+                "example": ["auth,db", "auth"]
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "auth",
+                    "db",
+                    "db_postgres_user",
+                    "pooler",
+                    "realtime",
+                    "rest",
+                    "storage",
+                    "pg_bouncer"
+                  ]
+                },
+                "description": "Array of enums.",
+                "example": ["{field}=auth&{field}=db", "{field}=auth"]
+              }
+            ]
+          }
+        },
+        {
+          "name": "timeout_ms",
+          "required": false,
+          "in": "query",
+          "schema": {
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 2000,
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/V1ServiceHealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        },
+        "500": {
+          "description": "Failed to retrieve project's service health status"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/advisors/performance": {
+      "operationId": "v1-get-performance-advisors",
+      "summary": "Gets project performance advisors.",
+      "oauthScope": "database:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1ProjectAdvisorsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    },
+    "GET /v1/projects/{ref}/advisors/security": {
+      "operationId": "v1-get-security-advisors",
+      "summary": "Gets project security advisors.",
+      "oauthScope": "database:read",
+      "parameters": [
+        {
+          "name": "ref",
+          "required": true,
+          "in": "path",
+          "description": "Project ref",
+          "schema": {
+            "minLength": 20,
+            "maxLength": 20,
+            "pattern": "^[a-z]+$",
+            "example": "abcdefghijklmnopqrst",
+            "type": "string"
+          }
+        },
+        {
+          "name": "lint_type",
+          "required": false,
+          "in": "query",
+          "schema": {
+            "example": "sql",
+            "type": "string",
+            "enum": ["sql"]
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/V1ProjectAdvisorsResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      }
+    }
+  },
+  "responseSchemas": {
+    "GET /v1/projects/{ref}": {
+      "$ref": "#/components/schemas/V1ProjectWithDatabaseResponse"
+    },
+    "GET /v1/projects/{ref}/config/disk/autoscale": {
+      "$ref": "#/components/schemas/DiskAutoscaleConfig"
+    },
+    "GET /v1/projects/{ref}/billing/addons": {
+      "$ref": "#/components/schemas/ListProjectAddonsResponse"
+    },
+    "GET /v1/projects/{ref}/jit-access": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": ["enabled", "disabled"]
+            },
+            "appliedSuccessfully": {
+              "type": "boolean"
+            }
+          },
+          "required": ["state"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "const": "unavailable"
+            },
+            "unavailableReason": {
+              "type": "string",
+              "enum": [
+                "postgres_upgrade_required",
+                "ssl_enforcement_required",
+                "temporarily_unavailable"
+              ]
+            }
+          },
+          "required": ["state", "unavailableReason"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "GET /v1/projects/{ref}/branches": {
+      "type": "array",
+      "items": {
+        "$ref": "#/components/schemas/BranchResponse"
+      }
+    },
+    "GET /v1/projects/{ref}/health": {
+      "type": "array",
+      "items": {
+        "$ref": "#/components/schemas/V1ServiceHealthResponse"
+      }
+    },
+    "GET /v1/projects/{ref}/advisors/performance": {
+      "$ref": "#/components/schemas/V1ProjectAdvisorsResponse"
+    },
+    "GET /v1/projects/{ref}/advisors/security": {
+      "$ref": "#/components/schemas/V1ProjectAdvisorsResponse"
+    }
+  },
+  "schemas": {
+    "V1ProjectWithDatabaseResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "deprecated": true,
+          "description": "Deprecated: Use `ref` instead."
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 20,
+          "pattern": "^[a-z]+$",
+          "description": "Project ref",
+          "example": "abcdefghijklmnopqrst"
+        },
+        "organization_id": {
+          "type": "string",
+          "description": "Deprecated: Use `organization_slug` instead.",
+          "deprecated": true
+        },
+        "organization_slug": {
+          "type": "string",
+          "pattern": "^[\\w-]+$",
+          "description": "Organization slug",
+          "example": "tsrqponmlkjihgfedcba"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of your project"
+        },
+        "region": {
+          "type": "string",
+          "description": "Region of your project"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "INACTIVE",
+            "ACTIVE_HEALTHY",
+            "ACTIVE_UNHEALTHY",
+            "COMING_UP",
+            "UNKNOWN",
+            "GOING_DOWN",
+            "INIT_FAILED",
+            "REMOVED",
+            "RESTORING",
+            "UPGRADING",
+            "PAUSING",
+            "RESTORE_FAILED",
+            "RESTARTING",
+            "PAUSE_FAILED",
+            "RESIZING"
+          ]
+        },
+        "database": {
+          "type": "object",
+          "properties": {
+            "host": {
+              "type": "string",
+              "description": "Database host"
+            },
+            "version": {
+              "type": "string",
+              "description": "Database version"
+            },
+            "postgres_engine": {
+              "type": "string",
+              "description": "Database engine"
+            },
+            "release_channel": {
+              "type": "string",
+              "description": "Release channel"
+            }
+          },
+          "required": ["host", "version", "postgres_engine", "release_channel"]
+        }
+      },
+      "required": [
+        "id",
+        "ref",
+        "organization_id",
+        "organization_slug",
+        "name",
+        "region",
+        "created_at",
+        "status",
+        "database"
+      ]
+    },
+    "DiskAutoscaleConfig": {
+      "type": "object",
+      "properties": {
+        "growth_percent": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Growth percentage for disk autoscaling",
+          "nullable": true
+        },
+        "min_increment_gb": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Minimum increment size for disk autoscaling in GB",
+          "nullable": true
+        },
+        "max_size_gb": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Maximum limit the disk size will grow to in GB",
+          "nullable": true
+        }
+      },
+      "required": ["growth_percent", "min_increment_gb", "max_size_gb"]
+    },
+    "ListProjectAddonsResponse": {
+      "type": "object",
+      "properties": {
+        "selected_addons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "custom_domain",
+                  "compute_instance",
+                  "pitr",
+                  "ipv4",
+                  "auth_mfa_phone",
+                  "auth_mfa_web_authn",
+                  "log_drain",
+                  "etl_pipeline"
+                ]
+              },
+              "variant": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "ci_micro",
+                          "ci_small",
+                          "ci_medium",
+                          "ci_large",
+                          "ci_xlarge",
+                          "ci_2xlarge",
+                          "ci_4xlarge",
+                          "ci_8xlarge",
+                          "ci_12xlarge",
+                          "ci_16xlarge",
+                          "ci_24xlarge",
+                          "ci_24xlarge_optimized_cpu",
+                          "ci_24xlarge_optimized_memory",
+                          "ci_24xlarge_high_memory",
+                          "ci_48xlarge",
+                          "ci_48xlarge_optimized_cpu",
+                          "ci_48xlarge_optimized_memory",
+                          "ci_48xlarge_high_memory"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["cd_default"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["pitr_7", "pitr_14", "pitr_28"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["ipv4_default"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["auth_mfa_phone_default"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["auth_mfa_web_authn_default"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["log_drain_default"]
+                      },
+                      {
+                        "type": "string",
+                        "enum": ["etl_pipeline_default"]
+                      }
+                    ]
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "object",
+                    "properties": {
+                      "description": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": ["fixed", "usage"]
+                      },
+                      "interval": {
+                        "type": "string",
+                        "enum": ["monthly", "hourly"]
+                      },
+                      "amount": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["description", "type", "interval", "amount"]
+                  },
+                  "meta": {
+                    "$ref": "#/components/schemas/ListProjectAddonsResponseJsonValue"
+                  }
+                },
+                "required": ["id", "name", "price"]
+              }
+            },
+            "required": ["type", "variant"]
+          }
+        },
+        "available_addons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "custom_domain",
+                  "compute_instance",
+                  "pitr",
+                  "ipv4",
+                  "auth_mfa_phone",
+                  "auth_mfa_web_authn",
+                  "log_drain",
+                  "etl_pipeline"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "variants": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "ci_micro",
+                            "ci_small",
+                            "ci_medium",
+                            "ci_large",
+                            "ci_xlarge",
+                            "ci_2xlarge",
+                            "ci_4xlarge",
+                            "ci_8xlarge",
+                            "ci_12xlarge",
+                            "ci_16xlarge",
+                            "ci_24xlarge",
+                            "ci_24xlarge_optimized_cpu",
+                            "ci_24xlarge_optimized_memory",
+                            "ci_24xlarge_high_memory",
+                            "ci_48xlarge",
+                            "ci_48xlarge_optimized_cpu",
+                            "ci_48xlarge_optimized_memory",
+                            "ci_48xlarge_high_memory"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["cd_default"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["pitr_7", "pitr_14", "pitr_28"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["ipv4_default"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["auth_mfa_phone_default"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["auth_mfa_web_authn_default"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["log_drain_default"]
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["etl_pipeline_default"]
+                        }
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "object",
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": ["fixed", "usage"]
+                        },
+                        "interval": {
+                          "type": "string",
+                          "enum": ["monthly", "hourly"]
+                        },
+                        "amount": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["description", "type", "interval", "amount"]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ListProjectAddonsResponseJsonValue"
+                    }
+                  },
+                  "required": ["id", "name", "price"]
+                }
+              }
+            },
+            "required": ["type", "name", "variants"]
+          }
+        }
+      },
+      "required": ["selected_addons", "available_addons"]
+    },
+    "BranchResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "project_ref": {
+          "type": "string"
+        },
+        "parent_project_ref": {
+          "type": "string"
+        },
+        "is_default": {
+          "type": "boolean"
+        },
+        "git_branch": {
+          "type": "string"
+        },
+        "pr_number": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "latest_check_run_id": {
+          "description": "This field is deprecated and will not be populated.",
+          "deprecated": true,
+          "type": "number"
+        },
+        "persistent": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "CREATING_PROJECT",
+            "RUNNING_MIGRATIONS",
+            "MIGRATIONS_PASSED",
+            "MIGRATIONS_FAILED",
+            "FUNCTIONS_DEPLOYED",
+            "FUNCTIONS_FAILED"
+          ],
+          "description": "This field is deprecated. List action runs to get branch status instead.",
+          "deprecated": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "review_requested_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "with_data": {
+          "type": "boolean"
+        },
+        "notify_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "deletion_scheduled_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "preview_project_status": {
+          "type": "string",
+          "enum": [
+            "INACTIVE",
+            "ACTIVE_HEALTHY",
+            "ACTIVE_UNHEALTHY",
+            "COMING_UP",
+            "UNKNOWN",
+            "GOING_DOWN",
+            "INIT_FAILED",
+            "REMOVED",
+            "RESTORING",
+            "UPGRADING",
+            "PAUSING",
+            "RESTORE_FAILED",
+            "RESTARTING",
+            "PAUSE_FAILED",
+            "RESIZING"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "project_ref",
+        "parent_project_ref",
+        "is_default",
+        "persistent",
+        "status",
+        "created_at",
+        "updated_at",
+        "with_data"
+      ]
+    },
+    "V1ServiceHealthResponse": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "enum": [
+            "auth",
+            "db",
+            "db_postgres_user",
+            "pooler",
+            "realtime",
+            "rest",
+            "storage",
+            "pg_bouncer"
+          ]
+        },
+        "healthy": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "Deprecated. Use `status` instead."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["COMING_UP", "ACTIVE_HEALTHY", "UNHEALTHY"]
+        },
+        "info": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "enum": ["GoTrue"]
+                },
+                "version": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["name", "version", "description"]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "healthy": {
+                  "type": "boolean",
+                  "deprecated": true,
+                  "description": "Deprecated. Use `status` instead."
+                },
+                "db_connected": {
+                  "type": "boolean"
+                },
+                "replication_connected": {
+                  "type": "boolean"
+                },
+                "connected_cluster": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "healthy",
+                "db_connected",
+                "replication_connected",
+                "connected_cluster"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "db_schema": {
+                  "type": "string"
+                }
+              },
+              "required": ["db_schema"]
+            }
+          ]
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "healthy", "status"]
+    },
+    "V1ProjectAdvisorsResponse": {
+      "type": "object",
+      "properties": {
+        "lints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "enum": [
+                  "unindexed_foreign_keys",
+                  "auth_users_exposed",
+                  "auth_rls_initplan",
+                  "no_primary_key",
+                  "unused_index",
+                  "multiple_permissive_policies",
+                  "policy_exists_rls_disabled",
+                  "rls_enabled_no_policy",
+                  "duplicate_index",
+                  "security_definer_view",
+                  "function_search_path_mutable",
+                  "rls_disabled_in_public",
+                  "extension_in_public",
+                  "rls_references_user_metadata",
+                  "materialized_view_in_api",
+                  "foreign_table_in_api",
+                  "unsupported_reg_types",
+                  "auth_otp_long_expiry",
+                  "auth_otp_short_length",
+                  "ssl_not_enforced",
+                  "network_restrictions_not_set",
+                  "password_requirements_min_length",
+                  "pitr_not_enabled",
+                  "auth_leaked_password_protection",
+                  "auth_insufficient_mfa_options",
+                  "auth_password_policy_missing",
+                  "leaked_service_key",
+                  "no_backup_admin",
+                  "vulnerable_postgres_version"
+                ],
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "level": {
+                "type": "string",
+                "enum": ["ERROR", "WARN", "INFO"]
+              },
+              "facing": {
+                "type": "string",
+                "enum": ["EXTERNAL"]
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["PERFORMANCE", "SECURITY"]
+                }
+              },
+              "description": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "string"
+              },
+              "remediation": {
+                "type": "string"
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "schema": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "entity": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "table",
+                      "view",
+                      "auth",
+                      "function",
+                      "extension",
+                      "compliance"
+                    ]
+                  },
+                  "fkey_name": {
+                    "type": "string"
+                  },
+                  "fkey_columns": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "cache_key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "title",
+              "level",
+              "facing",
+              "categories",
+              "description",
+              "detail",
+              "remediation",
+              "cache_key"
+            ]
+          }
+        }
+      },
+      "required": ["lints"]
+    },
+    "ListProjectAddonsResponseJsonValue": {
+      "description": "Any JSON-serializable value",
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "nullable": true
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/ListProjectAddonsResponseJsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/components/schemas/ListProjectAddonsResponseJsonValue"
+          }
+        }
+      ]
+    }
+  }
+}

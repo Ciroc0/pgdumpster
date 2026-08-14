@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pgdumpster:schema:manifest:1.0.0",
+  "title": "pgDumpster Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formatVersion",
+    "tool",
+    "operation",
+    "source",
+    "result",
+    "coverageFile",
+    "checksumFile",
+    "checksumFileSha256",
+    "components",
+    "statistics"
+  ],
+  "properties": {
+    "formatVersion": { "const": "1.0.0" },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "pgdumpster" },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "startedAt", "completedAt"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projectRef"],
+      "properties": {
+        "projectRef": { "type": "string", "pattern": "^[a-z0-9]{20}$" },
+        "projectName": { "type": "string", "minLength": 1 },
+        "region": { "type": "string", "minLength": 1 }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "consistency"],
+      "properties": {
+        "status": {
+          "enum": ["complete", "complete_with_platform_limits", "failed"]
+        },
+        "consistency": {
+          "enum": ["verified", "best_effort", "quiesced", "drift_detected"]
+        }
+      }
+    },
+    "coverageFile": { "const": "coverage.json" },
+    "checksumFile": { "const": "checksums.sha256" },
+    "checksumFileSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "status": {
+            "enum": [
+              "backed_up",
+              "not_configured",
+              "not_applicable",
+              "not_exportable",
+              "failed"
+            ]
+          }
+        }
+      }
+    },
+    "statistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "bytes"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

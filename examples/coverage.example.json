@@ -1,0 +1,25 @@
+{
+  "formatVersion": "1.0.0",
+  "components": [
+    {
+      "id": "database.schema",
+      "status": "backed_up",
+      "sensitivity": "sensitive",
+      "artifacts": ["database/schema.sql"],
+      "sourceContract": {
+        "kind": "database"
+      }
+    },
+    {
+      "id": "auth.signing_keys",
+      "status": "not_exportable",
+      "reasonCode": "SUPABASE_PRIVATE_SIGNING_MATERIAL_NOT_EXPOSED",
+      "message": "Example only: exact reason must be established from the current source API.",
+      "sensitivity": "secret",
+      "artifacts": ["auth/signing-keys.json"],
+      "sourceContract": {
+        "kind": "management-api"
+      }
+    }
+  ]
+}
