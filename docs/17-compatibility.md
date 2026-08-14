@@ -2,117 +2,87 @@
 
 ## Purpose
 
-Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster publishes what it has actually tested.
+Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster documents separately what is **supported by policy**, what is **currently exercised by CI**, and what still requires full hosted E2E evidence.
 
-The implementation must replace placeholders below with concrete tested ranges before first release.
+Status snapshot: **2026-08-15**.
 
 ## Runtime matrix
 
-| Component         | Supported                                   | Tested                          | Notes                             |
-| ----------------- | ------------------------------------------- | ------------------------------- | --------------------------------- |
-| Node.js           | `>=22.15.0 <23` or `>=24 <25`               | `24.16.0` locally               | Full CI matrix remains a gate     |
-| Supabase CLI      | `>=2.111.0 <3.0.0`                          | `2.111.0` live managed E2E      | Pinned/validated dump behavior    |
-| Hosted Supabase   | Current pinned Platform API contracts       | `2026-08-14` live validation    | Contract drift checked            |
-| PostgreSQL target | Supabase-managed PostgreSQL 17 at this gate | `17.6` source and target        | Cross-version rules remain a gate |
-| Linux             | Intended first-class support                | `TBD CI runner`                 | Required before release           |
-| macOS             | Intended first-class support                | `TBD CI runner`                 | Required before release           |
-| Windows           | First-class support                         | Windows 11 / Docker Desktop E2E | Hosted CI remains a release gate  |
+| Component | Supported / pinned policy | Current evidence | Release status |
+| --- | --- | --- | --- |
+| Node.js | `>=22.15.0 <23` or `>=24 <25` | GitHub CI exercises Node 22 and 24 | ordinary CI green |
+| pnpm | repository `packageManager` pin | frozen-lockfile installs in CI | green |
+| Supabase CLI | `>=2.111.0 <3.0.0`; development dependency pinned to `2.111.0` | fixture/CLI behavior validated; dedicated live observations also exist for newer 2.x behavior | full hosted recovery E2E pending |
+| Hosted Supabase | dated official Management API/CLI/product contracts | endpoint-specific fixture/live observations exist | full source→target parity pending |
+| PostgreSQL | Supabase-managed target compatible with captured logical state | database backup/restore primitives tested; dedicated hosted projects are PostgreSQL 17 generation | full source→target parity pending |
+| Ubuntu | first-class | GitHub-hosted CI, Node 22 + 24 | green on current checkpoint |
+| macOS | first-class | GitHub-hosted CI, Node 22 + 24 | green on current checkpoint |
+| Windows | first-class | GitHub-hosted CI, Node 22 + 24; development also exercises Windows/Docker Desktop | green on current checkpoint |
+| `age` | standard age format is the target | tooling can be detected by `doctor` | CLI encryption path not implemented yet |
+| S3-compatible destination | target requirement | AWS SDK dependencies/interface groundwork exists | publication/recovery path not implemented yet |
 
-A release must not ship with `TBD` in this matrix.
+The OS matrix proves the exercised CLI/config/filesystem/archive behavior on the hosted runners; it does not substitute for the platform-independent hosted Supabase recovery E2E.
 
-## Management API contract
+## Management API contracts
 
-Each release records:
+The repository stores dated contract snapshots and runtime validators for the Management API surfaces used by adapters. Additive unknown fields are tolerated where the contract permits them; missing/changed fields required for correct semantics fail closed.
 
-```text
-Management API validation date:
-OpenAPI/reference revision if identifiable:
-Live project test date:
-```
+Each release must record the contract validation date/revision and re-run drift checks for changed dependencies.
 
-Adapters are tolerant of additive unknown fields but fail on missing/changed fields that are required for correct backup semantics.
+## Live-validation language
+
+Use these terms precisely:
+
+- **fixture-tested**: behavior is covered by deterministic local fixtures/mocks;
+- **live-observed**: a specific endpoint/CLI behavior was observed against a dedicated hosted test project;
+- **live-E2E validated**: the complete source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure passed.
+
+The repository currently has fixture-tested and selected live-observed surfaces. It must **not** describe the overall product as live-E2E validated yet.
 
 ## Bundle compatibility
 
-Manifest contains:
+The writer emits the current bundle schema only. Readers reject unsupported security-sensitive schema changes rather than guessing.
 
-```json
-{
-  "format": "pgdumpster",
-  "formatVersion": "1.0.0"
-}
-```
-
-Policy:
-
-- current reader supports the current format major/version contract;
-- previous supported schemas are explicitly documented;
-- writer emits current schema only;
-- unsupported newer schema fails with clear message;
-- no best-effort reinterpretation of unknown security-sensitive fields.
+Current format contract is `1.0.0` in the manifest/coverage schema family used by the implementation.
 
 ## Source-to-target compatibility
 
-Restore planner checks:
+The restore planner/executor must account for:
 
-- target Postgres compatibility;
+- target PostgreSQL compatibility;
 - extension availability;
-- service/API feature availability;
-- Storage type support;
+- service/API capabilities;
+- Storage product support;
 - plan/region constraints;
-- known unsupported cross-version transitions.
+- platform-generated substitutions such as replacement API keys;
+- known non-exportable state.
 
-When exact restore is impossible:
-
-- fail if required exportable state cannot be applied;
-- classify platform-generated substitutions explicitly where expected;
-- never silently omit.
+Exact restore must never be claimed when the platform prevents exact export/import.
 
 ## Self-hosted Supabase
 
-Full project backup mode is scoped to **hosted Supabase Platform** because Management API/control-plane configuration has no one-to-one self-hosted equivalent.
+Full-project mode is scoped to **hosted Supabase Platform** because the hosted Management API/control-plane does not have a one-to-one self-hosted equivalent.
 
 Do not advertise self-hosted full-project compatibility.
 
-A future separate data-only/self-hosted mode would need its own explicit product contract and is not part of the current acceptance criteria.
-
 ## Supabase branches
 
-A branch/environment with independent data is treated as its own backup source. Parent branch metadata can inventory topology, but one backup does not imply all branch databases/data were captured.
+A branch/environment with independent data is a separate backup source. Parent branch metadata may inventory topology, but one project backup does not imply child branch data was captured.
 
 ## Storage feature compatibility
 
-Adapters are separated by Storage product type:
+File, Vector and Analytics Storage are separate coverage surfaces. Metadata-only coverage can never be promoted to complete data backup.
 
-- File;
-- Vector;
-- Analytics.
+## Encryption and S3
 
-A release may support a feature as `not_applicable` or `not_exportable` when the active platform cannot expose a complete data path. That limitation must be visible in coverage and release notes.
-
-## Encryption compatibility
-
-Use the standard `age` format/tooling rather than a project-specific cipher.
-
-Document the tested `age` implementation/version when release packaging is finalized.
-
-## S3 compatibility
-
-Test at least:
-
-- AWS S3 or a standards-compatible reference;
-- one non-AWS S3-compatible target if practical.
-
-Document endpoint quirks; do not hard-code AWS-only assumptions into the destination interface.
+Standard `age` and S3-compatible publication remain binding release requirements, but their current CLI paths are deliberately blocked until implementation/test evidence exists. Documentation and release notes must not imply they are usable before those gates pass.
 
 ## Deprecation
 
 When Supabase deprecates an endpoint:
 
-1. add replacement adapter;
+1. add/validate the replacement adapter;
 2. support overlap when practical;
 3. capability-detect old/new;
 4. preserve bundle semantics;
-5. remove old path only in a release whose compatibility notes make the break clear.
-
-Legacy Supabase key endpoints must be treated this way rather than assumed permanent.
+5. remove the old path only with explicit compatibility notes.

@@ -2,347 +2,175 @@
 
 ## Principle
 
-A backup is not considered professionally useful until its restore path has been implemented and tested.
+A backup is not professionally useful until its restore path has been implemented and proven. Restore targets a **different hosted Supabase project** by default. Standard restore refuses source==target.
 
-Restore targets a **different hosted Supabase project** by default. Restoring into the source project is refused unless a future explicitly designed in-place recovery mode can prove safety.
+## Current implementation status
+
+As of 2026-08-15:
+
+- bundle verification precedes restore planning;
+- deterministic restore-plan generation exists;
+- restore checkpoints and a resumable executor exist in core modules;
+- database, control-plane, publication and Vault root-key handlers exist with semantic verification behavior;
+- conflict and billable-resource policy are represented in the plan;
+- the CLI exposes `--dry-run`;
+- CLI `--apply` is intentionally blocked with `RESTORE_APPLY_NOT_IMPLEMENTED` until target preflight, all required handlers/substitutions, final parity reporting and hosted source-to-target validation are complete.
+
+The remaining sections describe the **binding target restore contract**. They are not a claim that `--apply` is currently usable.
 
 ## Commands
+
+Current/target syntax uses an environment-variable name for the database URL so the secret itself is not placed on the command line.
 
 Dry run:
 
 ```bash
 pgdumpster restore ./pgdumpster-<UTC>.tar.zst \
-  --target-project-ref targetref \
-  --target-db-url "$TARGET_DB_URL" \
+  --target-project-ref <target-ref> \
+  --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
   --dry-run
 ```
 
-Apply:
+Target apply form:
 
 ```bash
 pgdumpster restore ./pgdumpster-<UTC>.tar.zst \
-  --target-project-ref targetref \
-  --target-db-url "$TARGET_DB_URL" \
+  --target-project-ref <target-ref> \
+  --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
   --apply
 ```
 
-The CLI must not infer `--apply` from an interactive confirmation. Destructive mutation requires an explicit flag.
+Mutation may never be inferred from an interactive confirmation; explicit `--apply` remains mandatory.
 
-## Preconditions
+## Preconditions before mutation
 
-Before mutation:
-
-1. verify bundle integrity;
-2. verify manifest/coverage schema;
-3. decrypt sensitive payload in-memory/temporary protected workspace;
-4. run `doctor` against target;
-5. ensure source project ref != target project ref;
-6. identify incompatible target state;
-7. calculate exact restore plan;
-8. show non-restorable/manual actions;
-9. detect billable operations;
-10. write a dry-run report.
+1. verify archive/bundle integrity and schemas;
+2. decrypt/protect sensitive payload workspace when encrypted bundles are supported;
+3. run target preflight/doctor-equivalent capability checks;
+4. reject source==target;
+5. identify incompatible target state;
+6. calculate the exact deterministic restore graph;
+7. show non-restorable/manual actions and platform substitutions;
+8. identify billable operations;
+9. persist the plan/checkpoint before mutation.
 
 Default conflict policy is `fail`.
 
-## Restore plan
+## Restore action graph
 
-The plan is deterministic and represented as machine-readable JSON.
+Every action records an id, component, phase, operation, risk, billable flag, dependencies, source status, restore policy, fidelity and artifact references. The executor validates adapters/dependencies/cycles before mutation and verifies completed work when resuming.
 
-Each action includes:
+## Required ordering
 
-```json
-{
-  "id": "storage.bucket.create:avatars",
-  "component": "storage.file_buckets",
-  "operation": "create",
-  "risk": "mutation",
-  "billable": false,
-  "dependsOn": [],
-  "status": "planned"
-}
-```
+### 1. Target discovery and compatibility
 
-The executor is a dependency graph, not a pile of sequential shell commands.
+Check target project/API/database/extension/plan capabilities and credentials. Do not mutate on incompatible prerequisites.
 
-## Required restore ordering
+### 2. Prerequisite extensions and service/database state
 
-### Phase 1 — target discovery and compatibility
+Enable compatible required target features/extensions before dependent SQL. Do not blindly copy extension-owned schemas or create billable infrastructure.
 
-- project metadata;
-- target region/Postgres compatibility;
-- target extension availability;
-- target API capabilities;
-- target plan limitations;
-- restore credential permissions.
+### 3. Vault root key
 
-Do not mutate on incompatible prerequisites.
+When required, apply the backed-up root key before dependent Vault ciphertext. Replacement is refused when target Vault emptiness cannot be proven. Secret values never belong in logs/output.
 
-### Phase 2 — prerequisite extensions and service/database state
+### 4. Database roles
 
-Inventory the source extension set and enable compatible required target extensions/features before dependent SQL is applied.
+Restore role definitions with explicit handling for password material that the source dump cannot reproduce exactly.
 
-At minimum, plan explicit prerequisites for:
+### 5. Database schema
 
-- Auth-managed schema behavior;
-- Database Webhooks / `pg_net` as required;
-- `pg_cron`;
-- `pgmq`;
-- Vault/pgsodium or its current platform successor;
-- any other installed extension with backed-up persistent state.
+Apply schema with strict failure behavior (`ON_ERROR_STOP` or equivalent supported mechanism) and sanitized errors.
 
-Do not copy an extension-owned schema blindly before the extension exists. Do not enable expensive/billable resources automatically.
+### 6. Database user data
 
-### Phase 3 — Vault/pgsodium root key
+Restore normal application data without bulldozing target-managed platform state.
 
-If the backup contains a Vault/pgsodium root key, apply it **before restoring database state whose encrypted values depend on it**.
+### 7. Auth and persistent extension data
 
-Rules:
+Restore dedicated `auth.data`, Vault ciphertext, Cron, Queues, Database Webhooks and other captured persistent extension state through their supported semantics and prerequisites.
 
-- no logging;
-- no stdout;
-- no debug serialization;
-- target confirmation through a non-secret fingerprint only.
+### 8. Migration history and managed-schema customizations
 
-A missing required root key is a hard restore blocker unless the user explicitly elects a documented partial restore mode; full restore remains incomplete.
+Restore only the project-owned/custom deltas captured separately from platform-managed objects.
 
-### Phase 4 — database roles
+### 9. Realtime publication state
 
-Restore `roles.sql`.
+Restore/verify publication and table membership after database state exists.
 
-Known limitation: custom LOGIN role passwords are not reliably represented by the normal dump workflow. Emit a required manual/rotation action for any such role rather than fabricating a password.
+### 10. Storage service and File buckets
 
-### Phase 5 — database schema
+Restore service/bucket configuration with deterministic conflict handling. Never silently alter public/private, MIME or size-limit semantics.
 
-Restore schema using `psql`/Supabase-supported workflow with strict failure behavior:
+### 11. File Storage objects
 
-- `ON_ERROR_STOP=1`;
-- single transaction where compatible;
-- capture sanitized errors;
-- do not continue after schema failure.
+Stream-upload every logical `(bucket,key)`, preserve supported metadata, verify source checksum before upload and target parity afterward.
 
-### Phase 6 — database user data
+### 12. Vector / Analytics
 
-Restore normal user/application data with the documented trigger/replication handling needed for logical migration.
+Restore only where a complete documented/exportable path exists. Source `not_exportable` remains a visible platform limitation.
 
-The implementation must test whether current target-managed Supabase schemas need exclusions/special handling. It may not bulldoze platform-managed state blindly.
+### 13. Edge secrets
 
-### Phase 7 — Auth and persistent extension data
+Restore supported secret values/substitutions before dependent functions and never print them.
 
-Restore dedicated database components using adapter-specific semantics:
+### 14. Edge Functions
 
-- `auth.data` including users/hashed passwords and required Auth records;
-- `database.vault_data` after the source Vault root key is in place;
-- `database.cron` jobs after `pg_cron` exists;
-- `database.queues` queues/messages/archive/permissions after `pgmq` exists;
-- `database.webhooks` after required webhook/`pg_net` support exists;
-- `database.extension_state` for every other installed extension whose persistent state was captured.
+Deploy captured deployable representation/configuration and verify target inventory. Do not claim recovery of original Git repository artifacts that the platform did not expose.
 
-Do not restore historical/ephemeral extension runtime tables as if they were required application state unless the adapter explicitly defines that behavior.
+### 15. Auth configuration
 
-### Phase 8 — migration history and managed-schema customizations
+Apply supported service config/SSO/TPA settings. External OAuth/SMTP/provider-side resources remain manual actions.
 
-Restore:
+### 16. Signing state
 
-- Supabase migration history where appropriate;
-- project-specific changes made to managed `auth` / `storage` schemas;
-- custom functions/triggers/policies not recreated by the standard dump path.
+Recreate only what the platform permits. Non-exportable private material means exact cryptographic/session continuity cannot be claimed.
 
-The backup engine must have distinguished user customizations from platform-owned objects so restore can apply only safe deltas.
+### 17. API keys
 
-### Phase 9 — Realtime publication state
+Where target APIs generate replacement secrets, create equivalent definitions and produce a **protected** source-to-target rotation mapping. Exact secret equality is not a success condition when import is impossible.
 
-Recreate/activate the publication/table state required for Realtime after database restore.
+### 18. Realtime/PostgREST/Storage control plane
 
-Verify expected publications and replicated tables.
+Apply writable service configuration and verify normalized semantic equivalence.
 
-### Phase 10 — Storage service and File buckets
+### 19. Networking/domains/private connectivity
 
-Restore Storage configuration and create/update File buckets.
+Apply late to avoid locking the restore process out. External DNS prerequisites are manual actions.
 
-Conflict policy:
+### 20. Billable resources
 
-- `fail` by default if a semantically incompatible bucket already exists;
-- `replace` only when adapter explicitly implements safe replacement;
-- never silently change public/private status, limits or MIME restrictions.
+Potentially chargeable resources require explicit `--allow-billable-resources`; otherwise they remain planned/blocked by policy rather than being created silently.
 
-### Phase 11 — File Storage objects
+### 21. Semantic parity
 
-Upload every object by its original logical `(bucket,key)`.
+A restore is not successful because requests returned 2xx. Compare backed-up intent with target database, Storage, Edge, Auth/service config, project/network config, substitutions and explicit platform limits.
 
-Restore metadata including content type/cache control where supported.
+Target protected/report outputs include the deterministic plan, result, parity report, manual actions and protected rotation map.
 
-Rules:
+## Conflict policy
 
-- streaming upload;
-- bounded concurrency;
-- safe retry;
-- source backup checksum verified before upload;
-- destination verification after upload;
-- deterministic conflict behavior.
+Supported top-level policies:
 
-After upload, enumerate target and compare:
+- `fail` — default;
+- `replace` — only for adapters with explicit safe/tested replacement semantics.
 
-- object count;
-- keys;
-- sizes;
-- checksums or strongest available verification;
-- relevant metadata.
+There is no vague global merge mode.
 
-### Phase 12 — Vector/Analytics
+## Rollback model
 
-Restore only if the corresponding adapter has a documented, complete restore implementation for the active API.
+pgDumpster does not claim atomic rollback across PostgreSQL, Storage and Management APIs. The normal safety model is a fresh target, action/checkpoint logging, stop-on-hard-failure and deterministic resume/cleanup guidance. It does not automatically delete an existing target project.
 
-A source `not_exportable` component stays an explicit platform limitation. It can never be transformed into a green restore result.
+## Idempotency and resume
 
-### Phase 13 — Edge Function secrets
+Adapters compare before mutation where practical, tolerate exact existing state, fail on incompatible state and revalidate already completed actions when resuming. A completed checkpoint action must still semantically verify before it is trusted.
 
-Restore secrets before functions.
+## Restore result
 
-Never print values.
+A restore may be:
 
-### Phase 14 — Edge Functions
+- `restored` — all applicable restorable state semantically verified;
+- `restored_with_platform_limits` — all possible work succeeded with explicit source/platform limitations or substitutions;
+- `failed` — a required possible operation/parity check failed.
 
-Deploy all captured deployable function artifacts and configuration.
-
-Verify target function inventory and configuration.
-
-Any source-side artifact known not to be exportable from deployed functions remains an action item in the restore report.
-
-### Phase 15 — Auth configuration
-
-Apply:
-
-- Auth service configuration;
-- URLs/redirect configuration;
-- supported provider configuration;
-- SSO;
-- third-party auth integrations.
-
-External provider-side objects are not created by pgDumpster. Required DNS/provider console actions are included in `manual-actions.json`.
-
-### Phase 16 — signing keys
-
-Restore/recreate signing-key state only to the extent allowed by current Supabase APIs.
-
-If source private signing material is not exportable:
-
-- preserve public/administrative metadata in backup;
-- create/reconfigure target signing state only through documented mechanisms;
-- classify exact cryptographic continuity as impossible;
-- warn that existing tokens/session continuity may be affected;
-- never claim exact restore.
-
-### Phase 17 — API keys
-
-Source modern API key values may be captured for evidentiary/inventory purposes where `reveal=true` permits it, but the target API may generate new key values instead of accepting arbitrary imported values.
-
-Restore behavior:
-
-1. recreate equivalent key definitions;
-2. capture newly generated target secrets securely;
-3. generate a protected rotation mapping:
-   - source key identifier/fingerprint;
-   - target key identifier;
-   - target secret only in protected output;
-4. include consumer-rotation tasks in manual actions;
-5. never emit key material to ordinary stdout.
-
-Exact key equality is not a restore success condition where the platform API cannot import the old secret.
-
-### Phase 18 — Realtime/PostgREST/Storage config
-
-Apply service-level configuration after database content is established.
-
-Verify normalized semantic equivalence.
-
-### Phase 19 — networking, domains, private connectivity
-
-Apply late because incorrect restrictions can lock the restore process out.
-
-Custom domain workflow must surface DNS prerequisites. pgDumpster cannot create records at an external DNS provider unless that separate provider were explicitly integrated, which is outside this product scope.
-
-### Phase 20 — billable resources
-
-Resources such as replicas, private networking or compute/add-ons that can incur additional charges require:
-
-```bash
---allow-billable-resources
-```
-
-Without that flag:
-
-- plan them;
-- mark `blocked_by_policy`;
-- print the exact omitted actions;
-- do not create them.
-
-### Phase 21 — semantic parity verification
-
-The restore is successful only after a post-restore audit.
-
-Compare source-backup intent with target:
-
-- database schema fingerprints;
-- critical row counts/invariants;
-- Storage bucket/object parity;
-- Edge Function inventory;
-- secret-name inventory without revealing values;
-- Auth normalized config;
-- Realtime/PostgREST/Storage normalized config;
-- project/network config;
-- restore substitutions such as regenerated API keys;
-- expected platform limits/manual actions.
-
-Produce:
-
-```text
-restore/
-  plan.json
-  result.json
-  parity-report.json
-  manual-actions.json
-  rotation-map.age   # or equivalently protected output
-```
-
-## Conflict policies
-
-Supported top-level values:
-
-- `fail` — default and safest.
-- `replace` — only supported for adapters with explicit, tested replacement semantics.
-
-Do not implement a vague global “merge” policy. Merge semantics differ too much between Postgres, object stores and control-plane configuration.
-
-## Rollback
-
-pgDumpster must not pretend it can atomically roll back a multi-service restore.
-
-Instead:
-
-- mutate a fresh target by default;
-- record every applied action;
-- stop on first hard failure;
-- expose a deterministic cleanup/action log;
-- never automatically delete an existing target project.
-
-## Idempotency
-
-Every restore adapter should be idempotent where practical:
-
-- compare before create/update;
-- tolerate exact existing state;
-- fail on incompatible state;
-- never duplicate secrets/functions/resources merely because a retry occurred.
-
-A resumed restore revalidates already applied actions before continuing.
-
-## Restore acceptance
-
-A restore run can be:
-
-- `restored`: every exportable/restorable component semantically verified.
-- `restored_with_platform_limits`: all possible restore work succeeded, with documented source platform limitations/substitutions.
-- `failed`: any required possible operation or parity check failed.
-
-A backup marked `failed` cannot be restored without an explicit forensic/partial mode that is outside the standard success path.
+The final hosted E2E in `docs/10-testing.md` remains mandatory proof before this restore path can be considered release-complete.

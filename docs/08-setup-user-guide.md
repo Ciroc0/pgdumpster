@@ -1,201 +1,144 @@
 # User guide and setup
 
-## What pgDumpster backs up
+## Development-status warning
 
-pgDumpster targets one **hosted Supabase Platform project** at a time.
+pgDumpster is not production-ready yet. This guide distinguishes **commands that work in the current development build** from target release workflows that are still blocked.
 
-It backs up every registered project-scoped surface it can export, including database state, File Storage object bytes, Auth/project configuration, Edge Functions/secrets, service configuration and cryptographic material that the platform exposes.
+For exact current status, read `docs/23-current-status.md` and `PLANS.md`.
 
-Anything the platform does not allow to be exported is explicitly reported.
+## Scope
 
-## Prerequisites
+pgDumpster targets one **hosted Supabase Platform project** at a time and accounts for every component in the canonical coverage registry. Platform state that cannot be exported is reported explicitly rather than silently ignored.
 
-Install:
+## Prerequisites for the current build
 
-- a supported Node.js LTS release;
-- Supabase CLI `>=2.111.0 <3.0.0`; pgDumpster prefers a project-local pinned
-  installation over an older global executable and `doctor` rejects versions
-  outside this live-validated range;
-- a reachable Docker-compatible daemon for the vendor-compatible database backend; the current Supabase CLI runs its filtered `pg_dump` inside a container;
-- `age` only when using external `age` encryption mode and it is not bundled/internally implemented through a vetted library.
+- supported Node.js (`>=22.15.0 <23` or `>=24 <25`);
+- pnpm through the repository's `packageManager` pin;
+- Supabase CLI in the validated 2.x range (`>=2.111.0 <3.0.0` policy; repository dev dependency pinned);
+- reachable Docker-compatible daemon for the current Supabase CLI database workflow;
+- Supabase Management API access token;
+- linked Supabase workspace **or** an explicit database URL for backup;
+- privileged Storage credential or a Management-API-revealed key that the backup can prove suitable;
+- local disk capacity for the bundle.
 
-You also need:
+`age` may be detected by `doctor`, but the current backup encryption path is not wired. S3 publication is also not wired.
 
-- Supabase Management API authentication;
-- either a linked Supabase workspace (preferred for backup) or a database
-  connection string;
-- a credential capable of reading all File Storage objects;
-- enough local/destination capacity for the backup.
-
-Always follow the compatibility matrix shipped with the release instead of assuming any arbitrary Supabase CLI version works.
-
-### Database runtime choice
-
-The production-safe default is the vendor-compatible Supabase CLI backend. It requires a Docker-compatible daemon because the CLI applies Supabase-specific schema filtering and role transformations inside its database-tools container. pgDumpster does not silently replace that workflow with raw host `pg_dump`; current Supabase documentation warns that raw dumps include platform internals and can fail during restore.
-
-On Windows, Docker Desktop is the simplest supported daemon, but it is a separate third-party product with its own license and is not bundled with pgDumpster. Hardware virtualization must be enabled in BIOS/UEFI and Docker Desktop must be running. On Linux, Docker Engine or another daemon proven compatible with the active Supabase CLI is sufficient. Run `pgdumpster doctor` before backup; an installed client without a reachable daemon is a failure.
-
-The architecture permits a future native PostgreSQL backend only after contract and semantic-parity tests prove it matches the current Supabase-filtered output. No release may advertise or silently select that backend before those gates pass.
-
-## Authentication
-
-### Management API
-
-Use a Supabase Personal Access Token or supported OAuth token with only the scopes required by the current operation.
-
-Recommended environment variable:
-
-```bash
-PGDUMPSTER_ACCESS_TOKEN=...
-```
-
-Do not commit it.
-
-### Database
-
-For the easiest backup setup, run `supabase link` in the project workspace and
-use `pgdumpster backup --linked`. The validated CLI obtains a short-lived login
-for `db dump` and read-only `db query`, so pgDumpster does not need a static
-database password.
-
-For unlinked automation, provide the direct/pooler database URL recommended for
-the current Supabase CLI dump workflow.
-
-```bash
-PGDUMPSTER_DB_URL='postgresql://...'
-```
-
-Avoid placing the full connection string directly in shell history.
-
-### Storage
-
-pgDumpster needs a credential that can enumerate and download all objects. A public/anonymous key is insufficient for a full-backup guarantee when RLS can hide objects.
-
-```bash
-PGDUMPSTER_STORAGE_KEY='...'
-```
-
-If the tool can securely obtain a suitable project key through the authenticated Management API, it may do that automatically after explicit capability checks.
-
-## Install
-
-Published package instructions must be filled with the actual package name only after registry naming is finalized.
-
-During source development:
+## Source development install
 
 ```bash
 git clone <repository>
-cd <repository>
+cd pgdumpster
 corepack enable
 pnpm install --frozen-lockfile
 pnpm build
-pnpm test
-pnpm link --global
+pnpm check
 ```
 
-Do not publish documentation containing a fictitious registry package name.
+The package remains private/development-versioned. Do not document a fictitious public registry install command before release packaging is finalized.
 
-## First run
+## Credentials
 
-Run the doctor first:
+Common environment variables:
+
+```dotenv
+PGDUMPSTER_PROJECT_REF=abcdefghijklmnopqrst
+PGDUMPSTER_ACCESS_TOKEN=...
+PGDUMPSTER_DB_URL=postgresql://...
+PGDUMPSTER_STORAGE_KEY=...
+PGDUMPSTER_TARGET_PROJECT_REF=zyxwvutsrqponmlkjihg
+PGDUMPSTER_TARGET_DB_URL=postgresql://...
+```
+
+Do not commit credential files or paste secret values into logs/issues.
+
+### Linked database mode
+
+For backup, a linked workspace is preferred when available:
+
+```bash
+supabase link --project-ref "$PGDUMPSTER_PROJECT_REF"
+```
+
+Then use `--linked`. The alternative is `--db-url-env PGDUMPSTER_DB_URL`.
+
+### Current `doctor` behavior
+
+`doctor` presently proves database and Storage access from `PGDUMPSTER_DB_URL` and `PGDUMPSTER_STORAGE_KEY`; linked backup mode does not remove those current doctor checks.
 
 ```bash
 pgdumpster doctor --project-ref "$PGDUMPSTER_PROJECT_REF"
 ```
 
-Expected result: every required source credential and dependency is validated before data transfer.
+## Create a backup with the current build
 
-## Create an encrypted backup
+Until encrypted publication and verified cross-service consistency are implemented, a development backup must be explicit about both limitations.
 
-Recommended:
+Linked example:
 
 ```bash
 pgdumpster backup \
   --project-ref "$PGDUMPSTER_PROJECT_REF" \
+  --linked \
   --output ./backups \
-  --consistency verified \
-  --encrypt-to 'age1...'
+  --consistency best-effort \
+  --allow-plaintext-secrets \
+  --archive
 ```
 
-The final result will either be:
-
-- complete;
-- complete with explicit platform limits;
-- failed.
-
-Read the coverage report before treating the artifact as your recovery point.
-
-## Plaintext backups
-
-A full backup can contain:
-
-- all application data;
-- user/Auth data;
-- Edge Function secrets;
-- project keys;
-- Vault root encryption material;
-- third-party credentials.
-
-Therefore plaintext sensitive output is prohibited by default.
-
-If you intentionally accept that risk:
+Direct database URL example:
 
 ```bash
-pgdumpster backup ... --allow-plaintext-secrets
+pgdumpster backup \
+  --project-ref "$PGDUMPSTER_PROJECT_REF" \
+  --db-url-env PGDUMPSTER_DB_URL \
+  --output ./backups \
+  --consistency best-effort \
+  --allow-plaintext-secrets
 ```
 
-Store the resulting bundle like a production secret.
+A plaintext development bundle can contain database/Auth data, API/project keys, Edge secret material and Vault key material. Treat it as a production secret.
 
-## Inspect
+### Not currently available
+
+The following target workflows intentionally fail closed in the current CLI:
+
+- `--consistency verified`;
+- `--consistency quiesced`;
+- config `encryption.mode: age`;
+- config `destination.type: s3`.
+
+Do not work around those guards by relabeling a best-effort/plaintext/local backup.
+
+## Inspect, coverage and verify
 
 ```bash
 pgdumpster inspect ./backups/<bundle>
-```
-
-This does not print secret values.
-
-## Verify
-
-Immediately after backup and periodically in storage:
-
-```bash
+pgdumpster coverage ./backups/<bundle>
 pgdumpster verify ./backups/<bundle>
 ```
 
-Verification detects changed/corrupt/missing payloads.
+The same commands accept the deterministic `.tar.zst` archive form where applicable.
 
-## Backup to S3-compatible storage
+## Resume an interrupted backup
 
-Example config:
-
-```yaml
-destination:
-  type: s3
-  endpoint: https://...
-  bucket: pgdumpsters
-  prefix: production/
-  region: auto
-```
-
-Credential values come from environment/credential provider, not the YAML file.
-
-The implementation must support multipart/streaming behavior suitable for large backups and verify uploaded bundle integrity.
-
-## Restore workflow
-
-### 1. Create a fresh target project
-
-A fresh target is strongly preferred. Multi-service restore cannot be atomically rolled back.
-
-### 2. Configure target credentials
+The backup command accepts:
 
 ```bash
-PGDUMPSTER_TARGET_PROJECT_REF='...'
-PGDUMPSTER_TARGET_DB_URL='postgresql://...'
-PGDUMPSTER_TARGET_STORAGE_KEY='...'
+pgdumpster backup ... --resume <workspace-or-checkpoint-path>
 ```
 
-### 3. Dry run
+Resume is bound to the original run/project/configuration and revalidates completed artifact integrity before trusting checkpoint state.
+
+## Restore: current dry-run path
+
+Set target credentials through environment variables:
+
+```bash
+PGDUMPSTER_TARGET_PROJECT_REF=zyxwvutsrqponmlkjihg
+PGDUMPSTER_TARGET_DB_URL='postgresql://...'
+```
+
+Generate the integrity-first plan:
 
 ```bash
 pgdumpster restore ./backups/<bundle> \
@@ -204,85 +147,33 @@ pgdumpster restore ./backups/<bundle> \
   --dry-run
 ```
 
-Read:
+The repository contains restore executor/handler primitives, but the CLI does **not** currently perform target mutation. `--apply` fails closed until the complete apply/parity workflow is wired and live-tested.
 
-- planned mutations;
-- platform limitations;
-- regenerated-key actions;
-- custom domain/DNS tasks;
-- potential billable resources.
+## Target release workflow (not yet available end-to-end)
 
-### 4. Apply
+The final supported recovery procedure is:
 
-```bash
-pgdumpster restore ./backups/<bundle> \
-  --target-project-ref "$PGDUMPSTER_TARGET_PROJECT_REF" \
-  --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
-  --apply
-```
+1. run `doctor`;
+2. create an encrypted `verified` backup;
+3. offline `verify`;
+4. inspect complete terminal coverage;
+5. dry-run restore to a fresh target;
+6. apply restore;
+7. perform required protected key substitutions;
+8. run semantic parity and application smoke checks.
 
-Billable infrastructure is skipped unless explicitly allowed.
+That procedure is the mandatory hosted E2E release gate. It must not be represented as complete until it passes on the dedicated test projects.
 
-### 5. Rotate consumers
+## Scheduling and retention
 
-Where Supabase cannot recreate the exact source secret (for example some generated API-key/signing-key states), use the protected rotation report to update applications/integrations.
+pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Do not schedule the current development build as though the pending encryption/verified-consistency release gates had already passed.
 
-### 6. Complete manual external actions
+## Updating the development checkout
 
-Examples:
+Before relying on a newer commit:
 
-- DNS records;
-- external OAuth provider configuration;
-- external SMTP provider resources;
-- custom LOGIN role passwords;
-- third-party webhook endpoints if external ownership is required.
-
-### 7. Read parity report
-
-A restore is not finished merely because data upload completed. Confirm semantic parity result.
-
-## Scheduling
-
-pgDumpster itself should perform one backup run and exit. Scheduling belongs to a trusted scheduler:
-
-- systemd timer;
-- cron;
-- GitHub Actions only if secret/storage requirements are acceptable;
-- CI/CD scheduler;
-- Kubernetes CronJob;
-- enterprise scheduler.
-
-Example cron concept:
-
-```cron
-0 3 * * * /usr/local/bin/pgdumpster backup --config /etc/pgdumpster/prod.yaml --non-interactive
-```
-
-Do not place raw secrets in the crontab.
-
-## Retention
-
-Retention is a user policy, not a hard-coded deletion feature.
-
-Recommended operational pattern:
-
-- immutable/locked remote storage where available;
-- multiple recovery points;
-- periodic `verify`;
-- periodic live restore drill.
-
-A backup without tested restore is an unverified recovery hypothesis.
-
-## Updates
-
-Before upgrading pgDumpster in production:
-
-1. read CHANGELOG;
-2. confirm bundle compatibility;
-3. run `doctor`;
-4. test against a non-production project;
-5. keep at least one backup created by the previous known-good release until restore validation passes.
-
-## Uninstall
-
-Removing the CLI does not delete backup bundles. Backup data should only be deleted by explicit storage/retention actions outside accidental package uninstall behavior.
+1. read `CHANGELOG.md` and `docs/23-current-status.md`;
+2. install with the frozen lockfile;
+3. run `pnpm check` and `pnpm test:coverage`;
+4. inspect GitHub CI status;
+5. keep previous recovery artifacts until a real restore drill proves the new build.

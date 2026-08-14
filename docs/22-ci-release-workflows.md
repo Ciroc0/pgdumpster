@@ -1,141 +1,91 @@
 # 22 — CI and release workflow specification
 
-Codex must create actual workflow files during implementation. This document defines their required behavior.
+This document records both the **current workflow implementation** and the remaining release-workflow requirements.
 
-## Pull-request CI
+Status snapshot: **2026-08-15**.
 
-Required jobs:
+## Current workflows
 
-### `quality`
+The repository currently contains:
 
-- install with frozen lockfile;
-- formatter check;
-- lint;
-- strict typecheck;
-- build.
+- `.github/workflows/ci.yml`;
+- `.github/workflows/codeql.yml`;
+- `.github/workflows/contract-drift.yml`.
 
-### `test-unit-contract`
+### Regular CI
 
-- unit tests;
-- Management API contract fixtures;
-- error/redaction tests.
+`ci.yml` currently provides:
 
-### `test-integration`
+- `quality` — frozen install, formatter, lint, strict typecheck and build;
+- `test-unit-contract` — build + full test suite on Node 22;
+- `test-integration` — CLI/simulator integration slice;
+- `test-security` — archive/secret guards plus production dependency audit;
+- `test-os` — Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
 
-- local Supabase integration where supported;
-- Management API simulator;
-- database dump wrapper tests.
+The regular CI workflow is green on implementation checkpoint `be4df4e`.
 
-### `test-security`
+### Contract drift
 
-- archive traversal/symlink/bomb tests;
-- secret-canary leakage test;
-- dependency audit/review;
-- static analysis.
+A dedicated contract-drift workflow exists and remains part of the platform source-of-truth strategy.
 
-### `test-os`
+### CodeQL
 
-Matrix:
+The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. On the current repository it reaches analysis/SARIF generation but fails during result publication/status because GitHub code scanning is not enabled/accessible to the integration (`Resource not accessible by integration`).
 
-- Ubuntu;
-- macOS;
-- Windows.
+This is a **configuration gate**. It must not be documented as a clean static-analysis result, and it also must not be misreported as a discovered code vulnerability.
 
-At least CLI/config/filesystem/subprocess tests execute on each OS.
+## Missing release workflows/gates
 
-## Live E2E
+The repository does not yet have a completed release-grade live-E2E/publish pipeline. Remaining work includes:
 
-Protected secrets only.
+- protected hosted source/target E2E workflow;
+- release workflow tied to an exact candidate commit/tag;
+- SBOM generation;
+- provenance/attestation where supported;
+- clean package/install smoke verification;
+- publication policy/registry finalization;
+- final CodeQL result publication and finding disposition.
 
-Triggers:
+## Live E2E requirement
 
-- protected/manual workflow;
-- nightly optional;
-- mandatory before release.
-
-Must:
+Protected secrets only. The release E2E must:
 
 1. validate source/target refs are dedicated test refs;
-2. seed source;
-3. run encrypted verified backup;
-4. offline verify;
-5. dry-run restore;
-6. restore target;
-7. run semantic parity;
-8. run application smoke tests;
-9. scan logs for canary secrets;
-10. publish only sanitized test summary.
+2. reset/seed source and clean target state;
+3. run an encrypted `verified` backup;
+4. run offline verify;
+5. inspect terminal coverage for every registered component;
+6. dry-run restore;
+7. apply restore to the fresh target;
+8. apply required generated-key substitutions through the tested workflow;
+9. run semantic parity and application-level smoke checks;
+10. scan logs for secret canaries;
+11. publish only a sanitized result summary;
+12. clean/reset test data according to test-account policy.
 
-Do not upload decrypted bundle as CI artifact.
+Do not upload decrypted bundles, rotation maps or live secret material as CI artifacts.
 
-## CodeQL/static analysis
+## Release workflow requirements
 
-Run on pull requests/default branch according to GitHub-supported schedule.
+The eventual release workflow must:
 
-Pin security/release-critical third-party actions to immutable SHAs after implementation chooses them.
+- run from a protected tag/release/candidate commit;
+- require all ordinary CI and security gates green;
+- require the live E2E green for the same candidate;
+- validate version/changelog consistency;
+- perform a clean build/package/install smoke;
+- generate SBOM;
+- generate provenance/attestation where the registry supports it;
+- prefer short-lived trusted publishing/OIDC over long-lived registry tokens;
+- verify the published artifact checksum/install;
+- create release notes without secret-bearing artifacts.
 
-## Dependency update automation
+## Permissions and artifacts
 
-Dependabot/Renovate may open updates.
+Use least privilege. Untrusted PRs must not receive live E2E/release secrets. Default `GITHUB_TOKEN` permissions must remain explicit and minimized.
 
-No blind automerge for:
+Safe artifacts include sanitized test summaries, fake-fixture coverage reports, SBOM and intended release packages. Unsafe artifacts include `.env`, live HTTP traces, secret-bearing backup bundles, Vault/API/Edge secrets and rotation maps.
 
-- Supabase CLI/API client;
-- archive libraries;
-- crypto libraries;
-- HTTP/S3 libraries;
-- runtime major updates.
+## Failure policy
 
-Those can change backup semantics or security.
-
-## Release workflow
-
-Requirements:
-
-- protected tag/release trigger;
-- requires main/expected commit;
-- all required checks green;
-- live E2E green for candidate commit;
-- version/changelog consistency;
-- clean build from source;
-- package tests;
-- SBOM;
-- provenance/attestation where registry supports it;
-- publish using short-lived/modern trusted publishing where possible;
-- verify published package checksum/install;
-- create GitHub release notes.
-
-No long-lived registry token if trusted publishing/OIDC is available for the chosen registry.
-
-## Secret permissions
-
-Workflows use least privilege:
-
-- PR workflows cannot access live E2E secrets from untrusted forks;
-- release credentials only in protected environment;
-- default `GITHUB_TOKEN` permissions explicitly minimized.
-
-## Artifacts
-
-Safe artifacts:
-
-- test reports without secrets;
-- coverage reports using fake fixtures;
-- SBOM;
-- build/package artifact intended for release.
-
-Unsafe:
-
-- `.env`;
-- live HTTP traces;
-- backup bundle containing secret data;
-- rotation map;
-- Vault/API/Edge secrets.
-
-## CI failure policy
-
-Do not mark required jobs `continue-on-error`.
-
-Do not use blanket test exclusions to ship.
-
-Known flaky tests must be fixed or isolated with a documented issue and cannot include integrity/restore/live-E2E release gates.
+Required jobs must not use blanket `continue-on-error`. Security, integrity, restore and live-E2E gates cannot be bypassed as “flaky” release exceptions.

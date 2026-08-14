@@ -1,75 +1,78 @@
 # File index
 
-This index describes the complete Codex handoff package.
+This index describes the maintained pgDumpster repository documentation and policy surfaces. It is no longer a bootstrap-package QA snapshot.
 
-Generated QA snapshot: 2026-08-13T21:03:33.792837+00:00
+Last reconciled with the implementation branch: **2026-08-15**.
 
-## Core files
+## Core repository files
 
-| File                                         | Purpose                                                                               |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `.editorconfig`                              | Cross-editor text conventions                                                         |
-| `.env.example`                               | Credential/environment variable template with no real secrets                         |
-| `.github/ISSUE_TEMPLATE/bug_report.yml`      | GitHub issue template/config                                                          |
-| `.github/ISSUE_TEMPLATE/config.yml`          | GitHub issue template/config                                                          |
-| `.github/ISSUE_TEMPLATE/feature_request.yml` | GitHub issue template/config                                                          |
-| `.github/PULL_REQUEST_TEMPLATE.md`           | GitHub repository workflow/template specification                                     |
-| `.gitignore`                                 | Secret/build/backup exclusions                                                        |
-| `AGENTS.md`                                  | Binding Codex/agent repository instructions and authority order                       |
-| `CHANGELOG.md`                               | Release changelog                                                                     |
-| `CODE_OF_CONDUCT.md`                         | Project conduct policy                                                                |
-| `CODEX_GOAL.md`                              | Human-readable Codex /goal wrapper                                                    |
-| `CODEX_GOAL.txt`                             | Raw Codex /goal text                                                                  |
-| `CONTRIBUTING.md`                            | Contributor workflow and invariants                                                   |
-| `docs/00-overview.md`                        | 00 — Product overview                                                                 |
-| `docs/01-product-requirements.md`            | 01 — Product requirements                                                             |
-| `docs/02-coverage-matrix.md`                 | 02 — Coverage matrix                                                                  |
-| `docs/03-architecture.md`                    | 03 — Architecture                                                                     |
-| `docs/04-backup-format.md`                   | 04 — Backup bundle format                                                             |
-| `docs/05-backup-engine.md`                   | Backup engine                                                                         |
-| `docs/06-restore-engine.md`                  | Restore engine                                                                        |
-| `docs/07-cli-and-ux.md`                      | CLI and UX specification                                                              |
-| `docs/08-setup-user-guide.md`                | User guide and setup                                                                  |
-| `docs/09-security-threat-model.md`           | Security and threat model                                                             |
-| `docs/10-testing.md`                         | Test strategy                                                                         |
-| `docs/11-operations-reliability.md`          | Operations and reliability                                                            |
-| `docs/12-release-open-source.md`             | Release and public source repository standard                                         |
-| `docs/13-acceptance-criteria.md`             | Product acceptance criteria                                                           |
-| `docs/14-implementation-plan.md`             | Implementation plan                                                                   |
-| `docs/15-source-of-truth.md`                 | Source of truth and platform revalidation                                             |
-| `docs/16-troubleshooting.md`                 | Troubleshooting                                                                       |
-| `docs/17-compatibility.md`                   | Compatibility policy                                                                  |
-| `docs/18-data-classification.md`             | Data classification and handling                                                      |
-| `docs/19-error-model.md`                     | Error model                                                                           |
-| `docs/20-target-repository-structure.md`     | 20 — Target repository structure                                                      |
-| `docs/21-maintainer-runbook.md`              | 21 — Maintainer and release runbook                                                   |
-| `docs/22-ci-release-workflows.md`            | 22 — CI and release workflow specification                                            |
-| `examples/backup.config.example.yaml`        | Backup configuration example                                                          |
-| `examples/coverage.example.json`             | Example coverage report                                                               |
-| `examples/github-actions.example.yml`        | Safe intentionally non-runnable CI scheduling template until real package publication |
-| `examples/manifest.example.json`             | Example manifest                                                                      |
-| `examples/restore-result.example.json`       | Example restore/parity result                                                         |
-| `HANDOFF.md`                                 | Exact handoff instructions for Codex                                                  |
-| `LICENSE`                                    | PolyForm Shield License 1.0.0, reproduced verbatim                                    |
-| `NOTICE`                                     | Required PolyForm notices and protected line of business                              |
-| `LICENSING.md`                               | Public source and separate commercial licensing explanation                           |
-| `PLANS.md`                                   | Execution-plan contract Codex must maintain                                           |
-| `README.md`                                  | Project overview and operator entry point                                             |
-| `schemas/coverage.schema.json`               | Coverage report JSON Schema                                                           |
-| `schemas/manifest.schema.json`               | Backup manifest JSON Schema                                                           |
-| `SECURITY.md`                                | Security disclosure policy                                                            |
-| `spec/coverage-registry.yaml`                | Canonical machine-oriented full-project coverage registry                             |
-| `SUPPORT.md`                                 | Support and safe diagnostic guidance                                                  |
+| File | Purpose |
+| --- | --- |
+| `.editorconfig` | Cross-editor text conventions |
+| `.env.example` | Credential/environment template with no real secrets |
+| `.github/ISSUE_TEMPLATE/*` | Issue templates/config |
+| `.github/PULL_REQUEST_TEMPLATE.md` | Pull-request template |
+| `.github/workflows/ci.yml` | Quality, test, integration, security and OS/Node CI |
+| `.github/workflows/codeql.yml` | CodeQL analysis workflow; repository code-scanning setting is still a release gate |
+| `.github/workflows/contract-drift.yml` | Official contract-drift validation |
+| `.gitignore` | Secret/build/backup exclusions |
+| `AGENTS.md` | Binding agent instructions and authority order |
+| `CHANGELOG.md` | Release changelog |
+| `CODE_OF_CONDUCT.md` | Conduct policy |
+| `CONTRIBUTING.md` | Contribution workflow/invariants |
+| `HANDOFF.md` | Current maintainer/agent handoff |
+| `LICENSE` | PolyForm Shield License 1.0.0 verbatim |
+| `NOTICE` | Required notices/protected line of business |
+| `LICENSING.md` | Public-source/commercial licensing explanation |
+| `PLANS.md` | Current implementation ledger |
+| `README.md` | Project/operator entry point |
+| `SECURITY.md` | Security disclosure policy |
+| `SUPPORT.md` | Support and safe diagnostic guidance |
+| `package.json` / `pnpm-lock.yaml` | Package/runtime/dependency contract |
+| `spec/coverage-registry.yaml` | Canonical 55-component coverage registry |
+| `schemas/*.json` | Bundle manifest/coverage schemas |
+| `contracts/*` | Dated official-platform contract snapshots |
+| `src/*` | CLI and implementation |
+| `tests/*` | Unit/integration/hardening tests |
 
-## QA snapshot
+## Documentation
 
-- Files before this index: 51
-- Canonical coverage components: 55
-- Coverage registry ↔ coverage matrix mismatch: none
-- Codex `/goal` length: 2917 characters
-- Markdown fence problems: 0
-- Broken internal Markdown links: 0
-- Heuristic credential hits: 0
-- Manifest/coverage example schema checks: examples/manifest.example.json=PASS, examples/coverage.example.json=PASS
+| File | Purpose |
+| --- | --- |
+| `docs/00-overview.md` | Product overview |
+| `docs/01-product-requirements.md` | Binding product requirements |
+| `docs/02-coverage-matrix.md` | Binding coverage matrix |
+| `docs/03-architecture.md` | Architecture target |
+| `docs/04-backup-format.md` | Bundle format |
+| `docs/05-backup-engine.md` | Backup-engine target behavior |
+| `docs/06-restore-engine.md` | Restore-engine target behavior plus current apply boundary |
+| `docs/07-cli-and-ux.md` | Current CLI surface and target UX contract |
+| `docs/08-setup-user-guide.md` | Current development-use guide and explicit unavailable release features |
+| `docs/09-security-threat-model.md` | Security/threat model |
+| `docs/10-testing.md` | Test strategy and hosted-E2E release gate |
+| `docs/11-operations-reliability.md` | Operations/reliability requirements |
+| `docs/12-release-open-source.md` | Public source/release policy |
+| `docs/13-acceptance-criteria.md` | Final done contract |
+| `docs/14-implementation-plan.md` | Target execution plan |
+| `docs/15-source-of-truth.md` | Platform source-of-truth/revalidation policy |
+| `docs/16-troubleshooting.md` | Troubleshooting |
+| `docs/17-compatibility.md` | Current tested compatibility/evidence and pending compatibility gates |
+| `docs/18-data-classification.md` | Data classification/handling |
+| `docs/19-error-model.md` | Error model |
+| `docs/20-target-repository-structure.md` | Repository structure target |
+| `docs/21-maintainer-runbook.md` | Maintainer/release runbook |
+| `docs/22-ci-release-workflows.md` | Current CI workflows and remaining release-workflow requirements |
+| `docs/23-current-status.md` | Non-binding current implementation/evidence snapshot |
 
-The remaining explicit `TBD`/replacement markers in release/security documentation are intentional release gates: Codex must replace them with values verified by the actual implementation, CI environment, package name and private security contact. They must not survive the first public release.
+## Documentation semantics
+
+The high-priority numbered product documents are requirements. They intentionally describe the required end state even when a feature is still blocked in the current CLI.
+
+Current implementation truth must be reflected in all of:
+
+- `PLANS.md`;
+- `docs/23-current-status.md`;
+- the development-status section of `README.md`;
+- `HANDOFF.md`.
+
+A release is not complete until the acceptance criteria and hosted E2E/parity gate pass.

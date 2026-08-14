@@ -6,51 +6,67 @@ Its product promise is strict:
 
 > Capture every project-scoped state surface that Supabase exposes and makes exportable, copy every recoverable data object, verify the result, and explicitly inventory anything that Supabase itself does not allow to be exported or recreated exactly.
 
-A successful run must never silently omit a component.
+A successful run must never silently omit a registered component.
+
+## Current development status
+
+pgDumpster is **not release-complete yet**. The repository contains a substantial working implementation, but several explicit release gates remain.
+
+Current branch snapshot as of 2026-08-15:
+
+- strict TypeScript ESM build and CLI are implemented;
+- the 55-component coverage registry is enforced during backup finalization;
+- hosted-project capture adapters exist for database state, Auth, API keys, Edge, Vault, File Storage, specialized Storage and the documented Management API/control-plane surfaces;
+- secure bundle generation, SHA-256 integrity, offline inspect/coverage/verify, deterministic `.tar.zst`, checkpointing and resume are implemented;
+- restore planning, checkpoints, database/control-plane/publication/Vault handlers and semantic verification primitives are implemented;
+- the user-facing restore command currently exposes a verified **dry run only**; `--apply` is deliberately blocked until the complete executor/parity path is wired through the CLI and live-tested;
+- backup currently permits explicit `best-effort` consistency only; `verified` and `quiesced` remain blocked until real cross-service pre/post inventory stabilization is implemented;
+- `age` output encryption and S3-compatible publication are specified but not yet wired into the CLI, so secret-bearing development backups require explicit `--allow-plaintext-secrets`;
+- the latest validated suite is 70 test files / 395 tests with 94.48% statements, 90.32% branches, 93.22% functions and 95.72% lines;
+- the GitHub CI quality/test/integration/security/OS matrix is green on the current implementation checkpoint;
+- CodeQL analysis runs, but result publication/status is currently blocked by repository code-scanning configuration (`Resource not accessible by integration` / code scanning not enabled);
+- the mandatory hosted source → backup → offline verify → fresh-target restore → semantic-parity E2E has **not** passed yet.
+
+The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
 
 ## Why this exists
 
-A Supabase database backup is not a complete project backup. Supabase documents that database backups do not contain the actual Storage objects; they contain only Storage metadata. Project state also exists outside Postgres: Auth configuration, API keys, JWT signing-key metadata, Edge Functions and secrets, Realtime/PostgREST/Storage service configuration, networking/domain configuration, Vault's root encryption key, and other platform settings.
+A Supabase database backup is not a complete project backup. Project state also exists in Storage object bytes, Auth configuration, API keys, JWT signing-key metadata, Edge Functions and secrets, Realtime/PostgREST/Storage service configuration, networking/domain configuration, Vault key material and other platform settings.
 
-pgDumpster unifies those surfaces into one deterministic backup bundle.
+pgDumpster is designed to unify those surfaces into one deterministic, coverage-accounted backup bundle.
 
-The current vendor-compatible database backend uses the Supabase CLI and a reachable Docker-compatible daemon. A linked Supabase workspace is the preferred backup source because the CLI can obtain a short-lived database login without storing a static database password; an explicit database URL remains available for unlinked automation and restore. Docker is not bundled with pgDumpster; Docker Desktop is a separately licensed third-party option on Windows. A raw host `pg_dump` is not treated as equivalent without explicit contract and semantic-parity proof.
+The current database backend uses the Supabase CLI and a reachable Docker-compatible daemon. A linked Supabase workspace is the preferred backup source because the CLI can obtain a short-lived database login; an explicit database URL remains available for unlinked automation. Docker is not bundled with pgDumpster.
 
-> **Development status:** pgDumpster is under active implementation and is not production-ready. The capabilities below describe the binding target specification, not a claim that every adapter and restore path is complete. Current implemented slices and unfulfilled gates are tracked in [PLANS.md](PLANS.md); in particular, live managed-Supabase backup-to-restore parity has not yet passed.
+## Target capability contract
 
-## Core capabilities
+The binding target includes:
 
-- Full logical PostgreSQL backup using a Supabase-compatible dump strategy.
-- Migration history and custom changes to managed `auth` / `storage` schemas.
-- Dedicated capture of persistent state excluded by the normal Supabase CLI dump, including Auth and installed extension schemas.
-- Explicit Cron (`pg_cron`), Queues (`pgmq`), Database Webhooks, Vault data and generic extension-state coverage.
-- Auth database state plus service configuration, SSO and third-party auth integrations.
-- Vault/pgsodium root encryption key backup and restore.
-- File Storage bucket configuration, every object byte, metadata, and SHA-256 checksums.
-- Vector Storage backup when available.
-- Analytics/Iceberg capability discovery and complete export where the active API exposes data; otherwise explicit `not_exportable`.
-- Edge Function metadata and deployed source/bundle capture.
-- Edge Function secrets.
-- Modern API key capture with `reveal=true`; replacement-key/rotation handling on restore where exact import is impossible.
-- JWT signing-key inventory with explicit non-exportable private-material reporting.
-- Realtime, PostgREST, Storage, database/pooler/SSL, network, domain, backup schedule, log-drain and applicable project configuration.
-- Integrity manifest and coverage report.
-- Cross-service consistency/drift detection.
-- Resume after interruption.
-- `doctor`, `backup`, `inspect`, `verify`, and `restore`.
-- Human-readable CLI plus stable machine-readable JSON.
-- Local bundle plus S3-compatible destination.
-- Optional standard `age` encryption.
+- full logical PostgreSQL state plus explicitly captured state omitted by the normal Supabase dump path;
+- Auth data/config, SSO/TPA metadata and signing-key limitations;
+- Cron, Queues, Database Webhooks, Vault ciphertext and Vault root-key handling;
+- File Storage buckets, metadata and streamed object bytes;
+- Vector and Analytics/Iceberg capability adapters with explicit platform limits;
+- Edge Function deployed representation and secret inventory;
+- modern/legacy API-key handling and protected target rotation mapping;
+- Realtime, PostgREST, Storage, database/pooler/SSL, networking/domain, backup schedule, log-drain and project configuration;
+- deterministic integrity manifests and complete coverage reporting;
+- cross-service verified/best-effort/quiesced consistency semantics;
+- resumable backup and restore;
+- local and S3-compatible destinations;
+- optional standard `age` encryption;
+- integrity-first restore followed by semantic parity verification.
+
+A target capability is not considered delivered merely because it appears in this list. Current implementation state is recorded in `PLANS.md` and `docs/23-current-status.md`.
 
 ## “Full backup” semantics
 
 A result is:
 
-- `complete`: every applicable exportable component was backed up and verified.
-- `complete_with_platform_limits`: every exportable component succeeded, but Supabase intentionally prevents one or more values from being exported or recreated exactly.
+- `complete`: every applicable exportable component was backed up and verified according to the active consistency contract;
+- `complete_with_platform_limits`: every exportable component succeeded, but the platform prevents one or more values from being exported or recreated exactly;
 - `failed`: one or more applicable exportable components failed.
 
-Every registered component has exactly one status:
+Every registered component has exactly one terminal status:
 
 - `backed_up`
 - `not_configured`
@@ -58,17 +74,19 @@ Every registered component has exactly one status:
 - `not_exportable`
 - `failed`
 
-No component can disappear from the report.
+No registered component can disappear from the report.
 
 ## Scope boundary
 
-pgDumpster backs up **one hosted Supabase project ref**. Organization membership, billing history, account identity, external DNS, SMTP-provider resources, OAuth-provider-side resources, source Git repositories, and other third-party systems are outside the project backup boundary.
+pgDumpster backs up **one hosted Supabase project ref**. Organization membership, billing history, account identity, external DNS, SMTP-provider resources, OAuth-provider-side resources, source Git repositories and other third-party systems are outside the project backup boundary.
 
-Branch topology/configuration is inventoried, but each branch is a separate environment and its own data must be backed up as its own project when needed.
-
-Historical logs/metrics and historical Supabase-managed backup artifacts are operational telemetry, not restorable application state; their configuration (for example log drains and backup schedule) is captured.
+Branch topology/configuration is inventoried, but each branch is a separate environment and its data must be backed up independently when needed.
 
 ## Documentation order
+
+Binding authority is defined in `AGENTS.md`. In particular, product requirements, coverage requirements and acceptance criteria outrank lower-priority implementation documents.
+
+The numbered documentation set is:
 
 1. `docs/00-overview.md`
 2. `docs/01-product-requirements.md`
@@ -93,8 +111,9 @@ Historical logs/metrics and historical Supabase-managed backup artifacts are ope
 21. `docs/20-target-repository-structure.md`
 22. `docs/21-maintainer-runbook.md`
 23. `docs/22-ci-release-workflows.md`
+24. `docs/23-current-status.md` — non-binding current implementation/evidence snapshot
 
-Agent rules: `AGENTS.md`. Paste-ready Codex goal: `CODEX_GOAL.md`.
+Agent rules: `AGENTS.md`. Implementation ledger: `PLANS.md`.
 
 ## Trademark
 
@@ -102,13 +121,8 @@ pgDumpster is an independent third-party project and is not affiliated with, end
 
 ## License
 
-This project is source-available under the
-[PolyForm Shield License 1.0.0](LICENSE).
+This project is source-available under the [PolyForm Shield License 1.0.0](LICENSE).
 
-Internal and non-competing use is permitted under the license.
-
-Using this software to provide a competing hosted, managed,
-white-label, or commercial backup product or service requires
-a separate commercial license.
+Internal and non-competing use is permitted under the license. Using this software to provide a competing hosted, managed, white-label, or commercial backup product or service requires a separate commercial license.
 
 See [LICENSING.md](LICENSING.md) for details.

@@ -1,164 +1,139 @@
 # CLI and UX specification
 
+## Status semantics
+
+This document separates the **currently implemented CLI** from the **binding target UX**. Options listed only under target behavior are not available merely because they are specified here.
+
+Current implementation snapshot: **2026-08-15**.
+
 ## Binary
 
 ```text
 pgdumpster
 ```
 
-The CLI is designed for humans and automation. Human output is concise; machine output is stable JSON.
-
-## Global options
+## Currently implemented global options
 
 ```text
 --config <path>
 --json
---quiet
---verbose
---no-color
---non-interactive
---log-file <path>
 --version
 --help
 ```
 
-Secrets must never be accepted via flags if doing so predictably exposes them in process listings. Prefer environment variables, stdin/secret file descriptors or OS secret stores.
+The parser rejects duplicate `--json` / `--config` declarations and missing config paths.
+
+Target global UX still includes additional non-interactive/logging/terminal options such as `--quiet`, `--verbose`, `--no-color`, `--non-interactive` and `--log-file`; those are not current CLI claims.
+
+Secrets must not be accepted through flags when that would predictably expose them in process listings. Database URLs and other credentials are passed through environment-variable names or environment configuration.
 
 ## Commands
 
 ### `doctor`
 
-Validate the environment and source/target credentials.
+Current form:
 
 ```bash
-pgdumpster doctor --project-ref <ref>
+pgdumpster doctor [--project-ref <ref>] [--json]
 ```
 
-Checks:
-
-- runtime;
-- Supabase CLI;
-- Management API auth;
-- database connection;
-- Storage access;
-- capability inventory;
-- destination;
-- encryption tooling/config.
-
-No mutation.
+It checks runtime, Supabase CLI, Docker reachability, Management API/project health, database identity access, privileged Storage access, local destination capacity and `age` tool availability. A warning for missing `age` does not make encryption available; the backup encryption path is still a separate pending implementation.
 
 ### `backup`
+
+Current required source contract:
 
 ```bash
 pgdumpster backup \
   --project-ref <ref> \
-  --output ./backups \
-  --consistency verified
+  (--linked | --db-url-env <environment-variable>) \
+  --consistency best-effort \
+  --allow-plaintext-secrets \
+  [options]
 ```
 
-Important options:
+Implemented options:
 
 ```text
---db-url-env <name>
 --linked
+--db-url-env <name>
+--project-ref <ref>
 --output <path>
---destination local|s3
 --consistency verified|best-effort|quiesced
 --max-storage-concurrency <n>
 --max-api-concurrency <n>
---max-consistency-retries <n>
---encrypt-to <age-recipient>
 --allow-plaintext-secrets
 --archive
---resume <path-or-run-id>
+--resume <path>
 ```
 
-If secret-bearing data would be written unencrypted, require `--allow-plaintext-secrets`. Do not quietly create a plaintext archive containing JWT/API keys, Edge secrets and Vault material.
+Important current gates:
+
+- the parser accepts all three consistency names, but runtime currently proceeds only for explicit `best-effort`; `verified`/`quiesced` fail closed until cross-service stabilization is implemented;
+- secret-bearing output requires explicit `--allow-plaintext-secrets` because `age` publication is not wired yet;
+- config destination `s3` fails closed because S3 publication is not wired yet;
+- `--archive` packs the finalized directory as deterministic `.tar.zst`.
+
+Target behavior remains `verified` as the normal production mode, standard `age` protection and S3-compatible publication once their release gates pass.
 
 ### `inspect`
 
-Reads metadata without exposing secret values.
-
 ```bash
-pgdumpster inspect ./pgdumpster-<UTC>
-pgdumpster inspect ./pgdumpster-<UTC>.tar.zst --json
+pgdumpster inspect <bundle-directory|archive.tar.zst> [--json]
 ```
 
-Displays:
-
-- backup ID;
-- source ref;
-- timestamps;
-- tool/Supabase CLI versions;
-- component coverage;
-- consistency mode/result;
-- object counts/bytes;
-- integrity summary;
-- platform limitations;
-- encryption state.
-
-### `verify`
-
-```bash
-pgdumpster verify ./pgdumpster-<UTC>.tar.zst
-```
-
-Verifies:
-
-- schema validity;
-- checksums;
-- archive safety;
-- bundle completeness;
-- coverage registry completeness;
-- encryption/decryption capability if key available;
-- cross-file references.
-
-It does not contact Supabase unless `--online` is explicitly requested.
+Reads a verified bundle and summarizes metadata without printing protected values.
 
 ### `coverage`
 
 ```bash
-pgdumpster coverage ./pgdumpster-<UTC>.tar.zst
+pgdumpster coverage <bundle-directory|archive.tar.zst> [--json]
 ```
 
-Prints every registered component and status. This is useful when evaluating “full backup” claims.
+Prints/evaluates every registered component outcome.
+
+### `verify`
+
+```bash
+pgdumpster verify <bundle-directory|archive.tar.zst> [--json]
+```
+
+Performs offline bundle/schema/integrity verification and archive safety checks.
 
 ### `restore`
 
-Dry run:
+Current syntax:
 
 ```bash
-pgdumpster restore ./pgdumpster-<UTC>.tar.zst \
+pgdumpster restore <bundle-directory|archive.tar.zst> \
   --target-project-ref <ref> \
   --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
   --dry-run
 ```
 
-Apply:
-
-```bash
-pgdumpster restore ./pgdumpster-<UTC>.tar.zst \
-  --target-project-ref <ref> \
-  --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
-  --apply
-```
-
-Options:
+Implemented restore options:
 
 ```text
+--target-project-ref <ref>
+--target-db-url-env <name>
+--dry-run | --apply
 --conflict fail|replace
 --allow-billable-resources
---resume <path-or-run-id>
---secret-output <protected-path>
 ```
 
-### `unpack` / `pack`
+Current behavior:
 
-Optional operational commands for deterministic bundle handling. They must never bypass integrity verification by default.
+- bundle integrity is verified before plan generation;
+- source==target is rejected by the restore planning contract;
+- deterministic restore plan generation exists;
+- core restore executor/checkpoint/handlers exist in the repository;
+- CLI `--apply` is deliberately blocked with `RESTORE_APPLY_NOT_IMPLEMENTED` until full target preflight, executor wiring, substitution output and semantic parity are complete and live-tested.
+
+Target restore UX also requires safe resume/protected substitution output and final parity reporting.
 
 ## Credential environment variables
 
-Recommended names:
+Current/common names:
 
 ```dotenv
 PGDUMPSTER_ACCESS_TOKEN=
@@ -167,162 +142,38 @@ PGDUMPSTER_DB_URL=
 PGDUMPSTER_STORAGE_KEY=
 PGDUMPSTER_TARGET_PROJECT_REF=
 PGDUMPSTER_TARGET_DB_URL=
-PGDUMPSTER_TARGET_STORAGE_KEY=
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_REGION=
-PGDUMPSTER_S3_ENDPOINT=
-PGDUMPSTER_S3_BUCKET=
 ```
 
-Do not use a generic `.env` automatically from arbitrary current directories unless the behavior is explicit and documented. Accidental credential loading is a security problem.
+Future S3 publication may additionally use standard AWS/provider credential mechanisms. Do not infer that S3 is usable from the presence of AWS SDK dependencies.
 
 ## Configuration file
 
-Example:
+The current config schema supports backup concurrency/consistency settings plus local/S3 destination and none/age encryption shapes. **Schema acceptance is not equivalent to runtime implementation**: the CLI currently rejects S3 and age modes explicitly.
 
-```yaml
-projectRef: abcdefghijklmnopqrst
-
-backup:
-  output: ./backups
-  consistency: verified
-  maxStorageConcurrency: 8
-  maxApiConcurrency: 3
-  maxConsistencyRetries: 3
-
-encryption:
-  mode: age
-  recipient: age1...
-
-destination:
-  type: local
-```
-
-The config contains references/options, not secret values.
-
-## Human output
-
-Example:
-
-```text
-pgDumpster 1.x
-
-Source       abcdefghijklmnopqrst
-Mode         verified
-Destination  ./backups
-
-Preflight
-  ✓ Management API
-  ✓ Database
-  ✓ Storage
-  ✓ Supabase CLI
-
-Backup
-  ✓ Database
-  ✓ Vault root key
-  ✓ Auth
-  ✓ Edge Functions        8
-  ✓ Edge secrets          13
-  ✓ File Storage          12,438 objects / 42.8 GB
-  ✓ Realtime/PostgREST
-  ! Signing private key   not exportable by platform
-
-Consistency
-  ✓ Verified after 1 pass
-
-Integrity
-  ✓ 12,517 payloads verified
-
-Result
-  COMPLETE WITH PLATFORM LIMITS
-```
-
-No secret values appear.
+The config contains options/references, not raw secret values.
 
 ## JSON output
 
-`--json` writes newline-delimited event objects during long-running operations and one final result object.
-
-Event shape:
-
-```json
-{
-  "schemaVersion": 1,
-  "time": "2026-08-13T20:30:00.000Z",
-  "runId": "...",
-  "type": "component.progress",
-  "component": "storage.file_objects",
-  "data": {
-    "completed": 1200,
-    "total": 12438,
-    "bytes": 928374982
-  }
-}
-```
-
-Final object must include:
-
-- run/result status;
-- output bundle path/URI;
-- coverage result;
-- consistency result;
-- warnings/errors;
-- manual-action count.
-
-JSON mode sends machine events to stdout and logs/progress diagnostics to stderr.
+`--json` provides stable machine-readable final/report output for implemented commands. The target long-running event-stream UX described by the product requirements remains subject to final CLI acceptance testing.
 
 ## Redaction
 
-The output layer owns a central redactor.
+The output/error layer uses the central redactor. Bearer tokens, database credentials, project secret/service-role keys, Edge secret values, Vault root-key material and other registered secret values must not appear in ordinary stdout/stderr/error serialization.
 
-Redact:
+## Non-interactive target behavior
 
-- bearer/PAT tokens;
-- DB credentials;
-- service-role/secret keys;
-- Edge secret values;
-- JWT/private key material;
-- Vault root key;
-- S3 secrets;
-- OAuth client secrets.
+The final CLI contract requires deterministic no-prompt operation for CI/non-interactive use and explicit `--apply` for mutation. `--non-interactive` itself is a target option and is not currently part of the implemented global parser.
 
-Redaction runs before logger transports and before error serialization.
+## Accessibility and terminal compatibility
 
-## Progress
-
-For unknown totals, show indeterminate progress. Never invent percentage completion.
-
-For Storage, once inventory is complete, object count and byte total can drive progress.
-
-## Non-interactive behavior
-
-When `CI=true` or `--non-interactive`:
-
-- never prompt;
-- missing required input is an error;
-- destructive restore still requires `--apply`;
-- plaintext sensitive backup still requires explicit policy;
-- stable exit codes are mandatory.
-
-## Accessibility/terminal compatibility
+Target requirements remain:
 
 - no information encoded only by color;
-- support `NO_COLOR`;
-- Unicode symbols may fall back to ASCII;
-- width-aware output;
-- no cursor animation in non-TTY;
-- Windows PowerShell/cmd and POSIX terminals covered by tests.
+- `NO_COLOR` compatibility;
+- sensible ASCII fallback;
+- no cursor animation in non-TTY mode;
+- Windows and POSIX terminal coverage.
 
 ## Versioning
 
-CLI behavior that scripts depend upon is versioned semantically.
-
-Breaking changes include:
-
-- command/flag removal;
-- exit-code meaning changes;
-- machine JSON schema changes;
-- bundle format incompatibility.
-
-Bundle format has an independent schema version recorded in the manifest.
+Command/flag removal, exit-code meaning changes, machine JSON schema changes and bundle-format incompatibility are breaking interfaces and require explicit versioning/release notes.
