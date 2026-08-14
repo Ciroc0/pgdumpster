@@ -71,9 +71,13 @@ describe("File Storage backup consistency adapter", () => {
     const direct = databaseUrl();
     const expected = snapshotFixture();
     const controller = new AbortController();
-    vi.mocked(collectFileStorageConsistencySnapshot).mockResolvedValue(expected);
+    vi.mocked(collectFileStorageConsistencySnapshot).mockResolvedValue(
+      expected,
+    );
 
-    const adapter = createFileStorageConsistencyAdapter({ databaseUrl: direct });
+    const adapter = createFileStorageConsistencyAdapter({
+      databaseUrl: direct,
+    });
 
     await expect(
       adapter.snapshot({

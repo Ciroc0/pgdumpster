@@ -68,9 +68,9 @@ describe("File Storage consistency snapshots", () => {
       })),
     };
 
-    expect(fileStorageConsistencySnapshotsEqual(snapshot(), snapshot(changed))).toBe(
-      true,
-    );
+    expect(
+      fileStorageConsistencySnapshotsEqual(snapshot(), snapshot(changed)),
+    ).toBe(true);
   });
 
   it("detects bucket, object metadata and version drift", () => {
@@ -130,7 +130,9 @@ describe("File Storage consistency snapshots", () => {
 
     expect(collected).toEqual(snapshot());
     expect(temporaryRoot).toBeDefined();
-    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("collects linked snapshots through the same disposable contract", async () => {
@@ -147,7 +149,9 @@ describe("File Storage consistency snapshots", () => {
 
     expect(collected.catalog.objects).toHaveLength(1);
     expect(temporaryRoot).toBeDefined();
-    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("wraps inventory failures and preserves cancellation semantics", async () => {

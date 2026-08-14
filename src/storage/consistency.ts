@@ -27,9 +27,11 @@ function comparableCatalog(catalog: FileStorageCatalog) {
   return {
     schemaVersion: catalog.schemaVersion,
     buckets: catalog.buckets,
-    objects: catalog.objects.map(({ lastAccessedAt: _lastAccessedAt, ...object }) =>
-      object,
-    ),
+    objects: catalog.objects.map((entry) => {
+      const { lastAccessedAt, ...object } = entry;
+      void lastAccessedAt;
+      return object;
+    }),
   };
 }
 
@@ -87,13 +89,16 @@ async function collectSnapshot(
     throw new PgDumpsterError({
       code: "STORAGE_CONSISTENCY_SNAPSHOT_FAILED",
       category: "consistency",
-      message: "File Storage consistency inventory could not be collected safely.",
+      message:
+        "File Storage consistency inventory could not be collected safely.",
       retryable: false,
       component: "storage.file_objects",
       cause: error,
     });
   } finally {
-    await rm(temporaryRoot, { recursive: true, force: true }).catch(() => undefined);
+    await rm(temporaryRoot, { recursive: true, force: true }).catch(
+      () => undefined,
+    );
   }
 }
 

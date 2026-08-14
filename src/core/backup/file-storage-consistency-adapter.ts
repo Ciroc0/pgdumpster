@@ -23,7 +23,9 @@ export interface FileStorageConsistencyAdapterSource {
 
 const SHARED_DATABASE_ARTIFACT = "database/storage-metadata.sql";
 
-function assertStorageSource(source: FileStorageConsistencyAdapterSource): void {
+function assertStorageSource(
+  source: FileStorageConsistencyAdapterSource,
+): void {
   if ((source.databaseUrl === undefined) === (source.linked !== true)) {
     throw new PgDumpsterError({
       code: "CONFIG_INVALID",
@@ -75,7 +77,9 @@ async function cleanupFileStorageArtifacts(
   const targets = [
     ...new Set(
       result.artifacts
-        .map((artifact) => storageArtifactTarget(context.workspaceRoot, artifact))
+        .map((artifact) =>
+          storageArtifactTarget(context.workspaceRoot, artifact),
+        )
         .filter((target): target is string => target !== undefined),
     ),
   ];

@@ -4,27 +4,27 @@ import { assertStorageObjectResponseEvidence } from "../../src/storage/object-ev
 
 describe("Storage object response evidence", () => {
   it("accepts exact, quoted and weak ETag representations", () => {
-    expect(() =>
+    expect(() => {
       assertStorageObjectResponseEvidence(
         '"abc123"',
         new Response("body", { headers: { etag: "abc123" } }),
-      ),
-    ).not.toThrow();
-    expect(() =>
+      );
+    }).not.toThrow();
+    expect(() => {
       assertStorageObjectResponseEvidence(
         "abc123",
         new Response("body", { headers: { etag: 'W/"abc123"' } }),
-      ),
-    ).not.toThrow();
+      );
+    }).not.toThrow();
   });
 
   it("fails closed when catalog and response ETags differ", () => {
-    expect(() =>
+    expect(() => {
       assertStorageObjectResponseEvidence(
         '"before"',
         new Response("body", { headers: { etag: '"after"' } }),
-      ),
-    ).toThrowError(
+      );
+    }).toThrowError(
       expect.objectContaining({
         code: "STORAGE_OBJECT_CHANGED_DURING_COPY",
         category: "consistency",
@@ -39,14 +39,14 @@ describe("Storage object response evidence", () => {
   });
 
   it("does not invent ETag evidence when either side is unavailable", () => {
-    expect(() =>
+    expect(() => {
       assertStorageObjectResponseEvidence(
         undefined,
         new Response("body", { headers: { etag: '"observed"' } }),
-      ),
-    ).not.toThrow();
-    expect(() =>
-      assertStorageObjectResponseEvidence('"expected"', new Response("body")),
-    ).not.toThrow();
+      );
+    }).not.toThrow();
+    expect(() => {
+      assertStorageObjectResponseEvidence('"expected"', new Response("body"));
+    }).not.toThrow();
   });
 });
