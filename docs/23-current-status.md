@@ -2,12 +2,11 @@
 
 This document is a **status snapshot**, not a replacement for the binding product requirements. When it conflicts with a higher-priority specification, the specification wins and the difference is a remaining implementation task.
 
-Snapshot date: **2026-08-15**  
-Implementation checkpoint before this documentation reconciliation: **`be4df4e`** (`test: complete coverage threshold hardening`)
+Snapshot date: **2026-08-15**.
 
 ## Validation summary
 
-Latest local validation:
+Latest complete local coverage validation before the consistency-engine slice:
 
 - `pnpm check`: PASS;
 - test files: **70 passed**;
@@ -17,9 +16,9 @@ Latest local validation:
 - functions: **93.22%**;
 - lines: **95.72%**.
 
-Latest GitHub CI on the checkpoint is green for the regular CI workflow. The workflow covers quality gates, unit/contract tests, integration tests, security-focused tests, production dependency audit, and an OS/Node matrix covering Ubuntu, macOS and Windows with Node 22 and 24.
+The first generic consistency-engine slice adds one test file with 10 focused tests. GitHub CI executed **71 test files / 405 tests** successfully for that slice, along with the integration, security and Ubuntu/macOS/Windows Node 22/24 jobs. The quality job initially failed only because Prettier detected formatting in the new consistency file and three documentation files; those formatting issues are being reconciled before further consistency integration.
 
-CodeQL currently reaches analysis/SARIF generation, but GitHub cannot publish the result because code scanning is not enabled/accessible for the repository integration. This is a repository configuration gate, not evidence that the static-analysis result is clean.
+CodeQL reaches analysis/SARIF generation, but GitHub cannot publish the result because code scanning is not enabled/accessible for the repository integration. This is a repository configuration gate, not evidence that the static-analysis result is clean.
 
 ## Implemented repository slices
 
@@ -32,6 +31,7 @@ The implementation currently includes:
 - deterministic bundle finalization, SHA-256 verification, inspect/coverage/verify;
 - deterministic `.tar.zst` packing and hostile archive protections;
 - backup checkpoints, artifact revalidation and resume;
+- a generic fail-closed consistency engine with canonical pre/post comparison, bounded verified retries, quiesced drift failure, cleanup requirements and cancellation handling;
 - restore plan/checkpoint/executor primitives and semantic verification;
 - database logical dump, inventory, excluded managed/extension state, managed-schema diff and restore primitives;
 - Auth, Cron, Queues, Vault, publications and Database Webhook coverage;
@@ -50,15 +50,13 @@ The implementation currently includes:
 
 These are deliberate fail-closed gates in the current CLI:
 
-| Area | Current behavior | Required end state |
-| --- | --- | --- |
-| Backup consistency | only explicit `best-effort` is accepted | implement real `verified` and `quiesced` pre/post inventory, selective retry and bounded failure |
-| Secret protection | plaintext protected artifacts require explicit `--allow-plaintext-secrets` | wire standard `age` encryption and keep plaintext opt-in only |
-| Destination | local destination only | wire tested streaming/resumable S3-compatible publication and independent remote integrity verification |
-| Restore | integrity-first dry-run plan is exposed; core executor/handlers exist | wire `--apply`, protected substitutions, resume and final semantic parity through the CLI |
-| Hosted E2E | partial live observations exist | pass dedicated source → encrypted verified backup → offline verify → fresh target restore → semantic parity |
-| CodeQL | analysis runs, result publication fails on repository configuration | enable code scanning/access and obtain a green/dispositioned result |
-| Release | normal CI exists | add remaining live-E2E/release/SBOM/provenance/package-smoke gates |
+- **Backup consistency**: only explicit `best-effort` is accepted. The generic consistency engine now exists, but concrete Database/Storage/Management/Edge source inventories and safe retry cleanup still need to be wired before `verified` or `quiesced` can be enabled.
+- **Secret protection**: plaintext protected artifacts require explicit `--allow-plaintext-secrets`. Standard `age` encryption still needs to be wired.
+- **Destination**: only local destination is exposed. Streaming/resumable S3-compatible publication and independent remote integrity verification remain unimplemented.
+- **Restore**: integrity-first dry-run planning is exposed and the core executor/handlers exist. CLI `--apply`, protected substitutions, resume and final semantic parity still need to be wired end-to-end.
+- **Hosted E2E**: partial live observations exist, but the dedicated source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure has not passed yet.
+- **CodeQL**: analysis runs, but result publication fails on repository configuration. Code scanning/access must be enabled and any findings dispositioned.
+- **Release**: normal CI exists. Remaining live-E2E, SBOM, provenance, package-smoke and final release gates are still required.
 
 ## Current CLI surface
 
@@ -84,7 +82,7 @@ pgdumpster restore <bundle-directory|archive.tar.zst> --target-project-ref <ref>
 
 `restore --apply` is parsed but currently fails closed with `RESTORE_APPLY_NOT_IMPLEMENTED`.
 
-The current backup command accepts `verified|best-effort|quiesced` syntactically, but only `best-effort` proceeds; the other modes fail closed until the consistency engine is complete.
+The current backup command accepts `verified|best-effort|quiesced` syntactically, but only `best-effort` proceeds; the other modes remain fail-closed while the generic consistency engine is connected to every mutable product surface.
 
 ## Contract/live evidence
 
@@ -96,13 +94,14 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. implement real `verified`/`quiesced` cross-service consistency and selective retry;
-2. wire `age` encryption for protected backup output;
-3. wire S3-compatible destination publication/recovery semantics;
-4. wire the existing restore executor/handlers through `restore --apply` and finish parity reporting;
-5. seed/reset the dedicated hosted source/target fixtures and run the full live E2E;
-6. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
-7. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
+1. connect the generic consistency engine to concrete Database, Storage, Management API, Auth/API-key, Edge and other mutable source inventories, with selective cleanup/retry and bounded failure;
+2. remove the `verified`/`quiesced` CLI guard only after every required mutable surface participates in that consistency contract;
+3. wire `age` encryption for protected backup output;
+4. wire S3-compatible destination publication/recovery semantics;
+5. wire the existing restore executor/handlers through `restore --apply` and finish parity reporting;
+6. seed/reset the dedicated hosted source/target fixtures and run the full live E2E;
+7. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
+8. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
 
 ## Definition of done
 
