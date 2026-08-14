@@ -165,7 +165,12 @@ export async function downloadStorageObject(
           attempt,
         });
       }
-      assertStorageObjectResponseEvidence(source.etag, response);
+      try {
+        assertStorageObjectResponseEvidence(source.etag, response);
+      } catch (error) {
+        await response.body.cancel().catch(() => undefined);
+        throw error;
+      }
       const digest = createHash("sha256");
       let bytes = 0;
       const hashing = new Transform({
