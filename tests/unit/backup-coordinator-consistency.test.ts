@@ -23,9 +23,9 @@ const configHash = createHash("sha256")
 
 afterEach(async () => {
   await Promise.all(
-    temporaryDirectories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -91,12 +91,7 @@ describe("backup coordinator consistency integration", () => {
 
       await expect(
         executeBackup(
-          options(
-            workspaceRoot,
-            checkpointPath,
-            { id: "all", run },
-            mode,
-          ),
+          options(workspaceRoot, checkpointPath, { id: "all", run }, mode),
         ),
       ).rejects.toMatchObject({
         code: "CONSISTENCY_ADAPTER_REQUIRED",

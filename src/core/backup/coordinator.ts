@@ -29,10 +29,7 @@ import { loadCoverageRegistry } from "../coverage/registry.js";
 import { PgDumpsterError } from "../errors/error.js";
 import { writeFileAtomic } from "../../utils/atomic-file.js";
 import { canonicalJson } from "../../utils/canonical-json.js";
-import {
-  runConsistentCopy,
-  type ConsistencyMode,
-} from "./consistency.js";
+import { runConsistentCopy, type ConsistencyMode } from "./consistency.js";
 
 type CoverageEntry = z.infer<typeof coverageEntrySchema>;
 
