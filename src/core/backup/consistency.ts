@@ -47,8 +47,7 @@ function defaultEquals<TSnapshot>(
 async function cleanupAfterDrift<TResult>(
   result: TResult,
   cleanup:
-    | ((result: TResult, signal?: AbortSignal) => Promise<void>)
-    | undefined,
+    ((result: TResult, signal?: AbortSignal) => Promise<void>) | undefined,
   signal?: AbortSignal,
 ): Promise<void> {
   if (cleanup === undefined) {
