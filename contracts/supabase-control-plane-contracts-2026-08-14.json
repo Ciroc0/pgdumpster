@@ -987,11 +987,7 @@
         },
         "session_replication_role": {
           "type": "string",
-          "enum": [
-            "origin",
-            "replica",
-            "local"
-          ]
+          "enum": ["origin", "replica", "local"]
         },
         "shared_buffers": {
           "type": "string"
@@ -1033,10 +1029,7 @@
         },
         "database_type": {
           "type": "string",
-          "enum": [
-            "PRIMARY",
-            "READ_REPLICA"
-          ]
+          "enum": ["PRIMARY", "READ_REPLICA"]
         },
         "is_using_scram_auth": {
           "type": "boolean"
@@ -1076,10 +1069,7 @@
         },
         "pool_mode": {
           "type": "string",
-          "enum": [
-            "transaction",
-            "session"
-          ]
+          "enum": ["transaction", "session"]
         }
       },
       "required": [
@@ -1115,11 +1105,7 @@
         },
         "pool_mode": {
           "type": "string",
-          "enum": [
-            "transaction",
-            "session",
-            "statement"
-          ]
+          "enum": ["transaction", "session", "statement"]
         },
         "connection_string": {
           "type": "string"
@@ -1156,18 +1142,13 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "database"
-          ]
+          "required": ["database"]
         },
         "appliedSuccessfully": {
           "type": "boolean"
         }
       },
-      "required": [
-        "currentConfig",
-        "appliedSuccessfully"
-      ]
+      "required": ["currentConfig", "appliedSuccessfully"]
     },
     "V1BackupScheduleResponse": {
       "type": "object",
@@ -1186,10 +1167,7 @@
           "example": "2026-05-04T14:40:44+00:00"
         }
       },
-      "required": [
-        "schedule_for",
-        "updated_at"
-      ]
+      "required": ["schedule_for", "updated_at"]
     },
     "RealtimeConfigResponse": {
       "type": "object",
@@ -1338,9 +1316,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "enabled"
-              ]
+              "required": ["enabled"]
             },
             "s3Protocol": {
               "type": "object",
@@ -1349,9 +1325,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "enabled"
-              ]
+              "required": ["enabled"]
             },
             "purgeCache": {
               "type": "object",
@@ -1360,9 +1334,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "enabled"
-              ]
+              "required": ["enabled"]
             },
             "icebergCatalog": {
               "type": "object",
@@ -1410,11 +1382,7 @@
                   "maximum": 9007199254740991
                 }
               },
-              "required": [
-                "enabled",
-                "maxBuckets",
-                "maxIndexes"
-              ]
+              "required": ["enabled", "maxBuckets", "maxIndexes"]
             }
           },
           "required": [
@@ -1435,25 +1403,17 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "list_v2",
-            "iceberg_catalog"
-          ]
+          "required": ["list_v2", "iceberg_catalog"]
         },
         "external": {
           "type": "object",
           "properties": {
             "upstreamTarget": {
               "type": "string",
-              "enum": [
-                "main",
-                "canary"
-              ]
+              "enum": ["main", "canary"]
             }
           },
-          "required": [
-            "upstreamTarget"
-          ]
+          "required": ["upstreamTarget"]
         },
         "migrationVersion": {
           "type": "string"
@@ -1532,10 +1492,7 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "txt_name",
-                          "txt_value"
-                        ]
+                        "required": ["txt_name", "txt_value"]
                       }
                     },
                     "validation_errors": {
@@ -1547,16 +1504,11 @@
                             "type": "string"
                           }
                         },
-                        "required": [
-                          "message"
-                        ]
+                        "required": ["message"]
                       }
                     }
                   },
-                  "required": [
-                    "status",
-                    "validation_records"
-                  ]
+                  "required": ["status", "validation_records"]
                 },
                 "ownership_verification": {
                   "type": "object",
@@ -1571,11 +1523,7 @@
                       "type": "string"
                     }
                   },
-                  "required": [
-                    "type",
-                    "name",
-                    "value"
-                  ]
+                  "required": ["type", "name", "value"]
                 },
                 "custom_origin_server": {
                   "type": "string"
@@ -1600,49 +1548,31 @@
               ]
             }
           },
-          "required": [
-            "success",
-            "errors",
-            "messages",
-            "result"
-          ]
+          "required": ["success", "errors", "messages", "result"]
         }
       },
-      "required": [
-        "status",
-        "custom_hostname",
-        "data"
-      ]
+      "required": ["status", "custom_hostname", "data"]
     },
     "VanitySubdomainConfigResponse": {
       "type": "object",
       "properties": {
         "status": {
           "type": "string",
-          "enum": [
-            "not-used",
-            "custom-domain-used",
-            "active"
-          ]
+          "enum": ["not-used", "custom-domain-used", "active"]
         },
         "custom_domain": {
           "type": "string",
           "minLength": 1
         }
       },
-      "required": [
-        "status"
-      ]
+      "required": ["status"]
     },
     "NetworkRestrictionsResponse": {
       "type": "object",
       "properties": {
         "entitlement": {
           "type": "string",
-          "enum": [
-            "disallowed",
-            "allowed"
-          ]
+          "enum": ["disallowed", "allowed"]
         },
         "config": {
           "type": "object",
@@ -1661,12 +1591,8 @@
             }
           },
           "example": {
-            "dbAllowedCidrs": [
-              "203.0.113.0/24"
-            ],
-            "dbAllowedCidrsV6": [
-              "2001:db8::/32"
-            ]
+            "dbAllowedCidrs": ["203.0.113.0/24"],
+            "dbAllowedCidrsV6": ["2001:db8::/32"]
           },
           "description": "At any given point in time, this is the config that the user has requested be applied to their project. The `status` field indicates if it has been applied to the project, or is pending. When an updated config is received, the applied config is moved to `old_config`."
         },
@@ -1688,20 +1614,13 @@
             }
           },
           "example": {
-            "dbAllowedCidrs": [
-              "203.0.113.0/24"
-            ],
-            "dbAllowedCidrsV6": [
-              "2001:db8::/32"
-            ]
+            "dbAllowedCidrs": ["203.0.113.0/24"],
+            "dbAllowedCidrsV6": ["2001:db8::/32"]
           }
         },
         "status": {
           "type": "string",
-          "enum": [
-            "stored",
-            "applied"
-          ]
+          "enum": ["stored", "applied"]
         },
         "updated_at": {
           "type": "string",
@@ -1714,11 +1633,7 @@
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
         }
       },
-      "required": [
-        "entitlement",
-        "config",
-        "status"
-      ]
+      "required": ["entitlement", "config", "status"]
     },
     "UpdatePostgresConfigBody": {
       "type": "object",
@@ -1836,11 +1751,7 @@
         },
         "session_replication_role": {
           "type": "string",
-          "enum": [
-            "origin",
-            "replica",
-            "local"
-          ]
+          "enum": ["origin", "replica", "local"]
         },
         "shared_buffers": {
           "type": "string"
@@ -1897,10 +1808,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "default_pool_size",
-        "pool_mode"
-      ]
+      "required": ["default_pool_size", "pool_mode"]
     },
     "UpdateSupavisorConfigBody": {
       "type": "object",
@@ -1914,10 +1822,7 @@
         "pool_mode": {
           "description": "Dedicated pooler mode for the project",
           "type": "string",
-          "enum": [
-            "transaction",
-            "session"
-          ]
+          "enum": ["transaction", "session"]
         }
       },
       "example": {
@@ -1935,14 +1840,10 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "database"
-          ]
+          "required": ["database"]
         }
       },
-      "required": [
-        "requestedConfig"
-      ],
+      "required": ["requestedConfig"],
       "example": {
         "requestedConfig": {
           "database": true
@@ -2107,9 +2008,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "enabled"
-              ]
+              "required": ["enabled"]
             },
             "s3Protocol": {
               "type": "object",
@@ -2118,9 +2017,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "enabled"
-              ]
+              "required": ["enabled"]
             },
             "purgeCache": {
               "type": "object",
@@ -2129,9 +2026,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "enabled"
-              ]
+              "required": ["enabled"]
             },
             "icebergCatalog": {
               "type": "object",
@@ -2179,11 +2074,7 @@
                   "maximum": 9007199254740991
                 }
               },
-              "required": [
-                "enabled",
-                "maxBuckets",
-                "maxIndexes"
-              ]
+              "required": ["enabled", "maxBuckets", "maxIndexes"]
             }
           }
         },
@@ -2192,15 +2083,10 @@
           "properties": {
             "upstreamTarget": {
               "type": "string",
-              "enum": [
-                "main",
-                "canary"
-              ]
+              "enum": ["main", "canary"]
             }
           },
-          "required": [
-            "upstreamTarget"
-          ]
+          "required": ["upstreamTarget"]
         }
       },
       "example": {
@@ -2218,10 +2104,7 @@
       "properties": {
         "entitlement": {
           "type": "string",
-          "enum": [
-            "disallowed",
-            "allowed"
-          ]
+          "enum": ["disallowed", "allowed"]
         },
         "config": {
           "type": "object",
@@ -2236,16 +2119,10 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": [
-                      "v4",
-                      "v6"
-                    ]
+                    "enum": ["v4", "v6"]
                   }
                 },
-                "required": [
-                  "address",
-                  "type"
-                ]
+                "required": ["address", "type"]
               }
             }
           },
@@ -2265,16 +2142,10 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": [
-                      "v4",
-                      "v6"
-                    ]
+                    "enum": ["v4", "v6"]
                   }
                 },
-                "required": [
-                  "address",
-                  "type"
-                ]
+                "required": ["address", "type"]
               }
             }
           }
@@ -2291,17 +2162,10 @@
         },
         "status": {
           "type": "string",
-          "enum": [
-            "stored",
-            "applied"
-          ]
+          "enum": ["stored", "applied"]
         }
       },
-      "required": [
-        "entitlement",
-        "config",
-        "status"
-      ]
+      "required": ["entitlement", "config", "status"]
     },
     "NetworkRestrictionsPatchRequest": {
       "type": "object",
@@ -2343,14 +2207,10 @@
       },
       "example": {
         "add": {
-          "dbAllowedCidrs": [
-            "203.0.113.0/24"
-          ]
+          "dbAllowedCidrs": ["203.0.113.0/24"]
         },
         "remove": {
-          "dbAllowedCidrs": [
-            "198.51.100.0/24"
-          ]
+          "dbAllowedCidrs": ["198.51.100.0/24"]
         }
       }
     },

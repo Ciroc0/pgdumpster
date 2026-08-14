@@ -23,8 +23,13 @@ afterEach(async () => {
   );
 });
 
-async function bundleArtifact(artifact: string, data: unknown): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-control-restore-"));
+async function bundleArtifact(
+  artifact: string,
+  data: unknown,
+): Promise<string> {
+  const root = await mkdtemp(
+    path.join(tmpdir(), "pgdumpster-control-restore-"),
+  );
   temporaryDirectories.push(root);
   const filename = path.join(root, ...artifact.split("/"));
   await mkdir(path.dirname(filename), { recursive: true });
@@ -76,6 +81,7 @@ function managementClient(options: ClientFixtureOptions) {
       schema: z.ZodType<T>,
       _requestOptions?: RequestOptions,
     ): Promise<T> {
+      void _requestOptions;
       const queue = queues.get(pathname);
       if (queue === undefined || queue.length === 0) {
         throw new Error(`Missing GET fixture for ${pathname}`);
@@ -89,6 +95,7 @@ function managementClient(options: ClientFixtureOptions) {
       bodySchema: z.ZodType<TBody>,
       _requestOptions?: RequestOptions,
     ): Promise<void> {
+      void _requestOptions;
       patches.push({ pathname, body: bodySchema.parse(body) });
       return Promise.resolve();
     },
@@ -99,6 +106,7 @@ function managementClient(options: ClientFixtureOptions) {
       responseSchema: z.ZodType<TResponse>,
       _requestOptions?: RequestOptions,
     ): Promise<TResponse> {
+      void _requestOptions;
       puts.push({ pathname, body: bodySchema.parse(body) });
       const response = options.putResponses?.[pathname];
       if (response === undefined) {

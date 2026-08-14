@@ -1,9 +1,7 @@
 import type { CoverageRegistry, CoverageStatus } from "./registry.js";
 
 export type BackupResultStatus =
-  | "complete"
-  | "complete_with_platform_limits"
-  | "failed";
+  "complete" | "complete_with_platform_limits" | "failed";
 
 export interface CoverageOutcome {
   id: string;
