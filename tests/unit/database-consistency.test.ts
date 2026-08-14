@@ -290,11 +290,13 @@ describe("database consistency snapshots", () => {
     expect(queries).toHaveLength(3);
     expect(end).toHaveBeenCalledOnce();
     expect(temporaryRoot).toBeDefined();
-    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("collects linked mutation evidence through serialized Supabase CLI queries", async () => {
-    const calls: readonly string[][] = [];
+    const calls: (readonly string[])[] = [];
     const runProcess = vi.fn((_command: string, args: readonly string[]) => {
       const sql = args.at(-1) ?? "";
       let rows: unknown[];
@@ -323,15 +325,21 @@ describe("database consistency snapshots", () => {
       });
     });
 
-    const collected = await collectLinkedDatabaseConsistencySnapshot(undefined, {
-      collectInventory: () => Promise.resolve(inventory),
-      collectCatalog: () => Promise.resolve(catalog),
-      linkedQueryDependencies: {
-        resolveSupabaseCommand: () =>
-          Promise.resolve({ command: "supabase-test", prefixArgs: ["cli.js"] }),
-        runProcess,
+    const collected = await collectLinkedDatabaseConsistencySnapshot(
+      undefined,
+      {
+        collectInventory: () => Promise.resolve(inventory),
+        collectCatalog: () => Promise.resolve(catalog),
+        linkedQueryDependencies: {
+          resolveSupabaseCommand: () =>
+            Promise.resolve({
+              command: "supabase-test",
+              prefixArgs: ["cli.js"],
+            }),
+          runProcess,
+        },
       },
-    });
+    );
 
     expect(collected.mutation.marker.txidXmax).toBe("201");
     expect(runProcess).toHaveBeenCalledTimes(3);
@@ -357,7 +365,9 @@ describe("database consistency snapshots", () => {
     });
 
     expect(temporaryRoot).toBeDefined();
-    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(temporaryRoot!)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("honors cancellation before creating snapshot state", async () => {

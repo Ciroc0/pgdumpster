@@ -185,9 +185,7 @@ export function normalizeDatabaseMutationEvidence(
 ): DatabaseMutationEvidence {
   const marker = z.array(markerRowSchema).length(1).parse(rows.marker)[0]!;
   const tables = z.array(tableFingerprintRowSchema).parse(rows.tables);
-  const sequences = z
-    .array(sequenceFingerprintRowSchema)
-    .parse(rows.sequences);
+  const sequences = z.array(sequenceFingerprintRowSchema).parse(rows.sequences);
 
   return {
     marker: {
@@ -301,7 +299,10 @@ export function databaseConsistencySnapshotsEqual(
   // from equality. In --linked mode the Supabase CLI creates short-lived
   // login roles, which can advance cluster transaction/WAL markers even when
   // the project data being backed up did not change.
-  return canonicalJson(comparableSnapshot(before)) === canonicalJson(comparableSnapshot(after));
+  return (
+    canonicalJson(comparableSnapshot(before)) ===
+    canonicalJson(comparableSnapshot(after))
+  );
 }
 
 async function collectSnapshot(
@@ -319,7 +320,10 @@ async function collectSnapshot(
   );
 
   try {
-    const inventory = await dependencies.collectInventory(temporaryRoot, signal);
+    const inventory = await dependencies.collectInventory(
+      temporaryRoot,
+      signal,
+    );
     signal?.throwIfAborted();
     const catalog = await dependencies.collectCatalog(temporaryRoot, signal);
     signal?.throwIfAborted();
@@ -342,7 +346,9 @@ async function collectSnapshot(
       cause: error,
     });
   } finally {
-    await rm(temporaryRoot, { recursive: true, force: true }).catch(() => undefined);
+    await rm(temporaryRoot, { recursive: true, force: true }).catch(
+      () => undefined,
+    );
   }
 }
 
