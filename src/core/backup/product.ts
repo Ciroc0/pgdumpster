@@ -46,6 +46,7 @@ import { createDirectoryArtifactSink } from "../bundle/artifact-sink.js";
 import type { CoverageDocument } from "../bundle/schemas.js";
 import { PgDumpsterError } from "../errors/error.js";
 import { createPlaintextProtectedArtifactSink } from "../../security/protected-artifact.js";
+import { createDatabaseConsistencyAdapter } from "./database-consistency-adapter.js";
 import {
   executeBackup,
   type BackupStep,
@@ -401,6 +402,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
     {
       id: "database",
       run: ({ signal }) => databaseStep(options, signal),
+      consistency: createDatabaseConsistencyAdapter(options),
     },
     {
       id: "project-state",
