@@ -1,4 +1,4 @@
-﻿import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -66,7 +66,7 @@ function common(
     immutableConfigSha256: configHash,
     toolVersion: "test",
     startedAt,
-    consistency: "verified" as const,
+    consistency: "best-effort" as const,
     steps,
     now: () => "2026-08-14T22:00:01.000Z",
   };
@@ -200,7 +200,7 @@ describe("backup coordinator hardening", () => {
       immutableConfigSha256: configHash,
       toolVersion: "test",
       startedAt,
-      consistency: "verified" as const,
+      consistency: "best-effort" as const,
       now: () => "2026-08-14T22:00:01.000Z",
     };
 

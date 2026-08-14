@@ -29,8 +29,14 @@ import { loadCoverageRegistry } from "../coverage/registry.js";
 import { PgDumpsterError } from "../errors/error.js";
 import { writeFileAtomic } from "../../utils/atomic-file.js";
 import { canonicalJson } from "../../utils/canonical-json.js";
+import {
+  runConsistentCopy,
+  type ConsistencyMode,
+} from "./consistency.js";
 
 type CoverageEntry = z.infer<typeof coverageEntrySchema>;
+
+const DEFAULT_CONSISTENCY_RETRIES = 3;
 
 export interface BackupStepContext {
   workspaceRoot: string;
@@ -43,9 +49,25 @@ export interface BackupStepResult {
   coverage: readonly CoverageEntry[];
 }
 
+export interface BackupStepConsistencyContext {
+  workspaceRoot: string;
+  signal?: AbortSignal | undefined;
+}
+
+export interface BackupStepConsistencyAdapter {
+  snapshot: (context: BackupStepConsistencyContext) => Promise<unknown>;
+  cleanup: (
+    result: BackupStepResult,
+    context: BackupStepConsistencyContext,
+  ) => Promise<void>;
+  equals?: ((before: unknown, after: unknown) => boolean) | undefined;
+  maxRetries?: number | undefined;
+}
+
 export interface BackupStep {
   id: string;
   run: (context: BackupStepContext) => Promise<BackupStepResult>;
+  consistency?: BackupStepConsistencyAdapter | undefined;
 }
 
 export interface ExecuteBackupOptions {
@@ -56,8 +78,9 @@ export interface ExecuteBackupOptions {
   immutableConfigSha256: string;
   toolVersion: string;
   startedAt: string;
-  consistency: "verified" | "best-effort" | "quiesced";
+  consistency: ConsistencyMode;
   steps: readonly BackupStep[];
+  maxConsistencyRetries?: number | undefined;
   resume?: boolean;
   signal?: AbortSignal | undefined;
   now?: () => string;
@@ -115,6 +138,86 @@ function assertUniqueStepIds(steps: readonly BackupStep[]): void {
   }
 }
 
+function assertConsistencyAdapters(
+  mode: ConsistencyMode,
+  steps: readonly BackupStep[],
+): void {
+  if (mode === "best-effort") return;
+  const missing = steps
+    .filter(({ consistency }) => consistency === undefined)
+    .map(({ id }) => id);
+  if (missing.length === 0) return;
+  throw new PgDumpsterError({
+    code: "CONSISTENCY_ADAPTER_REQUIRED",
+    category: "consistency",
+    message: `${mode} backup requires a consistency adapter for every backup step.`,
+    retryable: false,
+    details: { mode, steps: missing },
+  });
+}
+
+function stepContext(
+  workspaceRoot: string,
+  attempt: number,
+  signal?: AbortSignal,
+): BackupStepContext {
+  return {
+    workspaceRoot,
+    attempt,
+    ...(signal === undefined ? {} : { signal }),
+  };
+}
+
+function consistencyContext(
+  workspaceRoot: string,
+  signal?: AbortSignal,
+): BackupStepConsistencyContext {
+  return {
+    workspaceRoot,
+    ...(signal === undefined ? {} : { signal }),
+  };
+}
+
+async function executeStep(
+  step: BackupStep,
+  options: ExecuteBackupOptions,
+  checkpointAttempt: number,
+): Promise<BackupStepResult> {
+  const adapter = step.consistency;
+  if (adapter === undefined) {
+    return step.run(
+      stepContext(options.workspaceRoot, checkpointAttempt, options.signal),
+    );
+  }
+
+  const run = await runConsistentCopy({
+    mode: options.consistency,
+    maxRetries:
+      adapter.maxRetries ??
+      options.maxConsistencyRetries ??
+      DEFAULT_CONSISTENCY_RETRIES,
+    snapshot: (signal) =>
+      adapter.snapshot(consistencyContext(options.workspaceRoot, signal)),
+    copy: (consistencyAttempt, signal) =>
+      step.run(
+        stepContext(
+          options.workspaceRoot,
+          checkpointAttempt + consistencyAttempt - 1,
+          signal,
+        ),
+      ),
+    cleanup: (result, signal) =>
+      adapter.cleanup(
+        result,
+        consistencyContext(options.workspaceRoot, signal),
+      ),
+    ...(adapter.equals === undefined ? {} : { equals: adapter.equals }),
+    ...(options.signal === undefined ? {} : { signal: options.signal }),
+  });
+
+  return run.result;
+}
+
 async function checkpointForRun(
   options: ExecuteBackupOptions,
 ): Promise<BackupCheckpoint> {
@@ -159,6 +262,7 @@ export async function executeBackup(
       retryable: false,
     });
   }
+  assertConsistencyAdapters(options.consistency, options.steps);
   const now = options.now ?? (() => new Date().toISOString());
   let checkpoint = await checkpointForRun(options);
   if (
@@ -188,11 +292,7 @@ export async function executeBackup(
     );
     const attempt = checkpoint.steps.find(({ id }) => id === step.id)!.attempts;
     try {
-      const result = await step.run({
-        workspaceRoot: options.workspaceRoot,
-        attempt,
-        ...(options.signal === undefined ? {} : { signal: options.signal }),
-      });
+      const result = await executeStep(step, options, attempt);
       const coverage = result.coverage.map((entry) =>
         coverageEntrySchema.parse(entry),
       );

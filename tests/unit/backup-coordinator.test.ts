@@ -62,6 +62,10 @@ describe("backup coordinator", () => {
       shouldInterrupt: () => boolean,
     ): BackupStep => ({
       id,
+      consistency: {
+        snapshot: () => Promise.resolve({ revision: 1 }),
+        cleanup: () => Promise.resolve(),
+      },
       async run({ workspaceRoot: root }) {
         runCounter();
         if (shouldInterrupt()) throw new Error("simulated interruption");
