@@ -1,4 +1,11 @@
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -221,7 +228,10 @@ describe("database backup consistency adapter", () => {
       expect.objectContaining({ code: "CONFIG_INVALID" }),
     );
     expect(() =>
-      createDatabaseConsistencyAdapter({ databaseUrl: databaseUrl(), linked: true }),
+      createDatabaseConsistencyAdapter({
+        databaseUrl: databaseUrl(),
+        linked: true,
+      }),
     ).toThrowError(expect.objectContaining({ code: "CONFIG_INVALID" }));
   });
 });
