@@ -311,13 +311,17 @@ describe("Storage object download hardening", () => {
     const root = await outputDirectory();
     const controller = new AbortController();
 
-    const request = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response("retry", {
-        status: 503,
-      }),
-    );
+    const request = vi.fn<typeof fetch>(() => {
+      setTimeout(() => {
+        controller.abort(new Error("cancel retry sleep"));
+      }, 0);
 
-    const random = () => 1;
+      return Promise.resolve(
+        new Response("retry", {
+          status: 503,
+        }),
+      );
+    });
 
     const pending = downloadStorageObject(
       {
@@ -330,22 +334,15 @@ describe("Storage object download hardening", () => {
         outputDirectory: root,
         fetch: request,
         signal: controller.signal,
-        random,
+        random: () => 1,
         maxAttempts: 2,
       },
     );
-
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 10);
-    });
-
-    controller.abort(new Error("cancel retry sleep"));
 
     await expect(pending).rejects.toThrow("cancel retry sleep");
 
     expect(request).toHaveBeenCalledOnce();
   });
-
   it("accepts a normal nested object name and encodes each REST path segment", async () => {
     const root = await outputDirectory();
 
