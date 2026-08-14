@@ -37,7 +37,10 @@ function validateRetryCount(maxRetries: number): void {
   }
 }
 
-function defaultEquals<TSnapshot>(before: TSnapshot, after: TSnapshot): boolean {
+function defaultEquals<TSnapshot>(
+  before: TSnapshot,
+  after: TSnapshot,
+): boolean {
   return canonicalJson(before) === canonicalJson(after);
 }
 
