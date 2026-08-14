@@ -7,6 +7,7 @@ import { pipeline } from "node:stream/promises";
 
 import { PgDumpsterError } from "../core/errors/error.js";
 import type { SecretValue } from "../security/secret-value.js";
+import { assertStorageObjectResponseEvidence } from "./object-evidence.js";
 
 export interface StorageObjectSource {
   bucket: string;
@@ -14,6 +15,7 @@ export interface StorageObjectSource {
   expectedBytes?: number | undefined;
   version?: string | null | undefined;
   updatedAt?: string | null | undefined;
+  etag?: string | null | undefined;
 }
 
 export interface DownloadedStorageObject {
@@ -163,6 +165,7 @@ export async function downloadStorageObject(
           attempt,
         });
       }
+      assertStorageObjectResponseEvidence(source.etag, response);
       const digest = createHash("sha256");
       let bytes = 0;
       const hashing = new Transform({
