@@ -8,18 +8,16 @@ Status snapshot: **2026-08-15**.
 
 ## Runtime matrix
 
-| Component | Supported / pinned policy | Current evidence | Release status |
-| --- | --- | --- | --- |
-| Node.js | `>=22.15.0 <23` or `>=24 <25` | GitHub CI exercises Node 22 and 24 | ordinary CI green |
-| pnpm | repository `packageManager` pin | frozen-lockfile installs in CI | green |
-| Supabase CLI | `>=2.111.0 <3.0.0`; development dependency pinned to `2.111.0` | fixture/CLI behavior validated; dedicated live observations also exist for newer 2.x behavior | full hosted recovery E2E pending |
-| Hosted Supabase | dated official Management API/CLI/product contracts | endpoint-specific fixture/live observations exist | full source→target parity pending |
-| PostgreSQL | Supabase-managed target compatible with captured logical state | database backup/restore primitives tested; dedicated hosted projects are PostgreSQL 17 generation | full source→target parity pending |
-| Ubuntu | first-class | GitHub-hosted CI, Node 22 + 24 | green on current checkpoint |
-| macOS | first-class | GitHub-hosted CI, Node 22 + 24 | green on current checkpoint |
-| Windows | first-class | GitHub-hosted CI, Node 22 + 24; development also exercises Windows/Docker Desktop | green on current checkpoint |
-| `age` | standard age format is the target | tooling can be detected by `doctor` | CLI encryption path not implemented yet |
-| S3-compatible destination | target requirement | AWS SDK dependencies/interface groundwork exists | publication/recovery path not implemented yet |
+- **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. GitHub CI exercises Node 22 and 24. Ordinary CI is green apart from explicitly documented repository/configuration gates.
+- **pnpm**: the repository `packageManager` pin is authoritative. Frozen-lockfile installs are exercised in CI.
+- **Supabase CLI**: supported policy is `>=2.111.0 <3.0.0`; the development dependency is pinned to `2.111.0`. Fixture/CLI behavior is validated and dedicated live observations also exist for newer 2.x behavior. Full hosted recovery E2E is still pending.
+- **Hosted Supabase**: compatibility is based on dated official Management API/CLI/product contracts. Endpoint-specific fixture/live observations exist; full source-to-target parity is still pending.
+- **PostgreSQL**: the target is a Supabase-managed PostgreSQL version compatible with captured logical state. Database backup/restore primitives are tested; the dedicated hosted projects are PostgreSQL 17 generation. Full source-to-target parity is still pending.
+- **Ubuntu**: first-class. GitHub-hosted CI exercises Node 22 and 24.
+- **macOS**: first-class. GitHub-hosted CI exercises Node 22 and 24.
+- **Windows**: first-class. GitHub-hosted CI exercises Node 22 and 24; development also exercises Windows/Docker Desktop.
+- **`age`**: standard age format is the target. Tooling can be detected by `doctor`, but the CLI encryption path is not implemented yet.
+- **S3-compatible destination**: this remains a target requirement. AWS SDK dependencies/interface groundwork exists, but publication/recovery is not implemented yet.
 
 The OS matrix proves the exercised CLI/config/filesystem/archive behavior on the hosted runners; it does not substitute for the platform-independent hosted Supabase recovery E2E.
 
