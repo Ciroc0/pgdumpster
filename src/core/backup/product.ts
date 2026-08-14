@@ -28,6 +28,7 @@ import {
   collectLinkedFileStorageCatalog,
   type FileStorageCatalog,
 } from "../../storage/catalog.js";
+import { storageObjectEtag } from "../../storage/consistency.js";
 import { downloadStorageObject } from "../../storage/download.js";
 import { captureSpecializedStorage } from "../../storage/specialized.js";
 import {
@@ -47,6 +48,7 @@ import type { CoverageDocument } from "../bundle/schemas.js";
 import { PgDumpsterError } from "../errors/error.js";
 import { createPlaintextProtectedArtifactSink } from "../../security/protected-artifact.js";
 import { createDatabaseConsistencyAdapter } from "./database-consistency-adapter.js";
+import { createFileStorageConsistencyAdapter } from "./file-storage-consistency-adapter.js";
 import {
   executeBackup,
   type BackupStep,
@@ -312,6 +314,7 @@ async function fileStorageStep(
             : { expectedBytes: object.expectedBytes }),
           version: object.version,
           updatedAt: object.updatedAt,
+          etag: storageObjectEtag(object.metadata),
         },
         {
           projectRef: options.projectRef,
@@ -520,6 +523,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
       id: "file-storage",
       run: ({ signal }) =>
         fileStorageStep(options, storageKey, protectedSink, signal),
+      consistency: createFileStorageConsistencyAdapter(options),
     },
     {
       id: "specialized-storage",
