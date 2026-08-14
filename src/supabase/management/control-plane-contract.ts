@@ -49,7 +49,7 @@ const compiled = new Map<ControlPlaneContractName, z.ZodType<unknown>>();
 const LIVE_VERIFIED_OPTIONAL_FIELDS: Partial<
   Record<ControlPlaneContractName, readonly string[]>
 > = {
-  RealtimeConfigResponse: ["private_only"],
+  RealtimeConfigResponse: ["private_only", "postgres_changes_pool"],
   StorageConfigResponse: ["databasePoolMode"],
 };
 

@@ -132,14 +132,27 @@ const realtimeSource = {
   presence_enabled: true,
 };
 
+const realtimeSourceWithPostgresChangesPool = {
+  ...realtimeSource,
+  postgres_changes_pool: 25,
+};
+
 describe("control-plane restore handlers", () => {
   it("mutates a writable config with only the validated request body and polls until parity", async () => {
     const artifact = "control-plane/realtime.json";
-    const root = await bundleArtifact(artifact, realtimeSource);
+    const root = await bundleArtifact(
+      artifact,
+      realtimeSourceWithPostgresChangesPool,
+    );
     const endpoint = `/v1/projects/${projectRef}/config/realtime`;
-    const stale = { ...realtimeSource, max_events_per_second: 50 };
+    const stale = {
+      ...realtimeSourceWithPostgresChangesPool,
+      postgres_changes_pool: 5,
+    };
     const management = managementClient({
-      get: { [endpoint]: [stale, stale, realtimeSource] },
+      get: {
+        [endpoint]: [stale, stale, realtimeSourceWithPostgresChangesPool],
+      },
     });
     const sleep = vi.fn(() => Promise.resolve());
     const handler = createControlPlaneRestoreHandlers({
@@ -156,7 +169,10 @@ describe("control-plane restore handlers", () => {
     });
 
     expect(management.patches).toEqual([
-      { pathname: endpoint, body: realtimeSource },
+      {
+        pathname: endpoint,
+        body: realtimeSourceWithPostgresChangesPool,
+      },
     ]);
     await expect(
       handler.verify({

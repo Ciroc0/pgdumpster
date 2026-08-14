@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "source": "https://api.supabase.com/api/v1-json",
-  "sourceBytes": 334072,
-  "sourceSha256": "846aef2b9188ae843d8f782cc7f7ee1bed9dde63ba0ff8fc511d9627c98ea751",
-  "retrievedAt": "2026-08-13T23:31:25.737Z",
+  "sourceBytes": 334426,
+  "sourceSha256": "6f0d585db14bb6b601b0e6d1bbd5af8be37c1ee1c91411c097f3c4764c6d73a4",
+  "retrievedAt": "2026-08-14T20:19:43.372Z",
   "operations": {
     "GET /v1/projects/{ref}/functions": {
       "operationId": "v1-list-all-functions",

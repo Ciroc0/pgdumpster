@@ -368,3 +368,15 @@ Only verified limits belong here. Every runtime instance must map to a coverage 
 ## Outcomes and retrospective
 
 Not complete. Foundation, offline bundle/archive integrity, authenticated preflight, and initial database capture slices pass locally. Most adapters, encryption/destinations/resume, restore, hosted CI/security matrix, and the required live managed-Supabase E2E/parity gate remain pending.
+
+### 2026-08-14 — Realtime postgres_changes_pool contract drift
+
+- Official Management API v1 OpenAPI changed from SHA-256 `846aef2b9188ae843d8f782cc7f7ee1bed9dde63ba0ff8fc511d9627c98ea751` to `6f0d585db14bb6b601b0e6d1bbd5af8be37c1ee1c91411c097f3c4764c6d73a4`.
+- Semantic subset comparison showed Auth, Project, API key and Edge unchanged; the control-plane subset changed because Realtime added `postgres_changes_pool`.
+- Current OpenAPI defines `RealtimeConfigResponse.postgres_changes_pool` as required, nullable, integer 1–100 and adds the same writable field to `UpdateRealtimeConfigBody`.
+- Live GET observations against both dedicated hosted Supabase source and target test projects on 2026-08-14 returned the property as absent, not null.
+- Runtime validation therefore treats `postgres_changes_pool` as live-verified optional on GET while preserving the current OpenAPI write contract.
+- Restore fixture coverage proves a backed-up non-null `postgres_changes_pool` value is included in the Realtime PATCH body and semantic parity comparison.
+- `pnpm contracts:check` PASS against the updated official v1 contract baseline.
+- `pnpm check` PASS: 41 test files, 166 tests.
+- `pnpm test:coverage` remains a separate release blocker at 82.29% statements, 72.50% branches, 77.68% functions and 83.47% lines versus the configured 90% global thresholds.
