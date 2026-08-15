@@ -135,7 +135,9 @@ describe("Management consistency adapters", () => {
 
   it("supports streamed ordinary artifacts in the in-memory digest sink", async () => {
     vi.mocked(captureProjectState).mockImplementation(
-      async (_client, _projectRef, sink, signal) => {
+      async (client, projectRef, sink, signal) => {
+        expect(client).toBe(management);
+        expect(projectRef).toBe(source.projectRef);
         const bytes = new TextEncoder().encode("streamed-project-state");
         await sink.writeStream(
           "control-plane/project.json",
@@ -164,7 +166,9 @@ describe("Management consistency adapters", () => {
 
   it("fails closed when a snapshot stream exceeds its declared byte limit", async () => {
     vi.mocked(captureProjectState).mockImplementation(
-      async (_client, _projectRef, sink, signal) => {
+      async (client, projectRef, sink, signal) => {
+        expect(client).toBe(management);
+        expect(projectRef).toBe(source.projectRef);
         await sink.writeStream(
           "control-plane/project.json",
           new Blob(["too-large"]).stream(),
@@ -224,7 +228,11 @@ describe("Management consistency adapters", () => {
 
   it("captures control-plane, platform-v2 and API-key source markers", async () => {
     vi.mocked(captureControlPlaneState).mockImplementation(
-      async (_client, _projectRef, ordinary, _protected, _redactor, signal) => {
+      async (client, projectRef, ordinary, protectedSink, redactor, signal) => {
+        expect(client).toBe(management);
+        expect(projectRef).toBe(source.projectRef);
+        expect(protectedSink).toBeDefined();
+        expect(redactor).toBeDefined();
         await ordinary.writeJson(
           "control-plane/database-postgres.json",
           { data: { max_connections: 100 } },
@@ -240,7 +248,11 @@ describe("Management consistency adapters", () => {
       },
     );
     vi.mocked(capturePlatformV2State).mockImplementation(
-      async (_client, _projectRef, ordinary, _protected, _redactor, signal) => {
+      async (client, projectRef, ordinary, protectedSink, redactor, signal) => {
+        expect(client).toBe(management);
+        expect(projectRef).toBe(source.projectRef);
+        expect(protectedSink).toBeDefined();
+        expect(redactor).toBeDefined();
         await ordinary.writeJson(
           "control-plane/private-link.json",
           { data: [] },
@@ -258,7 +270,10 @@ describe("Management consistency adapters", () => {
       },
     );
     vi.mocked(captureApiKeys).mockImplementation(
-      async (_client, _projectRef, _redactor, sink, signal) => {
+      async (client, projectRef, redactor, sink, signal) => {
+        expect(client).toBe(management);
+        expect(projectRef).toBe(source.projectRef);
+        expect(redactor).toBeDefined();
         await sink.writeJson(
           "secrets/api-keys.json",
           { schemaVersion: 1, keys: [] },
@@ -309,7 +324,9 @@ describe("Management consistency adapters", () => {
 
   it("detects snapshot protection mismatches instead of silently hashing them", async () => {
     vi.mocked(captureControlPlaneState).mockImplementation(
-      async (_client, _projectRef, ordinary) => {
+      async (client, projectRef, ordinary) => {
+        expect(client).toBe(management);
+        expect(projectRef).toBe(source.projectRef);
         await ordinary.writeJson(
           "secrets/control-plane/postgrest.json",
           { data: { jwt_secret: "secret-value" } },
@@ -336,7 +353,9 @@ describe("Management consistency adapters", () => {
 
   it("rejects duplicate snapshot artifacts and missing coverage artifacts", async () => {
     vi.mocked(captureProjectState).mockImplementationOnce(
-      async (_client, _projectRef, sink) => {
+      async (client, projectRef, sink) => {
+        expect(client).toBe(management);
+        expect(projectRef).toBe(source.projectRef);
         await sink.writeJson("control-plane/project.json", { data: 1 });
         await sink.writeJson("control-plane/project.json", { data: 2 });
         return {
