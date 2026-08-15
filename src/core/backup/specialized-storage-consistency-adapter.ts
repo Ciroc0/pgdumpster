@@ -92,40 +92,43 @@ function canonicalOrder(left: unknown, right: unknown): number {
   return canonicalJson(left).localeCompare(canonicalJson(right), "en");
 }
 
+function isUnknownArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
 function normalizedAnalyticsCatalog(
   value: Readonly<Record<string, unknown>>,
 ): Readonly<Record<string, unknown>> {
   const namespacesValue = value["namespaces"];
-  if (!Array.isArray(namespacesValue)) return value;
+  if (!isUnknownArray(namespacesValue)) return value;
 
   const namespaces = namespacesValue
-    .map((namespace) => {
-      if (
-        namespace === null ||
-        typeof namespace !== "object" ||
-        Array.isArray(namespace)
-      ) {
-        return namespace;
-      }
-      const record = namespace as Record<string, unknown>;
+    .map((namespace): unknown => {
+      const record = asRecord(namespace);
+      if (record === undefined) return namespace;
+
       const tablesValue = record["tables"];
       return {
         ...record,
-        ...(Array.isArray(tablesValue)
+        ...(isUnknownArray(tablesValue)
           ? { tables: [...tablesValue].sort(canonicalOrder) }
           : {}),
       };
     })
     .sort((left, right) => {
-      const leftNamespace =
-        left !== null && typeof left === "object"
-          ? Reflect.get(left, "namespace")
-          : left;
-      const rightNamespace =
-        right !== null && typeof right === "object"
-          ? Reflect.get(right, "namespace")
-          : right;
-      return canonicalOrder(leftNamespace, rightNamespace);
+      const leftRecord = asRecord(left);
+      const rightRecord = asRecord(right);
+      return canonicalOrder(
+        leftRecord?.["namespace"] ?? left,
+        rightRecord?.["namespace"] ?? right,
+      );
     });
 
   return { ...value, namespaces };
@@ -217,7 +220,9 @@ function parseVectorSummary(
 function createSpecializedSnapshotSinks(): {
   ordinary: BundleArtifactSink;
   protectedSink: ProtectedArtifactSink;
-  finalize(coverage: readonly CoverageEntry[]): SpecializedStorageConsistencySnapshot;
+  finalize(
+    coverage: readonly CoverageEntry[],
+  ): SpecializedStorageConsistencySnapshot;
 } {
   const catalogDigests = new Map<string, CatalogDigest>();
   const vectorDigests = new Map<string, VectorDigest>();
@@ -305,7 +310,11 @@ function createSpecializedSnapshotSinks(): {
       seenVectorPages.add(relativePath);
       const page = parseVectorPage(relativePath, value);
       for (const vector of page.vectors) {
-        if (vector === null || typeof vector !== "object" || Array.isArray(vector)) {
+        if (
+          vector === null ||
+          typeof vector !== "object" ||
+          Array.isArray(vector)
+        ) {
           return Promise.reject(
             snapshotError(
               "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID",

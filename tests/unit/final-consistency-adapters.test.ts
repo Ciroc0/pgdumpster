@@ -1,4 +1,11 @@
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -65,7 +72,9 @@ afterEach(async () => {
 });
 
 async function workspace(): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-final-consistency-"));
+  const root = await mkdtemp(
+    path.join(tmpdir(), "pgdumpster-final-consistency-"),
+  );
   temporaryDirectories.push(root);
   return root;
 }
@@ -103,6 +112,8 @@ function installEdgeCapture(version: number, secretDigest: string) {
   let bodyCancelled = false;
   vi.mocked(captureEdgeState).mockImplementation(
     async (_client, _projectRef, protectedSink, ordinary, options) => {
+      const signal = options?.signal;
+
       await protectedSink.writeJson(
         "secrets/edge-secret-digests.json",
         {
@@ -110,7 +121,7 @@ function installEdgeCapture(version: number, secretDigest: string) {
           valuesAreDigests: true,
           secrets: [{ name: "EDGE_CANARY", value: secretDigest }],
         },
-        options.signal,
+        signal,
       );
       const bodyPath = "functions/hello-world/source.multipart";
       const body = await ordinary.writeStream(
@@ -124,7 +135,7 @@ function installEdgeCapture(version: number, secretDigest: string) {
             bodyCancelled = true;
           },
         }),
-        { maxBytes: 1024, signal: options.signal },
+        { maxBytes: 1024, signal },
       );
       await ordinary.writeJson(
         "functions/index.json",
@@ -150,7 +161,7 @@ function installEdgeCapture(version: number, secretDigest: string) {
             },
           ],
         },
-        options.signal,
+        signal,
       );
       return {
         coverage: [
@@ -197,7 +208,7 @@ interface VectorFixture {
 
 function installSpecializedCapture(options: {
   pages: VectorFixture[][];
-  analyticsTables?: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  analyticsTables?: readonly Readonly<Record<string, unknown>>[];
 }) {
   vi.mocked(captureSpecializedStorage).mockImplementation(
     async (_client, ordinary, protectedSink, signal) => {
@@ -287,12 +298,10 @@ function installSpecializedCapture(options: {
             {
               namespace: ["default"],
               properties: { owner: "data" },
-              tables:
-                options.analyticsTables ??
-                [
-                  { name: "events", "current-snapshot-id": 1 },
-                  { name: "users", "current-snapshot-id": 2 },
-                ],
+              tables: options.analyticsTables ?? [
+                { name: "events", "current-snapshot-id": 1 },
+                { name: "users", "current-snapshot-id": 2 },
+              ],
             },
           ],
         },
@@ -508,7 +517,12 @@ describe("final product consistency adapters", () => {
     );
     await mkdir(vectorDirectory, { recursive: true });
     const vectorPage = path.join(vectorDirectory, "00000001.json");
-    const summary = path.join(root, "secrets", "storage", "vector-summary.json");
+    const summary = path.join(
+      root,
+      "secrets",
+      "storage",
+      "vector-summary.json",
+    );
     await mkdir(path.dirname(summary), { recursive: true });
     await writeFile(vectorPage, "vector");
     await writeFile(summary, "summary");
