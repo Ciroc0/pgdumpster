@@ -10,6 +10,7 @@ import type {
   CoverageDocument,
   Manifest,
 } from "../../src/core/bundle/schemas.js";
+import { PgDumpsterError } from "../../src/core/errors/error.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -21,7 +22,9 @@ afterEach(async () => {
   );
 });
 
-function completedResult(): {
+function completedResult(
+  consistency: Manifest["result"]["consistency"] = "verified",
+): {
   manifest: Manifest;
   coverage: CoverageDocument;
 } {
@@ -37,7 +40,7 @@ function completedResult(): {
       source: { projectRef: "abcdefghijklmnopqrst" },
       result: {
         status: "complete_with_platform_limits",
-        consistency: "best_effort",
+        consistency,
       },
       coverageFile: "coverage.json",
       checksumFile: "checksums.sha256",
@@ -59,14 +62,112 @@ function completedResult(): {
   };
 }
 
+function ioBuffers() {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  return {
+    stdout,
+    stderr,
+    io: {
+      stdout: (value: string) => stdout.push(value),
+      stderr: (value: string) => stderr.push(value),
+    },
+  };
+}
+
+async function outputDirectory(): Promise<string> {
+  const output = await mkdtemp(path.join(tmpdir(), "pgdumpster-cli-backup-"));
+  temporaryDirectories.push(output);
+  return output;
+}
+
 describe("backup CLI", () => {
-  it("resolves a linked plaintext backup and emits one stable JSON result", async () => {
-    const output = await mkdtemp(path.join(tmpdir(), "pgdumpster-cli-backup-"));
-    temporaryDirectories.push(output);
-    const stdout: string[] = [];
-    const stderr: string[] = [];
+  it("uses verified consistency by default and emits one stable JSON result", async () => {
+    const output = await outputDirectory();
+    const { stdout, stderr, io } = ioBuffers();
     const backupExecutor = vi.fn<typeof executeProductBackup>(() =>
-      Promise.resolve(completedResult()),
+      Promise.resolve(completedResult("verified")),
+    );
+
+    const exitCode = await runCli(
+      [
+        "backup",
+        "--project-ref",
+        "abcdefghijklmnopqrst",
+        "--linked",
+        "--output",
+        output,
+        "--allow-plaintext-secrets",
+        "--json",
+      ],
+      io,
+      {
+        environment: { PGDUMPSTER_ACCESS_TOKEN: "management-secret" },
+        backupExecutor,
+        now: () => new Date("2026-08-14T00:00:00.000Z"),
+        randomUUID: () => "11111111-1111-4111-8111-111111111111",
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toEqual([]);
+    expect(backupExecutor).toHaveBeenCalledOnce();
+    expect(backupExecutor.mock.calls[0]?.[0]).toMatchObject({
+      projectRef: "abcdefghijklmnopqrst",
+      linked: true,
+      consistency: "verified",
+      allowPlaintextSecrets: true,
+    });
+    expect(JSON.parse(stdout.join(""))).toMatchObject({
+      schemaVersion: 1,
+      type: "backup.result",
+      runId: "11111111-1111-4111-8111-111111111111",
+      status: "complete_with_platform_limits",
+      consistency: "verified",
+      coverageCount: 1,
+    });
+    expect(stdout.join("")).not.toContain("management-secret");
+  });
+
+  it("forwards explicit quiesced consistency to the backup executor", async () => {
+    const output = await outputDirectory();
+    const { stderr, io } = ioBuffers();
+    const backupExecutor = vi.fn<typeof executeProductBackup>(() =>
+      Promise.resolve(completedResult("quiesced")),
+    );
+
+    const exitCode = await runCli(
+      [
+        "backup",
+        "--project-ref",
+        "abcdefghijklmnopqrst",
+        "--linked",
+        "--output",
+        output,
+        "--consistency",
+        "quiesced",
+        "--allow-plaintext-secrets",
+      ],
+      io,
+      {
+        environment: { PGDUMPSTER_ACCESS_TOKEN: "management-secret" },
+        backupExecutor,
+        now: () => new Date("2026-08-14T00:00:00.000Z"),
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toEqual([]);
+    expect(backupExecutor.mock.calls[0]?.[0]).toMatchObject({
+      consistency: "quiesced",
+    });
+  });
+
+  it("emits drift_detected when a best-effort backup observed source drift", async () => {
+    const output = await outputDirectory();
+    const { stdout, stderr, io } = ioBuffers();
+    const backupExecutor = vi.fn<typeof executeProductBackup>(() =>
+      Promise.resolve(completedResult("drift_detected")),
     );
 
     const exitCode = await runCli(
@@ -82,46 +183,28 @@ describe("backup CLI", () => {
         "--allow-plaintext-secrets",
         "--json",
       ],
-      {
-        stdout: (value) => stdout.push(value),
-        stderr: (value) => stderr.push(value),
-      },
+      io,
       {
         environment: { PGDUMPSTER_ACCESS_TOKEN: "management-secret" },
         backupExecutor,
         now: () => new Date("2026-08-14T00:00:00.000Z"),
-        randomUUID: () => "11111111-1111-4111-8111-111111111111",
       },
     );
 
     expect(exitCode).toBe(0);
     expect(stderr).toEqual([]);
-    expect(backupExecutor).toHaveBeenCalledOnce();
-    expect(backupExecutor.mock.calls[0]?.[0]).toMatchObject({
-      projectRef: "abcdefghijklmnopqrst",
-      linked: true,
-      consistency: "best-effort",
-      allowPlaintextSecrets: true,
-    });
     expect(JSON.parse(stdout.join(""))).toMatchObject({
-      schemaVersion: 1,
-      type: "backup.result",
-      runId: "11111111-1111-4111-8111-111111111111",
-      status: "complete_with_platform_limits",
-      coverageCount: 1,
+      consistency: "drift_detected",
     });
-    expect(stdout.join("")).not.toContain("management-secret");
+    expect(backupExecutor.mock.calls[0]?.[0]).toMatchObject({
+      consistency: "best-effort",
+    });
   });
 
-  it("rejects plaintext output and unimplemented verified consistency before execution", async () => {
-    const output = await mkdtemp(path.join(tmpdir(), "pgdumpster-cli-backup-"));
-    temporaryDirectories.push(output);
+  it("rejects plaintext output before backup execution", async () => {
+    const output = await outputDirectory();
     const backupExecutor = vi.fn<typeof executeProductBackup>();
     const io = { stdout: vi.fn(), stderr: vi.fn() };
-    const context = {
-      environment: { PGDUMPSTER_ACCESS_TOKEN: "management-secret" },
-      backupExecutor,
-    };
 
     await expect(
       runCli(
@@ -134,24 +217,52 @@ describe("backup CLI", () => {
           output,
         ],
         io,
-        context,
+        {
+          environment: { PGDUMPSTER_ACCESS_TOKEN: "management-secret" },
+          backupExecutor,
+        },
       ),
     ).resolves.toBe(7);
-    await expect(
-      runCli(
-        [
-          "backup",
-          "--project-ref",
-          "abcdefghijklmnopqrst",
-          "--linked",
-          "--output",
-          output,
-          "--allow-plaintext-secrets",
-        ],
-        io,
-        context,
-      ),
-    ).resolves.toBe(7);
+
     expect(backupExecutor).not.toHaveBeenCalled();
+  });
+
+  it("maps consistency verification failures to exit code 6", async () => {
+    const output = await outputDirectory();
+    const { stdout, stderr, io } = ioBuffers();
+    const backupExecutor = vi.fn<typeof executeProductBackup>(() =>
+      Promise.reject(
+        new PgDumpsterError({
+          code: "SOURCE_DID_NOT_STABILIZE",
+          category: "consistency",
+          message: "Source did not stabilize.",
+          retryable: false,
+        }),
+      ),
+    );
+
+    const exitCode = await runCli(
+      [
+        "backup",
+        "--project-ref",
+        "abcdefghijklmnopqrst",
+        "--linked",
+        "--output",
+        output,
+        "--allow-plaintext-secrets",
+        "--json",
+      ],
+      io,
+      {
+        environment: { PGDUMPSTER_ACCESS_TOKEN: "management-secret" },
+        backupExecutor,
+        now: () => new Date("2026-08-14T00:00:00.000Z"),
+      },
+    );
+
+    expect(exitCode).toBe(6);
+    expect(stdout).toEqual([]);
+    expect(stderr.join("")).toContain("SOURCE_DID_NOT_STABILIZE");
+    expect(stderr.join("")).not.toContain("management-secret");
   });
 });
