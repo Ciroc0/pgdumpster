@@ -2,24 +2,24 @@
 
 ## Purpose
 
-Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster documents separately what is **supported by policy**, what is **currently exercised by CI**, and what still requires full hosted E2E evidence.
+Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster documents separately what is **supported by policy**, what has been **exercised by CI**, and what still requires full hosted E2E evidence.
 
 Status snapshot: **2026-08-15**.
 
 ## Runtime matrix
 
-- **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. GitHub CI exercises Node 22 and 24. Ordinary CI is green apart from explicitly documented repository/configuration gates.
-- **pnpm**: the repository `packageManager` pin is authoritative. Frozen-lockfile installs are exercised in CI.
+- **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. Earlier GitHub CI checkpoints exercised Node 22 and 24 successfully. The account's current Actions quota is exhausted, so newly pushed commits may be blocked before meaningful execution until reset.
+- **pnpm**: the repository `packageManager` pin is authoritative. Frozen-lockfile installs are part of the CI contract and were exercised on the earlier validated CI checkpoint.
 - **Supabase CLI**: supported policy is `>=2.111.0 <3.0.0`; the development dependency is pinned to `2.111.0`. Fixture/CLI behavior is validated and dedicated live observations also exist for newer 2.x behavior. Full hosted recovery E2E is still pending.
 - **Hosted Supabase**: compatibility is based on dated official Management API/CLI/product contracts. Endpoint-specific fixture/live observations exist; full source-to-target parity is still pending.
 - **PostgreSQL**: the target is a Supabase-managed PostgreSQL version compatible with captured logical state. Database backup/restore primitives are tested; the dedicated hosted projects are PostgreSQL 17 generation. Full source-to-target parity is still pending.
-- **Ubuntu**: first-class. GitHub-hosted CI exercises Node 22 and 24.
-- **macOS**: first-class. GitHub-hosted CI exercises Node 22 and 24.
-- **Windows**: first-class. GitHub-hosted CI exercises Node 22 and 24; development also exercises Windows/Docker Desktop.
+- **Ubuntu**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
+- **macOS**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
+- **Windows**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24; development also exercises Windows/Docker Desktop.
 - **`age`**: standard age format is the target. Tooling can be detected by `doctor`, but the CLI encryption path is not implemented yet.
 - **S3-compatible destination**: this remains a target requirement. AWS SDK dependencies/interface groundwork exists, but publication/recovery is not implemented yet.
 
-The OS matrix proves the exercised CLI/config/filesystem/archive behavior on the hosted runners; it does not substitute for the platform-independent hosted Supabase recovery E2E.
+The latest local full gate after the consistency/resume hardening slice is `pnpm check` with **85 test files / 500 tests passing**. That local result does not replace cross-platform CI evidence, and the earlier OS matrix does not replace the platform-independent hosted Supabase recovery E2E.
 
 ## Management API contracts
 
@@ -70,6 +70,12 @@ A branch/environment with independent data is a separate backup source. Parent b
 ## Storage feature compatibility
 
 File, Vector and Analytics Storage are separate coverage surfaces. Metadata-only coverage can never be promoted to complete data backup.
+
+## Backup consistency compatibility
+
+`verified`, `best-effort` and `quiesced` are implemented over the source evidence exposed by the supported hosted-platform interfaces. The contract is application-level cross-service stabilization, not a platform-wide atomic transaction primitive.
+
+Adapters fail closed on source-contract shapes or cleanup conditions that would make the requested consistency guarantee unsafe.
 
 ## Encryption and S3
 
