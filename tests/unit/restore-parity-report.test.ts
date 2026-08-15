@@ -280,9 +280,7 @@ describe("restore parity report", () => {
     value.status = "ready";
     value.source.backupResult = "complete";
     const filename = await checkpointPath("pgdumpster-parity-resume-");
-    const apply = vi.fn(() =>
-      Promise.resolve({ fingerprint: "a".repeat(64) }),
-    );
+    const apply = vi.fn(() => Promise.resolve({ fingerprint: "a".repeat(64) }));
     const actionHandler: RestoreActionHandler = {
       apply,
       verify: vi.fn(() => Promise.resolve(true)),
