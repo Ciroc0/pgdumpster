@@ -74,7 +74,11 @@ async function assertRegularFile(
     }
   } catch (error) {
     if (error instanceof PgDumpsterError) throw error;
-    throw encryptionError(code, `${description} could not be inspected.`, error);
+    throw encryptionError(
+      code,
+      `${description} could not be inspected.`,
+      error,
+    );
   }
 }
 
@@ -92,7 +96,11 @@ async function assertOutputParent(
     }
   } catch (error) {
     if (error instanceof PgDumpsterError) throw error;
-    throw encryptionError(code, "Encryption output parent is unavailable.", error);
+    throw encryptionError(
+      code,
+      "Encryption output parent is unavailable.",
+      error,
+    );
   }
 }
 
@@ -211,7 +219,11 @@ export async function decryptArchiveWithAge(
     );
   }
   await assertRegularFile(encrypted, "DECRYPTION_FAILED", "Encrypted input");
-  await assertRegularFile(identityFile, "DECRYPTION_FAILED", "age identity file");
+  await assertRegularFile(
+    identityFile,
+    "DECRYPTION_FAILED",
+    "age identity file",
+  );
   await assertOutputParent(output, "DECRYPTION_FAILED");
   const temporary = path.join(
     path.dirname(path.resolve(output)),

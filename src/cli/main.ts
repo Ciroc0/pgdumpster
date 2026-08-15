@@ -8,10 +8,8 @@ import { loadSourceEnvironment } from "../config/environment.js";
 import { loadConfigFile } from "../config/file.js";
 import { executeProductBackup } from "../core/backup/product.js";
 import { packBundle } from "../core/bundle/archive.js";
-import {
-  decryptArchiveWithAge,
-  encryptArchiveWithAge,
-} from "../core/bundle/encryption.js";
+import type { decryptArchiveWithAge } from "../core/bundle/encryption.js";
+import { encryptArchiveWithAge } from "../core/bundle/encryption.js";
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import { withVerifiedBundle } from "../core/bundle/input.js";
@@ -514,7 +512,10 @@ export async function runCli(
         const archivePath = `${workspaceRoot}.tar.zst`;
         const encryptedPath = `${archivePath}.age`;
         try {
-          await (context.archivePacker ?? packBundle)(workspaceRoot, archivePath);
+          await (context.archivePacker ?? packBundle)(
+            workspaceRoot,
+            archivePath,
+          );
           await (context.ageEncryptor ?? encryptArchiveWithAge)(
             archivePath,
             encryptedPath,

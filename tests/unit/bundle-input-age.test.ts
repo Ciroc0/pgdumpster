@@ -1,10 +1,4 @@
-import {
-  copyFile,
-  mkdtemp,
-  mkdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { copyFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
