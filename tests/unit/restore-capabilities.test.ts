@@ -71,7 +71,10 @@ async function sourceWith(
   return { manifest, coverage };
 }
 
-async function planFor(backedUp: readonly string[], allowBillableResources = true) {
+async function planFor(
+  backedUp: readonly string[],
+  allowBillableResources = true,
+) {
   const source = await sourceWith(backedUp);
   return buildRestorePlan(source.manifest, source.coverage, {
     planId: "22222222-2222-4222-8222-222222222222",
