@@ -68,6 +68,17 @@ async function cleanupDatabaseArtifacts(
   context.signal?.throwIfAborted();
 }
 
+async function cleanupPartialDatabaseArtifacts(
+  context: BackupStepConsistencyContext,
+): Promise<void> {
+  context.signal?.throwIfAborted();
+  await rm(path.join(context.workspaceRoot, "database"), {
+    recursive: true,
+    force: true,
+  });
+  context.signal?.throwIfAborted();
+}
+
 function snapshotsEqual(before: unknown, after: unknown): boolean {
   return databaseConsistencySnapshotsEqual(
     before as DatabaseConsistencySnapshot,
@@ -85,6 +96,7 @@ export function createDatabaseConsistencyAdapter(
         ? collectLinkedDatabaseConsistencySnapshot(signal)
         : collectDatabaseConsistencySnapshot(source.databaseUrl, signal),
     cleanup: cleanupDatabaseArtifacts,
+    cleanupPartial: cleanupPartialDatabaseArtifacts,
     equals: snapshotsEqual,
   };
 }
