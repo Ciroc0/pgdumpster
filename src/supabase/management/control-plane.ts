@@ -19,6 +19,7 @@ interface CaptureSpec {
   sensitivity: CoverageEntry["sensitivity"];
   artifact: string;
   protected: boolean;
+  restoreFidelity?: "not_identically_restorable";
   classify?: (value: unknown) => CoverageEntry["status"];
   unavailable?: (
     status: number,
@@ -59,6 +60,7 @@ const SPECS: readonly CaptureSpec[] = [
     sensitivity: "secret",
     artifact: "secrets/control-plane/database-pgbouncer.json",
     protected: true,
+    restoreFidelity: "not_identically_restorable",
     classify: (value) =>
       value !== null &&
       typeof value === "object" &&
@@ -85,6 +87,7 @@ const SPECS: readonly CaptureSpec[] = [
     sensitivity: "internal",
     artifact: "control-plane/database-backup-schedule.json",
     protected: false,
+    restoreFidelity: "not_identically_restorable",
     unavailable: (status) => {
       if (status === 402)
         return { status: "not_applicable", reasonCode: "plan_not_entitled" };
@@ -127,6 +130,7 @@ const SPECS: readonly CaptureSpec[] = [
     sensitivity: "internal",
     artifact: "control-plane/custom-hostname.json",
     protected: false,
+    restoreFidelity: "not_identically_restorable",
     unavailable: (status) =>
       status === 400
         ? { status: "not_applicable", reasonCode: "plan_not_entitled" }
@@ -205,11 +209,14 @@ function registerSecrets(value: unknown, redactor: Redactor): void {
   }
 }
 
-function sourceContract(endpoint: string): Record<string, unknown> {
+function sourceContract(spec: CaptureSpec): Record<string, unknown> {
   return {
     adapter: "management-api-control-plane-v1",
-    endpoint: `GET /v1/projects/{ref}${endpoint}`,
+    endpoint: `GET /v1/projects/{ref}${spec.endpoint}`,
     openapiSha256: CONTROL_PLANE_CONTRACT_SOURCE_SHA256,
+    ...(spec.restoreFidelity === undefined
+      ? {}
+      : { restoreFidelity: spec.restoreFidelity }),
   };
 }
 
@@ -242,13 +249,13 @@ async function captureSpec(
         reasonCode: unavailable.reasonCode,
         sensitivity: spec.sensitivity,
         artifacts: [],
-        sourceContract: sourceContract(spec.endpoint),
+        sourceContract: sourceContract(spec),
       },
     };
   }
   if (spec.protected) registerSecrets(value, redactor);
   const document = {
-    sourceContract: sourceContract(spec.endpoint),
+    sourceContract: sourceContract(spec),
     data: value,
   };
   if (spec.protected) {
@@ -262,7 +269,7 @@ async function captureSpec(
       status: spec.classify?.(value) ?? "backed_up",
       sensitivity: spec.sensitivity,
       artifacts: [spec.artifact],
-      sourceContract: sourceContract(spec.endpoint),
+      sourceContract: sourceContract(spec),
     },
     value,
   };
@@ -321,7 +328,7 @@ export async function captureControlPlaneState(
     if (spec.id === "database.pooler" && captured.value !== undefined) {
       const replicas = readReplicaTopology(captured.value);
       const artifact = "control-plane/read-replicas.json";
-      const contract = sourceContract(spec.endpoint);
+      const contract = sourceContract(spec);
       await ordinary.writeJson(
         artifact,
         { sourceContract: contract, data: replicas },

@@ -226,6 +226,26 @@ describe("control-plane capture branch hardening", () => {
     );
   });
 
+  it("marks captured read-only control-plane surfaces as not identically restorable", async () => {
+    const { captured } = await capture({
+      "/config/database/pgbouncer": { pool_mode: "transaction" },
+      "/database/backups/schedule": { enabled: true },
+      "/custom-hostname": { hostname: "db.example.invalid" },
+    });
+
+    for (const id of [
+      "database.pgbouncer",
+      "database.backup_schedule",
+      "domains.custom_hostname",
+    ]) {
+      expect(
+        captured.coverage.find((entry) => entry.id === id)?.sourceContract,
+      ).toMatchObject({
+        restoreFidelity: "not_identically_restorable",
+      });
+    }
+  });
+
   it("classifies disallowed and malformed network states conservatively", async () => {
     const disallowed = await capture({
       "/network-restrictions": {
