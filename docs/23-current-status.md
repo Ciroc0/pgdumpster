@@ -6,22 +6,19 @@ Snapshot date: **2026-08-15**.
 
 ## Validation summary
 
-Latest complete local validation after the consistency/resume hardening slice:
+Latest complete local validation after the consistency/resume hardening and coverage-hardening slices:
 
 - `pnpm check`: **PASS**;
-- test files: **85 passed**;
-- tests: **500 passed**.
+- test files: **88 passed**;
+- tests: **525 passed**;
+- statements: **94.47%**;
+- branches: **90.74%**;
+- functions: **92.05%**;
+- lines: **95.64%**.
 
-The most recent recorded global coverage percentages predate this slice:
+All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.
 
-- statements: **94.48%**;
-- branches: **90.32%**;
-- functions: **93.22%**;
-- lines: **95.72%**.
-
-Those percentages were green against the repository's independent 90% thresholds, but `pnpm test:coverage` must be rerun after this slice before they are treated as current coverage evidence.
-
-GitHub Actions quota is currently exhausted for the account, so newly pushed workflow runs are expected to be blocked by quota until reset. That is not a meaningful remote quality signal for the current branch; local `pnpm check` is the active gate in the meantime. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
+GitHub Actions quota is currently exhausted for the account, so newly pushed workflow runs are expected to be blocked by quota until reset. That is not a meaningful remote quality signal for the current branch; local `pnpm check` and `pnpm test:coverage` are the active gates in the meantime. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
 
 CodeQL previously reached analysis/SARIF generation, but GitHub could not publish the result because code scanning was not enabled/accessible to the repository integration. This remains a repository configuration gate, not evidence that the static-analysis result is clean.
 
@@ -69,7 +66,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Restore**: integrity-first dry-run planning is exposed and the core executor/handlers exist. CLI `--apply`, protected substitutions, resume and final semantic parity still need to be wired end-to-end.
 - **Hosted E2E**: partial live observations exist, but the dedicated source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure has not passed yet.
 - **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
-- **Release**: normal CI exists. Remaining coverage refresh, live-E2E, SBOM, provenance, package-smoke and final release gates are still required.
+- **Release**: normal CI exists. Remaining live-E2E, SBOM, provenance, package-smoke and final release gates are still required.
 
 ## Current CLI surface
 
@@ -126,13 +123,12 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. refresh current global coverage evidence with `pnpm test:coverage`;
-2. wire standard `age` encryption for protected backup output;
-3. wire S3-compatible destination publication/recovery semantics;
-4. wire the existing restore executor/handlers through `restore --apply` and finish protected substitutions/parity reporting;
-5. seed/reset the dedicated hosted source/target fixtures and run the full live E2E;
-6. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
-7. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
+1. wire standard `age` encryption for protected backup output;
+2. wire S3-compatible destination publication/recovery semantics;
+3. wire the existing restore executor/handlers through `restore --apply` and finish protected substitutions/parity reporting;
+4. seed/reset the dedicated hosted source/target fixtures and run the full live E2E;
+5. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
+6. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
 
 ## Definition of done
 
