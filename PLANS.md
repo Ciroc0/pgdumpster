@@ -12,7 +12,7 @@ Build the production-ready pgDumpster CLI described by the binding repository sp
 
 **Release convergence — encrypted publication, restore apply/parity, hosted recovery proof and release hardening.**
 
-The broad capture/restore architecture, cross-service consistency layer and standard local `age` encryption path now exist. Remaining work is concentrated in S3 publication, CLI restore-apply/parity wiring, full hosted E2E and release/security hardening.
+The broad capture/restore architecture, cross-service consistency layer, standard local `age` encryption and S3-compatible publication path now exist. Remaining work is concentrated in live S3-provider evidence, hosted restore/parity E2E and release/security hardening.
 
 ## Current evidence
 
@@ -57,7 +57,8 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Implement real `verified`, `best-effort` and `quiesced` cross-service consistency with concrete adapters for every product step, canonical source snapshots, copy-time drift detection, bounded verified retry, quiesced fail-fast semantics, safe provisional/partial cleanup, resume preservation and manifest drift reporting.
 - [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [x] Wire standard `age` encryption into local backup publication and verified bundle input; keep plaintext secret output behind explicit opt-in.
-- [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
+- [x] Implement S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery with local fault-injection coverage.
+- [ ] Run an S3-provider interoperability validation; mock/local transport tests do not prove a configured provider's wire compatibility or credentials.
 - [ ] Complete CLI `restore --apply`: a blocked plan is now rejected before target credential/resource discovery; executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, discover target Storage credentials only when needed, and can bind checkpoint resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create target replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Read-only PgBouncer, backup-schedule and custom-hostname captures are explicit platform limits. Remaining: API/project handlers and hosted semantic-parity evidence.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
@@ -72,7 +73,7 @@ The CLI continues to fail closed for unfinished release behavior:
 - backup consistency defaults to `verified`; `verified`, `best-effort` and `quiesced` are all implemented through the product consistency layer;
 - standard local `age` encryption is implemented: `encryption.mode: age` requires `encryption.recipient`, outputs `.tar.zst.age`, and encrypted input uses configured `encryption.identityFile`;
 - non-encrypted secret-bearing backup still requires explicit `--allow-plaintext-secrets`;
-- S3 configuration → `DESTINATION_NOT_IMPLEMENTED`;
+- configured S3 destination → resumable multipart publication, remote byte/SHA-256 verification and an observable completion marker written last; provider interoperability remains a live validation gate;
 - `restore --apply` → `RESTORE_ADAPTER_MISSING` when any planned component lacks a concrete handler; this is intentionally pre-mutation. The remaining unsupported automatic components must receive documented handlers or explicit platform/manual classifications before a full plan can execute.
 - `restore --apply` → `RESTORE_PLAN_BLOCKED` before reading target credentials or calling target APIs when backup/source/policy constraints make the plan non-executable.
 
@@ -142,6 +143,12 @@ The backed-up function body is the deployed representation returned by the platf
 Current Realtime contract drift, including optional `postgres_changes_pool` and numeric writable settings, is runtime-validated. Nullable read fields are not guessed into unsupported PATCH values.
 
 ## Validation log
+
+### 2026-08-16 — S3 capability/status reconciliation
+
+- Audited the current S3 adapter, configured bundle input and CLI/output wiring against the release acceptance criteria. The implementation performs bounded multipart upload, persists protected upload state, resumes committed parts, recovers a fully uploaded object when only its marker is missing, verifies remote metadata plus streamed bytes, then conditionally writes and rereads `COMPLETE.json` last.
+- Focused local evidence: **7 test files / 40 tests, PASS**, including cancellation, malformed/out-of-scope locator, marker, overwrite, missing response identity, multipart-conflict and vanished-upload cases.
+- `PLANS.md` previously incorrectly described configured S3 as `DESTINATION_NOT_IMPLEMENTED`; it is now explicitly classified as implemented but missing real-provider interoperability evidence.
 
 ### 2026-08-16 — immutable restore-plan evidence
 
@@ -233,8 +240,6 @@ The earlier regular CI matrix passed on its validated checkpoint. Current Action
 
 ## Next implementation order
 
-1. S3-compatible destination;
-2. restore `--apply` + parity wiring;
-3. hosted E2E;
-4. CodeQL/release/SBOM/provenance;
-5. final acceptance audit.
+1. hosted restore `--apply` + semantic-parity E2E and S3-provider interoperability evidence;
+2. CodeQL/release/SBOM/provenance;
+3. final acceptance audit.
