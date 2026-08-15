@@ -34,6 +34,11 @@ import { runConsistentCopy, type ConsistencyMode } from "./consistency.js";
 type CoverageEntry = z.infer<typeof coverageEntrySchema>;
 
 const DEFAULT_CONSISTENCY_RETRIES = 3;
+const COPY_DRIFT_CODES = new Set([
+  "BACKUP_SOURCE_DRIFT_DETECTED",
+  "STORAGE_OBJECT_CHANGED_DURING_COPY",
+  "STORAGE_SPECIALIZED_IDENTITY_DRIFT",
+]);
 
 export interface BackupStepContext {
   workspaceRoot: string;
@@ -57,6 +62,9 @@ export interface BackupStepConsistencyAdapter {
     result: BackupStepResult,
     context: BackupStepConsistencyContext,
   ) => Promise<void>;
+  cleanupPartial?:
+    | ((context: BackupStepConsistencyContext) => Promise<void>)
+    | undefined;
   equals?: ((before: unknown, after: unknown) => boolean) | undefined;
   maxRetries?: number | undefined;
 }
@@ -99,6 +107,15 @@ function failureCode(error: unknown, signal?: AbortSignal): string {
   return typeof code === "string" && code.length > 0
     ? code
     : "BACKUP_STEP_FAILED";
+}
+
+function copyErrorIsDrift(error: unknown): boolean {
+  const candidate = error as Partial<PgDumpsterError> | undefined;
+  return (
+    candidate?.category === "consistency" &&
+    typeof candidate.code === "string" &&
+    COPY_DRIFT_CODES.has(candidate.code)
+  );
 }
 
 function cancellationError(signal: AbortSignal): PgDumpsterError {
@@ -154,14 +171,28 @@ function assertConsistencyAdapters(
   const missing = steps
     .filter(({ consistency }) => consistency === undefined)
     .map(({ id }) => id);
-  if (missing.length === 0) return;
-  throw new PgDumpsterError({
-    code: "CONSISTENCY_ADAPTER_REQUIRED",
-    category: "consistency",
-    message: `${mode} backup requires a consistency adapter for every backup step.`,
-    retryable: false,
-    details: { mode, steps: missing },
-  });
+  if (missing.length > 0) {
+    throw new PgDumpsterError({
+      code: "CONSISTENCY_ADAPTER_REQUIRED",
+      category: "consistency",
+      message: `${mode} backup requires a consistency adapter for every backup step.`,
+      retryable: false,
+      details: { mode, steps: missing },
+    });
+  }
+
+  const unsafeResume = steps
+    .filter(({ consistency }) => consistency?.cleanupPartial === undefined)
+    .map(({ id }) => id);
+  if (unsafeResume.length > 0) {
+    throw new PgDumpsterError({
+      code: "CONSISTENCY_PARTIAL_CLEANUP_REQUIRED",
+      category: "consistency",
+      message: `${mode} backup requires partial-artifact cleanup for every backup step.`,
+      retryable: false,
+      details: { mode, steps: unsafeResume },
+    });
+  }
 }
 
 function stepContext(
@@ -222,6 +253,15 @@ async function executeStep(
         result,
         consistencyContext(options.workspaceRoot, signal),
       ),
+    ...(adapter.cleanupPartial === undefined
+      ? {}
+      : {
+          cleanupPartial: (signal?: AbortSignal) =>
+            adapter.cleanupPartial!(
+              consistencyContext(options.workspaceRoot, signal),
+            ),
+        }),
+    isDriftError: copyErrorIsDrift,
     ...(adapter.equals === undefined ? {} : { equals: adapter.equals }),
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   });
