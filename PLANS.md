@@ -10,20 +10,28 @@ Build the production-ready pgDumpster CLI described by the binding repository sp
 
 ## Current milestone
 
-**Release convergence — complete the remaining runtime gates and hosted recovery proof.**
+**Release convergence — encrypted publication, restore apply/parity, hosted recovery proof and release hardening.**
 
-The broad capture/restore architecture now exists. Remaining work is concentrated in verified cross-service consistency, encrypted output, S3 publication, CLI restore-apply/parity wiring, full hosted E2E and release/security hardening.
+The broad capture/restore architecture and the cross-service consistency layer now exist. Remaining work is concentrated in standard `age` encryption, S3 publication, CLI restore-apply/parity wiring, full hosted E2E and release/security hardening.
 
 ## Current evidence
 
-At implementation checkpoint `be4df4e`:
+Latest complete local gate on 2026-08-15 after the consistency/resume hardening slice:
 
-- `pnpm check`: PASS;
-- 70 test files / 395 tests: PASS;
-- coverage: 94.48% statements / 90.32% branches / 93.22% functions / 95.72% lines;
-- regular GitHub CI: PASS, including Ubuntu/macOS/Windows × Node 22/24 matrix;
-- CodeQL: analysis executes, but result publication/status is blocked because repository code scanning is not enabled/accessible to the integration;
-- full hosted source → encrypted verified backup → offline verify → clean-target restore → semantic-parity E2E: **PENDING**.
+- `pnpm check`: **PASS**;
+- **85 test files / 500 tests: PASS**;
+- all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
+- default `verified`, explicit `quiesced`, and `best-effort` consistency are accepted by the backup CLI;
+- best-effort drift is preserved as `drift_detected`, including across resume;
+- verified/quiesced drift handling is covered at pre-snapshot, copy and post-snapshot phases;
+- interrupted-step resume cleanup and symlink-safe cleanup are covered;
+- atomic writer `.partial-<uuid>` leftovers are fail-safe during finalization.
+
+The most recent recorded global coverage percentages predate this slice: 94.48% statements / 90.32% branches / 93.22% functions / 95.72% lines. Run `pnpm test:coverage` again before treating those percentages as current evidence.
+
+GitHub Actions quota is currently exhausted for this account, so remote CI cannot provide a meaningful new branch signal until the quota resets. Local `pnpm check` remains the active quality gate during that period. The earlier regular CI matrix passed on its validated checkpoint. CodeQL analysis previously reached SARIF generation, but result publication/status remained blocked by repository code-scanning configuration.
+
+The full hosted source → encrypted verified backup → offline verify → clean-target restore → semantic-parity E2E remains **PENDING**.
 
 See `docs/23-current-status.md` for the concise operator-facing snapshot.
 
@@ -41,8 +49,9 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Implement backup coordinator/checkpoints/finalization and complete product backup orchestration across the registered components.
 - [x] Implement restore plan, restore checkpoints, executor, database/control-plane/publication/Vault handlers and semantic verification primitives.
 - [x] Raise meaningful global test coverage above the repository's 90% thresholds without lowering/excluding production code.
-- [x] Run the regular GitHub quality/test/integration/security/OS-matrix workflow successfully on the current implementation checkpoint.
-- [ ] Implement real `verified` and `quiesced` cross-service consistency: canonical pre/post inventories, selective retry, bounded stabilization and correct best-effort drift reporting.
+- [x] Run the regular GitHub quality/test/integration/security/OS-matrix workflow successfully on the earlier validated implementation checkpoint.
+- [x] Implement real `verified`, `best-effort` and `quiesced` cross-service consistency with concrete adapters for every product step, canonical source snapshots, copy-time drift detection, bounded verified retry, quiesced fail-fast semantics, safe provisional/partial cleanup, resume preservation and manifest drift reporting.
+- [ ] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [ ] Wire standard `age` encryption into backup publication and verification; keep plaintext secret output behind explicit opt-in.
 - [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
 - [ ] Wire the existing restore executor/handlers through CLI `restore --apply`, protected replacement-key output, resume and final semantic parity report.
@@ -54,14 +63,15 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 
 ## Current CLI truth
 
-The CLI intentionally fails closed instead of pretending unfinished behavior works:
+The CLI continues to fail closed for unfinished release behavior:
 
+- backup consistency defaults to `verified`; `verified`, `best-effort` and `quiesced` are all implemented through the product consistency layer;
 - S3 configuration → `DESTINATION_NOT_IMPLEMENTED`;
 - `age` configuration → `ENCRYPTION_NOT_IMPLEMENTED`;
-- backup consistency other than explicit `best-effort` → `CONSISTENCY_MODE_NOT_IMPLEMENTED`;
+- secret-bearing plaintext backup still requires explicit `--allow-plaintext-secrets`;
 - `restore --apply` → `RESTORE_APPLY_NOT_IMPLEMENTED`.
 
-Those guards are release blockers, not placeholders to remove without their underlying implementations.
+The remaining guards are release blockers, not placeholders to remove without their underlying implementations.
 
 ## Decision log
 
@@ -80,6 +90,12 @@ Implement platform behavior from current official Supabase API/OpenAPI, CLI sour
 ### Completion semantics
 
 The goal remains active until every applicable acceptance criterion, required CI/release gate and the hosted source-to-target recovery/parity test pass. Mock/local tests cannot replace the live gate.
+
+### Consistency boundary
+
+`verified` means every product backup step participates in the consistency contract. Mutable source state is observed before/after copy where supported, copy-time drift signals are promoted into the same policy, verified mode retries only after safe cleanup, quiesced mode fails on observable drift, and best-effort records detected drift without falsely reporting verification. Resume cleans interrupted step-owned partial artifacts before rerun and preserves earlier best-effort drift evidence.
+
+This is still an application-level cross-service stabilization contract, not a claim that Supabase exposes one atomic transaction spanning PostgreSQL, Management APIs, Storage, Edge and every managed service.
 
 ### Database excluded state
 
@@ -114,20 +130,29 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 ### 2026-08-14/15 — coverage hardening checkpoint
 
 - Focused hardening batches expanded Management/client, artifact/bundle/database/restore/checkpoint/process/storage/config/Auth/control-plane/Vault/executor behavior.
-- Final local result: 70 test files, 395 tests, all green.
-- Global coverage: 94.48% statements, 90.32% branches, 93.22% functions, 95.72% lines.
+- Local result at that checkpoint: 70 test files, 395 tests, all green.
+- Global coverage at that checkpoint: 94.48% statements, 90.32% branches, 93.22% functions, 95.72% lines.
 - Repository 90% global thresholds: PASS.
 
-### 2026-08-15 — CI checkpoint
+### 2026-08-15 — consistency and resume hardening checkpoint
 
-- Regular `CI` workflow on `be4df4e`: PASS.
-- Matrix includes Ubuntu, macOS and Windows with Node 22 and 24.
-- CodeQL job performs extraction/analysis and generates SARIF, then fails as a configuration error because code scanning is not enabled/accessible for the repository integration. Do not treat that as either a clean CodeQL result or a code finding.
+- Concrete consistency adapters cover all 10 product backup steps.
+- Drift handling covers pre-snapshot, copy-time and post-snapshot observations.
+- Verified mode performs bounded retry only after safe provisional/partial cleanup; quiesced mode fails on observable drift; best-effort persists `drift_detected` through checkpoint/resume.
+- Hard-interruption resume cleanup is step-scoped and symlink-safe.
+- Bundle finalization removes only recognized UUID writer partials and still rejects unrecognized transient-looking files.
+- CLI consistency guard removed; default `verified`, explicit `quiesced` and `best-effort` now flow to product execution.
+- CLI exit-code mapping includes consistency → 6, source-component failures → 5 and destination/I/O → 8.
+- Final local `pnpm check`: **85 test files / 500 tests, PASS**.
+
+### GitHub CI / CodeQL note
+
+The earlier regular CI matrix passed on its validated checkpoint. Current Actions quota is exhausted, so newly pushed commits are expected to be blocked by quota until reset and should not be interpreted as code-quality failures. CodeQL publication remains a separate repository-configuration gate.
 
 ## Next implementation order
 
-1. verified/quiesced consistency;
-2. age encryption;
+1. refresh global coverage evidence for the completed consistency slice;
+2. `age` encryption;
 3. S3 destination;
 4. restore `--apply` + parity wiring;
 5. hosted E2E;
