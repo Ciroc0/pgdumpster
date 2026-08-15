@@ -6,6 +6,7 @@ import {
 } from "../../src/core/bundle/schemas.js";
 import {
   AUTOMATIC_RESTORE_COMPONENTS,
+  requiresStorageRestoreCredential,
   supportsAutomaticRestore,
 } from "../../src/core/restore/capabilities.js";
 import { createApiKeyRestoreHandler } from "../../src/core/restore/api-key-handler.js";
@@ -236,6 +237,21 @@ describe("restore capability boundary", () => {
         ({ component }) => component === "database.postgres_config",
       ),
     ).toMatchObject({ status: "planned" });
+  });
+
+  it("declares target Storage credential requirements only for automatic Storage handlers", () => {
+    const credentialComponents = AUTOMATIC_RESTORE_COMPONENTS.filter(
+      requiresStorageRestoreCredential,
+    );
+
+    expect(credentialComponents).toEqual([
+      "storage.file_buckets",
+      "storage.file_objects",
+      "storage.file_metadata",
+      "storage.vector_buckets",
+      "storage.vector_indexes",
+      "storage.vectors",
+    ]);
   });
 
   it("has a constructed handler for every automatic restore capability", () => {

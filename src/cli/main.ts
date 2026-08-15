@@ -15,6 +15,7 @@ import type {
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import { buildRestorePlan, type RestorePlan } from "../core/restore/plan.js";
+import { requiresStorageRestoreCredential } from "../core/restore/capabilities.js";
 import {
   assertRestorePlanExecutable,
   executeRestore,
@@ -710,18 +711,10 @@ export async function runCli(
             accessToken: target.accessToken,
             ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
           });
-          const storageComponents = new Set([
-            "storage.file_buckets",
-            "storage.file_objects",
-            "storage.file_metadata",
-            "storage.vector_buckets",
-            "storage.vector_indexes",
-            "storage.vectors",
-          ]);
           const storageRequired = plan.actions.some(
             (action) =>
               action.status === "planned" &&
-              storageComponents.has(action.component),
+              requiresStorageRestoreCredential(action.component),
           );
           const storageKey = storageRequired
             ? await discoverPrivilegedStorageKey(

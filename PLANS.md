@@ -143,6 +143,11 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ## Validation log
 
+### 2026-08-16 — Storage credential capability ownership
+
+- Removed the CLI-local list of Storage components requiring a privileged target credential. The CLI now queries the canonical restore capability boundary, so planner capability, handler wiring and credential discovery cannot diverge through a duplicated list.
+- Added an exact capability regression covering every automatic Storage handler requiring that credential. Focused local validation: **2 test files / 11 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 708 tests, PASS**. Global coverage: **94.64% statements / 90.10% branches / 92.48% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
+
 ### 2026-08-16 — blocked-plan credential-discovery boundary
 
 - Extracted `assertRestorePlanExecutable` as the core boundary used by both CLI and executor. It rejects `plan.status: blocked` before CLI reads the target database URL, loads the target Management token or performs target API discovery.
