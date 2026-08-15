@@ -12,9 +12,13 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { removeSafeBundlePath } from "../../src/security/safe-remove.js";
+import {
+  removeSafeBundleArtifactWithPartials,
+  removeSafeBundlePath,
+} from "../../src/security/safe-remove.js";
 
 const temporaryDirectories: string[] = [];
+const PARTIAL_UUID = "11111111-1111-4111-8111-111111111111";
 
 afterEach(async () => {
   await Promise.all(
@@ -63,6 +67,56 @@ describe("safe bundle cleanup", () => {
     await expect(
       removeSafeBundlePath(bundleRoot, "storage/file-catalog.json"),
     ).resolves.toBeUndefined();
+  });
+
+  it("removes atomic-writer partial siblings without touching near matches", async () => {
+    const bundleRoot = await root();
+    const secrets = path.join(bundleRoot, "secrets");
+    await mkdir(secrets);
+    const target = path.join(secrets, "value.json");
+    const hiddenPartial = path.join(
+      secrets,
+      `.value.json.partial-${PARTIAL_UUID}`,
+    );
+    const streamPartial = path.join(
+      secrets,
+      `value.json.partial-${PARTIAL_UUID}`,
+    );
+    const nearMatch = path.join(secrets, ".value.json.partial-not-a-uuid");
+    await Promise.all([
+      writeFile(target, "final\n"),
+      writeFile(hiddenPartial, "hidden partial\n"),
+      writeFile(streamPartial, "stream partial\n"),
+      writeFile(nearMatch, "must survive\n"),
+    ]);
+
+    await removeSafeBundleArtifactWithPartials(
+      bundleRoot,
+      "secrets/value.json",
+    );
+
+    await expect(access(target)).rejects.toThrow();
+    await expect(access(hiddenPartial)).rejects.toThrow();
+    await expect(access(streamPartial)).rejects.toThrow();
+    await expect(readFile(nearMatch, "utf8")).resolves.toBe("must survive\n");
+  });
+
+  it("removes crash-leftover partials even when the final artifact does not exist", async () => {
+    const bundleRoot = await root();
+    const storage = path.join(bundleRoot, "storage");
+    await mkdir(storage);
+    const partial = path.join(
+      storage,
+      `.file-catalog.json.partial-${PARTIAL_UUID}`,
+    );
+    await writeFile(partial, "partial\n");
+
+    await removeSafeBundleArtifactWithPartials(
+      bundleRoot,
+      "storage/file-catalog.json",
+    );
+
+    await expect(access(partial)).rejects.toThrow();
   });
 
   it("refuses a symlinked parent instead of deleting outside the bundle", async () => {
