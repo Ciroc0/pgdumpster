@@ -1,6 +1,3 @@
-import { rm } from "node:fs/promises";
-import path from "node:path";
-
 import {
   collectDatabaseConsistencySnapshot,
   collectLinkedDatabaseConsistencySnapshot,
@@ -8,6 +5,7 @@ import {
   type DatabaseConsistencySnapshot,
 } from "../../database/consistency.js";
 import { assertSafeBundlePath } from "../../security/bundle-path.js";
+import { removeSafeBundlePath } from "../../security/safe-remove.js";
 import type { SecretValue } from "../../security/secret-value.js";
 import { PgDumpsterError } from "../errors/error.js";
 import type {
@@ -33,10 +31,7 @@ function assertDatabaseSource(source: DatabaseConsistencyAdapterSource): void {
   }
 }
 
-function databaseArtifactTarget(
-  workspaceRoot: string,
-  artifact: string,
-): string {
+function assertDatabaseArtifact(artifact: string): void {
   assertSafeBundlePath(artifact);
   if (!artifact.startsWith("database/")) {
     throw new PgDumpsterError({
@@ -49,7 +44,6 @@ function databaseArtifactTarget(
       details: { artifact },
     });
   }
-  return path.join(workspaceRoot, ...artifact.split("/"));
 }
 
 async function cleanupDatabaseArtifacts(
@@ -57,13 +51,12 @@ async function cleanupDatabaseArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
   context.signal?.throwIfAborted();
-  const targets = [...new Set(result.artifacts)].map((artifact) =>
-    databaseArtifactTarget(context.workspaceRoot, artifact),
-  );
-
-  for (const target of targets) {
-    context.signal?.throwIfAborted();
-    await rm(target, { force: true });
+  const artifacts = [...new Set(result.artifacts)];
+  for (const artifact of artifacts) assertDatabaseArtifact(artifact);
+  for (const artifact of artifacts) {
+    await removeSafeBundlePath(context.workspaceRoot, artifact, {
+      signal: context.signal,
+    });
   }
   context.signal?.throwIfAborted();
 }
@@ -71,12 +64,10 @@ async function cleanupDatabaseArtifacts(
 async function cleanupPartialDatabaseArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
-  context.signal?.throwIfAborted();
-  await rm(path.join(context.workspaceRoot, "database"), {
+  await removeSafeBundlePath(context.workspaceRoot, "database", {
     recursive: true,
-    force: true,
+    signal: context.signal,
   });
-  context.signal?.throwIfAborted();
 }
 
 function snapshotsEqual(before: unknown, after: unknown): boolean {
