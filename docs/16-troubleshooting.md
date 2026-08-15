@@ -151,22 +151,45 @@ If a key still causes a Windows-only error, report:
 
 Do not attach the object content if it is sensitive.
 
+## `age` is unavailable
+
+Run `pgdumpster doctor` and inspect the `encryption.age` check.
+
+If `age` is not installed or cannot be started, encrypted backup/input cannot run. A direct encrypted operation reports the dependency failure rather than silently falling back to plaintext.
+
+Do not work around this by adding `--allow-plaintext-secrets` unless you deliberately intend to create a plaintext secret-bearing backup.
+
 ## `age` decryption fails
 
 Check:
 
-- correct identity/private key;
-- backup was not truncated;
-- outer archive/checksum is valid where available;
-- file permissions/access.
+- the input really is a `.tar.zst.age` backup;
+- config uses `encryption.mode: age`;
+- config provides the correct `encryption.identityFile` path;
+- the identity/private key matches the recipient used for backup;
+- backup was not truncated or modified;
+- file permissions allow pgDumpster/`age` to read the identity file.
 
-pgDumpster cannot recover a lost encryption private key.
+A relative `identityFile` path is resolved relative to the config file, not the current shell directory.
+
+pgDumpster cannot recover a lost encryption private key. Never paste the identity contents into an issue or command-line argument.
+
+## Plaintext staging remains after an interrupted encrypted backup
+
+Normal successful encrypted publication removes the plaintext `.tar.zst` and directory workspace. Normal encryption failure also attempts cleanup.
+
+A hard process termination can occur before final encryption/cleanup and may leave the protected workspace/checkpoint so the run can be inspected or resumed. Treat that working directory as secret-bearing data:
+
+- keep it on trusted local storage;
+- resume or securely remove it when no longer needed;
+- do not upload it as a CI artifact;
+- do not assume an in-progress encrypted backup is encrypted-at-rest internally.
 
 ## S3 upload never finalizes
 
-A remote backup is valid only when final completion metadata/marker exists.
+S3 publication is not implemented in the current build yet. Once implemented, a remote backup will only be valid when final completion metadata/marker exists.
 
-Inspect the run checkpoint. Resume rather than treating partial objects as a backup.
+Do not treat a manually copied partial remote object as a completed pgDumpster backup.
 
 ## Restore refuses existing target state
 
@@ -209,4 +232,5 @@ Never include:
 - Vault root key;
 - Edge secrets;
 - S3 credentials;
+- age identity/private key material;
 - private backup contents.
