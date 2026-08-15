@@ -141,6 +141,17 @@ async function cleanupVaultRootKeyArtifact(
   context.signal?.throwIfAborted();
 }
 
+async function cleanupPartialVaultRootKeyArtifact(
+  context: BackupStepConsistencyContext,
+): Promise<void> {
+  context.signal?.throwIfAborted();
+  await rm(
+    path.join(context.workspaceRoot, ...VAULT_ROOT_KEY_ARTIFACT.split("/")),
+    { force: true },
+  );
+  context.signal?.throwIfAborted();
+}
+
 export function createVaultRootKeyConsistencyAdapter(
   source: VaultRootKeyConsistencyAdapterSource,
 ): BackupStepConsistencyAdapter {
@@ -148,5 +159,6 @@ export function createVaultRootKeyConsistencyAdapter(
     snapshot: ({ signal }) =>
       collectVaultRootKeyConsistencySnapshot(source, signal),
     cleanup: cleanupVaultRootKeyArtifact,
+    cleanupPartial: cleanupPartialVaultRootKeyArtifact,
   };
 }
