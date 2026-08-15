@@ -7,6 +7,7 @@ Last reconciled with the implementation branch: **2026-08-15**.
 ## Core repository files
 
 - `.editorconfig`: cross-editor text conventions.
+- `.gitattributes`: repository line-ending policy; text files are normalized to LF across platforms.
 - `.env.example`: credential/environment template with no real secrets.
 - `.github/ISSUE_TEMPLATE/*`: issue templates/config.
 - `.github/PULL_REQUEST_TEMPLATE.md`: pull-request template.
@@ -63,7 +64,23 @@ Primary focused tests:
 - `tests/unit/bundle-finalize.test.ts`;
 - `tests/unit/backup-cli.test.ts`.
 
-Latest local full gate after this slice: **85 test files / 500 tests, `pnpm check` PASS**. Global coverage percentages must be refreshed separately with `pnpm test:coverage` before they are quoted as current post-slice evidence.
+## Standard age encryption implementation
+
+- `src/core/bundle/encryption.ts`: shell-free standard `age` encrypt/decrypt subprocess wrapper, atomic output publication, bounded diagnostics, cancellation, dependency/error mapping and restrictive output permissions.
+- `src/core/bundle/input.ts`: verified bundle loader for directory, `.tar.zst` and `.tar.zst.age` inputs; encrypted input decrypts into restricted temporary storage before the normal archive verification path.
+- `src/config/file.ts`: current age config shape including recipient and identity-file reference resolution relative to the config file.
+- `src/cli/main.ts`: encrypted backup publication, plaintext cleanup, encrypted inspect/coverage/verify/restore-dry-run routing and current fail-closed S3/restore-apply gates.
+- `src/doctor/doctor.ts`: `age --version` availability probe.
+
+Primary focused tests:
+
+- `tests/unit/age-encryption.test.ts`;
+- `tests/unit/bundle-input-age.test.ts`;
+- `tests/unit/backup-cli-age.test.ts`;
+- `tests/unit/cli-age-input.test.ts`;
+- `tests/unit/config-file.test.ts`.
+
+Latest complete local gate after the age slice: **92 test files / 541 tests, `pnpm check` PASS**. Global coverage is **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**; all configured 90% global thresholds pass.
 
 ## Documentation
 
@@ -74,8 +91,8 @@ Latest local full gate after this slice: **85 test files / 500 tests, `pnpm chec
 - `docs/04-backup-format.md`: bundle format.
 - `docs/05-backup-engine.md`: backup-engine target behavior.
 - `docs/06-restore-engine.md`: restore-engine target behavior plus current apply boundary.
-- `docs/07-cli-and-ux.md`: current CLI surface and target UX contract.
-- `docs/08-setup-user-guide.md`: current development-use guide and explicit unavailable release features.
+- `docs/07-cli-and-ux.md`: current CLI surface and target UX contract, including encrypted local input/output behavior.
+- `docs/08-setup-user-guide.md`: current development-use guide, age workflow and explicit unavailable release features.
 - `docs/09-security-threat-model.md`: security/threat model.
 - `docs/10-testing.md`: test strategy and hosted-E2E release gate.
 - `docs/11-operations-reliability.md`: operations/reliability requirements.
@@ -83,7 +100,7 @@ Latest local full gate after this slice: **85 test files / 500 tests, `pnpm chec
 - `docs/13-acceptance-criteria.md`: final done contract.
 - `docs/14-implementation-plan.md`: target execution plan.
 - `docs/15-source-of-truth.md`: platform source-of-truth/revalidation policy.
-- `docs/16-troubleshooting.md`: troubleshooting, including verified/quiesced/best-effort operational guidance.
+- `docs/16-troubleshooting.md`: troubleshooting, including consistency and `age` operational guidance.
 - `docs/17-compatibility.md`: current tested compatibility/evidence and pending compatibility gates.
 - `docs/18-data-classification.md`: data classification/handling.
 - `docs/19-error-model.md`: error model.
