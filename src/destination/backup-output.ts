@@ -74,7 +74,9 @@ async function cleanupStrict(
 export async function publishBackupOutput(
   options: BackupOutputPublicationOptions,
 ): Promise<BackupOutputPublicationResult> {
-  const remote = options.destination.type === "s3";
+  const s3Destination =
+    options.destination.type === "s3" ? options.destination : undefined;
+  const remote = s3Destination !== undefined;
   const encrypted = options.encryption.mode === "age";
   const archiveRequired = remote || encrypted || options.archiveRequested;
   const archivePath = `${options.workspaceRoot}.tar.zst`;
@@ -138,10 +140,10 @@ export async function publishBackupOutput(
     }
   }
 
-  if (remote) {
+  if (s3Destination !== undefined) {
     const published = await (options.s3Publisher ?? publishS3Backup)(
       transportPath,
-      options.destination,
+      s3Destination,
       {
         runId: options.runId,
         statePath,
