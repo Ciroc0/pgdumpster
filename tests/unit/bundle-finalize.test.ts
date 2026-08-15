@@ -1,4 +1,11 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -12,6 +19,7 @@ import { loadCoverageRegistry } from "../../src/core/coverage/registry.js";
 import { canonicalJson } from "../../src/utils/canonical-json.js";
 
 const temporaryDirectories: string[] = [];
+const PARTIAL_UUID = "11111111-1111-4111-8111-111111111111";
 
 async function stagingBundle(): Promise<{
   root: string;
@@ -80,6 +88,47 @@ describe("bundle finalization", () => {
     expect(repeated).toEqual(finalized);
     expect(await readFile(path.join(root, "checksums.sha256"), "utf8")).toBe(
       firstChecksums,
+    );
+  });
+
+  it("purges recognized UUID writer partials left by a hard interruption", async () => {
+    const { root, manifest } = await stagingBundle();
+    const hiddenPartial = path.join(
+      root,
+      "database",
+      `.schema.sql.partial-${PARTIAL_UUID}`,
+    );
+    const streamPartial = path.join(
+      root,
+      "database",
+      `schema.sql.partial-${PARTIAL_UUID}`,
+    );
+    await Promise.all([
+      writeFile(hiddenPartial, "atomic partial\n"),
+      writeFile(streamPartial, "stream partial\n"),
+    ]);
+
+    const finalized = await finalizeBundle(root, manifest);
+
+    expect(finalized.statistics.files).toBe(2);
+    await expect(access(hiddenPartial)).rejects.toThrow();
+    await expect(access(streamPartial)).rejects.toThrow();
+  });
+
+  it("continues to reject partial-looking files that are not writer UUID temporaries", async () => {
+    const { root, manifest } = await stagingBundle();
+    const suspicious = path.join(
+      root,
+      "database",
+      "schema.sql.partial-not-a-uuid",
+    );
+    await writeFile(suspicious, "must not be silently discarded\n");
+
+    await expect(finalizeBundle(root, manifest)).rejects.toThrow(
+      /Transient run file/u,
+    );
+    await expect(readFile(suspicious, "utf8")).resolves.toBe(
+      "must not be silently discarded\n",
     );
   });
 
