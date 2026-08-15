@@ -20,16 +20,20 @@ Current branch snapshot as of 2026-08-15:
 - secure bundle generation, SHA-256 integrity, offline inspect/coverage/verify, deterministic `.tar.zst`, checkpointing and resume are implemented;
 - restore planning, checkpoints, database/control-plane/publication/Vault handlers and semantic verification primitives are implemented;
 - the user-facing restore command currently exposes a verified **dry run only**; `--apply` is deliberately blocked until the complete executor/parity path is wired through the CLI and live-tested;
-- backup consistency now supports `verified`, `best-effort` and `quiesced`; omitted consistency defaults to `verified`;
+- backup consistency supports `verified`, `best-effort` and `quiesced`; omitted consistency defaults to `verified`;
 - all 10 product backup steps participate in the consistency contract with source snapshots, drift handling and step-owned partial cleanup;
 - best-effort reports `drift_detected` when observable drift occurs and preserves that evidence through resume;
 - hard-interruption resume cleanup is step-scoped and symlink-safe;
-- `age` output encryption and S3-compatible publication are specified but not yet wired into the CLI, so secret-bearing development backups require explicit `--allow-plaintext-secrets`;
-- latest local validation: **88 test files / 525 tests, PASS**;
-- current global coverage is **94.47% statements / 90.74% branches / 92.05% functions / 95.64% lines**, with all independent 90% thresholds passing;
+- standard `age` encryption is implemented for local backup publication;
+- encrypted backups are published as `.tar.zst.age`; successful publication removes the plaintext archive and working bundle;
+- encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`;
+- plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
+- S3-compatible publication is still deliberately blocked;
+- latest local validation: **92 test files / 541 tests, PASS**;
+- current global coverage is **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**, with all independent 90% thresholds passing;
 - earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the account's current Actions quota is exhausted, so newly pushed workflow results are not presently a meaningful branch-quality signal;
 - CodeQL analysis has previously run to SARIF generation, but result publication/status is blocked by repository code-scanning configuration/access;
-- the mandatory hosted source → backup → offline verify → fresh-target restore → semantic-parity E2E has **not** passed yet.
+- the mandatory hosted source → encrypted backup → offline verify → fresh-target restore → semantic-parity E2E has **not** passed yet.
 
 The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
 
@@ -61,6 +65,16 @@ The binding target includes:
 - integrity-first restore followed by semantic parity verification.
 
 A target capability is not considered delivered merely because it appears in this list. Current implementation state is recorded in `PLANS.md` and `docs/23-current-status.md`.
+
+## Encryption
+
+For local encrypted publication, configure `age` in the YAML config with a recipient. pgDumpster creates the deterministic `.tar.zst` transport form internally, encrypts it to `.tar.zst.age`, and removes the normal plaintext archive/workspace after successful publication. `--archive` is not required separately for encrypted output.
+
+Reading an encrypted bundle requires an `encryption.identityFile` reference in config. The identity file path may be relative to the config file. Private identity material is not accepted as a normal CLI flag or printed in output.
+
+`doctor` checks whether `age` tooling is available. A missing executable during encryption/decryption is also mapped to the dependency error domain. A hard process termination can still leave the protected resumable workspace/checkpoint; normal encryption cleanup and crash recovery are separate concerns.
+
+When encryption is not configured, any backup that may contain secrets requires explicit `--allow-plaintext-secrets`.
 
 ## Consistency semantics
 
