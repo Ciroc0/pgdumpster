@@ -2,7 +2,7 @@
 
 This is the implementation ledger required by `AGENTS.md`. A checked item means the named implementation/evidence exists; it does **not** mean the overall release gate has passed.
 
-Last reconciled with repository state: **2026-08-15**.
+Last reconciled with repository state: **2026-08-16**.
 
 ## Objective
 
@@ -16,12 +16,14 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 
 ## Current evidence
 
-Latest complete local gate on 2026-08-15 after the consistency/resume, coverage-hardening and standard `age` encryption slices:
+Latest complete local gates on 2026-08-16 after restore preflight, credential-minimization, immutable-plan and command-help slices:
 
 - `pnpm check`: **PASS**;
-- **92 test files / 541 tests: PASS**;
-- global coverage: **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**;
+- **114 test files / 716 tests: PASS**;
+- global coverage: **94.66% statements / 90.11% branches / 92.50% functions / 95.68% lines**;
 - all independent 90% global thresholds: **PASS**;
+- current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
+- a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
 - default `verified`, explicit `quiesced`, and `best-effort` consistency are accepted by the backup CLI;
 - best-effort drift is preserved as `drift_detected`, including across resume;

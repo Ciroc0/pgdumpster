@@ -6,17 +6,19 @@ Snapshot date: **2026-08-16**.
 
 ## Validation summary
 
-Latest complete local validation after restore-control-plane, credential-minimization and immutable-plan evidence slices:
+Latest complete local validation after restore-control-plane, credential-minimization, immutable-plan and command-help evidence slices:
 
 - `pnpm check`: **PASS**;
-- test files: **113 passed**;
-- tests: **710 passed**;
+- test files: **114 passed**;
+- tests: **716 passed**;
 - statements: **94.66%**;
 - branches: **90.11%**;
 - functions: **92.50%**;
 - lines: **95.68%**.
 
 All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.
+
+Current official Supabase/OpenAPI, Storage and changelog contract snapshots match. A consumer installation of the generated development `.tgz` passed `--version`, `doctor --help` and `restore --help`; it is local package-smoke evidence, not a public publish/release claim.
 
 GitHub Actions quota is currently exhausted for the account, so newly pushed workflow runs are expected to be blocked by quota until reset. That is not a meaningful remote quality signal for the current branch; local `pnpm check` and `pnpm test:coverage` are the active gates in the meantime. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
 
@@ -71,7 +73,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. A blocked plan is rejected before target credential/resource discovery; executable plans derive database, Management and privileged Storage credential needs from planned automatic capabilities. The CLI validates all planned handlers and artifacts, then atomically persists the immutable plan, checkpoint and final parity report with restrictive permissions around mutation. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It fails closed for any unimplemented planned component.
 - **Hosted E2E**: partial live observations exist, but the dedicated source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure has not passed yet.
 - **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
-- **Release**: normal CI exists. Remaining live-E2E, SBOM, provenance, package-smoke and final release gates are still required.
+- **Release**: normal CI exists. A local consumer-package smoke now passes. Remaining live-E2E, SBOM, provenance, CI-built publication and final release gates are still required.
 
 ## Current CLI surface
 
