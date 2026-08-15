@@ -70,7 +70,7 @@ A target capability is not considered delivered merely because it appears in thi
 
 For local encrypted publication, configure `age` in the YAML config with a recipient. pgDumpster creates the deterministic `.tar.zst` transport form internally, encrypts it to `.tar.zst.age`, and removes the normal plaintext archive/workspace after successful publication. `--archive` is not required separately for encrypted output.
 
-Reading an encrypted bundle requires an `encryption.identityFile` reference in config. The identity file path may be relative to the config file. Private identity material is not accepted as a normal CLI flag or printed in output.
+Reading an encrypted bundle requires an `encryption.identityFile` reference in config. The identity file path may be relative to the config file. Private identity material is not accepted as a normal CLI flag or printed in output. See `examples/backup.config.example.yaml` and `docs/08-setup-user-guide.md` for the current config shape.
 
 `doctor` checks whether `age` tooling is available. A missing executable during encryption/decryption is also mapped to the dependency error domain. A hard process termination can still leave the protected resumable workspace/checkpoint; normal encryption cleanup and crash recovery are separate concerns.
 
