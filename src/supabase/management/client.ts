@@ -320,6 +320,18 @@ export class ManagementClient {
     return this.#parseJson(response, responseSchema);
   }
 
+  async putEmpty<TResponse>(
+    pathname: string,
+    responseSchema: z.ZodType<TResponse>,
+    options: RequestOptions = {},
+  ): Promise<TResponse> {
+    const response = await this.#requestResponse(pathname, {
+      ...options,
+      method: "PUT",
+    });
+    return this.#parseJson(response, responseSchema);
+  }
+
   async post<TBody, TResponse>(
     pathname: string,
     body: TBody,

@@ -30,6 +30,7 @@ import { createVectorStorageRestoreHandlers } from "../core/restore/vector-stora
 import { createEdgeFunctionRestoreHandler } from "../core/restore/edge-function-handler.js";
 import { createAuthConfigRestoreHandler } from "../core/restore/auth-config-handler.js";
 import { createApiKeyRestoreHandler } from "../core/restore/api-key-handler.js";
+import { createLegacyApiKeyRestoreHandler } from "../core/restore/legacy-api-key-handler.js";
 import {
   createAuthSsoRestoreHandler,
   createAuthTpaRestoreHandler,
@@ -781,6 +782,12 @@ export async function runCli(
               registerSecret: (value) => {
                 redactor.register(value);
               },
+            }),
+            "api.legacy_keys_state": createLegacyApiKeyRestoreHandler({
+              bundleRoot: bundle.root,
+              targetProjectRef,
+              conflictPolicy: args.conflictPolicy,
+              client: management,
             }),
           };
           validatePlanForExecution(plan, handlers);
