@@ -35,7 +35,9 @@ export const AUTOMATIC_RESTORE_COMPONENTS = [
 export type AutomaticRestoreComponent =
   (typeof AUTOMATIC_RESTORE_COMPONENTS)[number];
 
-const automaticRestoreComponents = new Set<string>(AUTOMATIC_RESTORE_COMPONENTS);
+const automaticRestoreComponents = new Set<string>(
+  AUTOMATIC_RESTORE_COMPONENTS,
+);
 
 export function supportsAutomaticRestore(component: string): boolean {
   return automaticRestoreComponents.has(component);
