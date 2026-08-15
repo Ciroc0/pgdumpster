@@ -91,6 +91,26 @@ describe("restore planning", () => {
       fidelity: "manual",
     });
     expect(plan.manualActions[0]?.message).toContain("tokens or sessions");
+
+    const fileObjectsIndex = plan.actions.findIndex(
+      ({ component }) => component === "storage.file_objects",
+    );
+    const fileMetadataIndex = plan.actions.findIndex(
+      ({ component }) => component === "storage.file_metadata",
+    );
+    expect(plan.actions[fileObjectsIndex]).toMatchObject({
+      phase: 11,
+      operation: "stream_file_objects",
+      risk: "mutation",
+      dependsOn: ["restore.storage.file_buckets"],
+    });
+    expect(plan.actions[fileMetadataIndex]).toMatchObject({
+      phase: 12,
+      operation: "verify_file_metadata",
+      risk: "inspection",
+      dependsOn: ["restore.storage.file_objects"],
+    });
+    expect(fileObjectsIndex).toBeLessThan(fileMetadataIndex);
   });
 
   it("blocks billable actions without opt-in", async () => {
@@ -111,6 +131,24 @@ describe("restore planning", () => {
       status: "blocked_by_policy",
       reasonCode: "billable_resource_opt_in_required",
     });
+  });
+
+  it("marks mutating replace actions destructive while metadata parity remains inspection-only", async () => {
+    const { manifest, coverage } = await source();
+    const plan = await buildRestorePlan(manifest, coverage, {
+      planId: "22222222-2222-4222-8222-222222222222",
+      createdAt: "2026-08-14T02:00:00.000Z",
+      targetProjectRef: "zyxwvutsrqponmlkjihg",
+      conflictPolicy: "replace",
+      allowBillableResources: true,
+    });
+
+    expect(
+      plan.actions.find(({ component }) => component === "storage.file_objects"),
+    ).toMatchObject({ risk: "destructive" });
+    expect(
+      plan.actions.find(({ component }) => component === "storage.file_metadata"),
+    ).toMatchObject({ risk: "inspection" });
   });
 
   it("refuses an in-place target", async () => {

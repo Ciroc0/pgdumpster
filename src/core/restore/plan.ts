@@ -128,8 +128,8 @@ const DEPENDENCIES: Readonly<Record<string, readonly string[]>> = {
   "database.auth_storage_customizations": ["database.data"],
   "database.publications": ["database.data"],
   "storage.file_buckets": ["database.data", "storage.service_config"],
-  "storage.file_metadata": ["storage.file_buckets"],
-  "storage.file_objects": ["storage.file_buckets", "storage.file_metadata"],
+  "storage.file_objects": ["storage.file_buckets"],
+  "storage.file_metadata": ["storage.file_objects"],
   "storage.vector_indexes": ["storage.vector_buckets"],
   "storage.vectors": ["storage.vector_indexes"],
   "storage.analytics_data": ["storage.analytics_catalog"],
@@ -175,12 +175,9 @@ function phase(component: string): number {
     component === "storage.file_buckets"
   )
     return 10;
+  if (component === "storage.file_objects") return 11;
   if (
     component === "storage.file_metadata" ||
-    component === "storage.file_objects"
-  )
-    return 11;
-  if (
     component.startsWith("storage.vector") ||
     component.startsWith("storage.analytics")
   )
@@ -212,7 +209,7 @@ function operation(component: string): string {
   if (component === "storage.file_buckets")
     return "create_or_update_file_buckets";
   if (component === "storage.file_objects") return "stream_file_objects";
-  if (component === "storage.file_metadata") return "apply_file_metadata";
+  if (component === "storage.file_metadata") return "verify_file_metadata";
   if (component === "storage.vector_buckets") return "create_vector_buckets";
   if (component === "storage.vector_indexes") return "create_vector_indexes";
   if (component === "storage.vectors") return "put_vectors";
@@ -320,7 +317,12 @@ export async function buildRestorePlan(
       reasonCode = "billable_resource_opt_in_required";
     } else {
       status = "planned";
-      risk = options.conflictPolicy === "replace" ? "destructive" : "mutation";
+      risk =
+        component.id === "storage.file_metadata"
+          ? "inspection"
+          : options.conflictPolicy === "replace"
+            ? "destructive"
+            : "mutation";
     }
     const dependencies = (DEPENDENCIES[component.id] ?? [])
       .filter((id) => registryIds.has(id))
