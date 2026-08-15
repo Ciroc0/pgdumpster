@@ -144,6 +144,12 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ## Validation log
 
+### 2026-08-16 — command-help release smoke repair
+
+- Fixed `pgdumpster <command> --help` so it returns usage and exits successfully before configuration or credential loading. Previously, `pgdumpster doctor --help` incorrectly reached doctor argument parsing and reported `INTERNAL_INVARIANT_VIOLATION`.
+- Added a regression covering `doctor`, `backup`, `inspect`, `coverage`, `verify` and `restore` command help. The built CLI smoke test now passes for `doctor --help` and `backup --help`.
+- Local validation: **114 test files / 716 tests, PASS**. Global coverage: **94.66% statements / 90.11% branches / 92.50% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
+
 ### 2026-08-16 — S3 capability/status reconciliation
 
 - Audited the current S3 adapter, configured bundle input and CLI/output wiring against the release acceptance criteria. The implementation performs bounded multipart upload, persists protected upload state, resumes committed parts, recovers a fully uploaded object when only its marker is missing, verifies remote metadata plus streamed bytes, then conditionally writes and rereads `COMPLETE.json` last.

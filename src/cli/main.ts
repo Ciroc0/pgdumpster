@@ -416,6 +416,15 @@ export async function runCli(
     io.stdout(`${await version()}\n`);
     return 0;
   }
+  if (
+    bundlePath === "--help" ||
+    bundlePath === "-h" ||
+    extra.includes("--help") ||
+    extra.includes("-h")
+  ) {
+    io.stdout(HELP);
+    return 0;
+  }
   const redactor = new Redactor();
   if (command === "doctor") {
     try {
