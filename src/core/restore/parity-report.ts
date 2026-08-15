@@ -169,8 +169,7 @@ function assertResultMatchesPlan(
     const evidence = result.actionEvidence[index];
     const outcome = successfulOutcome(action);
     if (
-      evidence === undefined ||
-      evidence.id !== action.id ||
+      evidence?.id !== action.id ||
       evidence.component !== action.component ||
       evidence.planStatus !== action.status ||
       evidence.sourceStatus !== action.sourceStatus ||
