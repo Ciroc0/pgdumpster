@@ -17,7 +17,7 @@ Status snapshot: **2026-08-15**.
 - **macOS**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
 - **Windows**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24; development also exercises Windows/Docker Desktop. The standard `age` publication path was specifically exercised locally on Windows, including the writable-descriptor durability path required before `fsync`.
 - **`age`**: standard `age` recipient encryption/decryption is implemented for local archive publication/input. Tooling is detected by `doctor`; runtime operations also fail through the dependency error domain when the executable cannot be started.
-- **S3-compatible destination**: this remains a target requirement. Publication/recovery is not implemented yet.
+- **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Real AWS/R2/MinIO interoperability remains unverified.
 
 The latest complete local gate after the standard `age` slice is `pnpm check` plus `pnpm test:coverage` with **92 test files / 541 tests passing** and **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**. That local result does not replace cross-platform CI evidence, and the earlier OS matrix does not replace the platform-independent hosted Supabase recovery E2E.
 

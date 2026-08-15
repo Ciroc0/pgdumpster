@@ -22,7 +22,7 @@ pgDumpster targets one **hosted Supabase Platform project** at a time and accoun
 - local disk capacity for the working bundle;
 - `age` executable on `PATH` when encrypted output/input is used.
 
-S3 publication is not wired yet.
+S3-compatible publication is supported when `destination.type: s3` is configured. The repository has local fault-injection coverage, but no live provider interoperability claim.
 
 ## Source development install
 
@@ -245,7 +245,7 @@ Steps 1–5 have substantial current implementation support, including encrypted
 
 ## Scheduling and retention
 
-pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. S3 publication and the complete recovery E2E are still pending, so do not treat the current development build as release-complete automation.
+pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. The complete hosted recovery E2E is still pending, so do not treat the current development build as release-complete automation.
 
 ## Updating the development checkout
 

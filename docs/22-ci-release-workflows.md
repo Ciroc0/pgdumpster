@@ -60,7 +60,7 @@ The repository does not yet have a completed release-grade live-E2E/publish pipe
 - publication policy/registry finalization;
 - final CodeQL result publication and finding disposition.
 
-The standard local `age` encryption path is implemented and locally gated; it is no longer listed as a missing implementation slice. The full encrypted hosted recovery procedure is still pending because S3/restore-apply/parity/live-E2E remain incomplete.
+The standard local `age` encryption path and S3 publication/recovery are implemented and locally gated. The full encrypted hosted recovery procedure is still pending because final restore parity and live E2E remain incomplete.
 
 ## Live E2E requirement
 

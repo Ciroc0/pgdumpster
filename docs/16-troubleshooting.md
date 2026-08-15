@@ -187,7 +187,7 @@ A hard process termination can occur before final encryption/cleanup and may lea
 
 ## S3 upload never finalizes
 
-S3 publication is not implemented in the current build yet. Once implemented, a remote backup will only be valid when final completion metadata/marker exists.
+S3 publication writes a completion marker last. A remote backup is valid only when that marker and its independently verified referenced object are present.
 
 Do not treat a manually copied partial remote object as a completed pgDumpster backup.
 

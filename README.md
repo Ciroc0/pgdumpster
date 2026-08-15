@@ -28,7 +28,7 @@ Current branch snapshot as of 2026-08-15:
 - encrypted backups are published as `.tar.zst.age`; successful publication removes the plaintext archive and working bundle;
 - encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`;
 - plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
-- S3-compatible publication is still deliberately blocked;
+- S3-compatible publication and verified `s3://` recovery are implemented locally; live provider interoperability evidence remains pending;
 - latest local validation: **92 test files / 541 tests, PASS**;
 - current global coverage is **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**, with all independent 90% thresholds passing;
 - earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the account's current Actions quota is exhausted, so newly pushed workflow results are not presently a meaningful branch-quality signal;

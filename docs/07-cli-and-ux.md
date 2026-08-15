@@ -91,7 +91,7 @@ Current encryption/publication behavior:
 
 Other important current gates:
 
-- config destination `s3` fails closed because S3 publication is not wired yet;
+- config destination `s3` uses resumable multipart publication and a completion marker, then independently verifies the uploaded object before reporting success;
 - plaintext `--archive` packs the finalized directory as deterministic `.tar.zst`.
 
 ### `inspect`
@@ -163,7 +163,7 @@ PGDUMPSTER_TARGET_PROJECT_REF=
 PGDUMPSTER_TARGET_DB_URL=
 ```
 
-Future S3 publication may additionally use standard AWS/provider credential mechanisms. Do not infer that S3 is usable from the presence of AWS SDK dependencies.
+S3 publication uses the configured credential source and does not claim provider interoperability until a real provider run has passed.
 
 ## Configuration file
 
@@ -172,7 +172,7 @@ The current config schema supports backup concurrency/consistency settings plus 
 Current runtime truth:
 
 - `destination.type: local` is implemented;
-- `destination.type: s3` is schema-valid but runtime-blocked until S3 publication is implemented;
+- `destination.type: s3` is implemented for configured S3-compatible endpoints; provider interoperability remains a live validation gate;
 - `encryption.mode: none` is implemented with explicit plaintext-secret opt-in;
 - `encryption.mode: age` is implemented for local encrypted publication;
 - `encryption.recipient` is required for encrypted backup;
