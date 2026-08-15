@@ -1,6 +1,4 @@
 import { createHash } from "node:crypto";
-import { rm } from "node:fs/promises";
-import path from "node:path";
 
 import type {
   ArtifactWriteResult,
@@ -11,6 +9,7 @@ import type { CoverageDocument } from "../bundle/schemas.js";
 import { PgDumpsterError } from "../errors/error.js";
 import { assertSafeBundlePath } from "../../security/bundle-path.js";
 import type { ProtectedArtifactSink } from "../../security/protected-artifact.js";
+import { removeSafeBundlePath } from "../../security/safe-remove.js";
 import {
   captureSpecializedStorage,
   type SpecializedStorageClient,
@@ -453,10 +452,7 @@ async function collectSpecializedStorageConsistencySnapshot(
   }
 }
 
-function specializedArtifactTarget(
-  workspaceRoot: string,
-  artifact: string,
-): string {
+function assertSpecializedArtifact(artifact: string): void {
   assertSafeBundlePath(artifact);
   if (
     !isOrdinarySpecializedArtifact(artifact) &&
@@ -473,7 +469,6 @@ function specializedArtifactTarget(
       details: { artifact },
     });
   }
-  return path.join(workspaceRoot, ...artifact.split("/"));
 }
 
 async function cleanupSpecializedStorageArtifacts(
@@ -481,16 +476,12 @@ async function cleanupSpecializedStorageArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
   context.signal?.throwIfAborted();
-  const targets = [
-    ...new Set(
-      result.artifacts.map((artifact) =>
-        specializedArtifactTarget(context.workspaceRoot, artifact),
-      ),
-    ),
-  ];
-  for (const target of targets) {
-    context.signal?.throwIfAborted();
-    await rm(target, { force: true });
+  const artifacts = [...new Set(result.artifacts)];
+  for (const artifact of artifacts) assertSpecializedArtifact(artifact);
+  for (const artifact of artifacts) {
+    await removeSafeBundlePath(context.workspaceRoot, artifact, {
+      signal: context.signal,
+    });
   }
   context.signal?.throwIfAborted();
 }
@@ -498,7 +489,6 @@ async function cleanupSpecializedStorageArtifacts(
 async function cleanupPartialSpecializedStorageArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
-  context.signal?.throwIfAborted();
   const files = [
     VECTOR_BUCKETS_ARTIFACT,
     VECTOR_INDEXES_ARTIFACT,
@@ -506,19 +496,17 @@ async function cleanupPartialSpecializedStorageArtifacts(
     ANALYTICS_BUCKETS_ARTIFACT,
   ];
   for (const artifact of files) {
-    context.signal?.throwIfAborted();
-    await rm(path.join(context.workspaceRoot, ...artifact.split("/")), {
-      force: true,
+    await removeSafeBundlePath(context.workspaceRoot, artifact, {
+      signal: context.signal,
     });
   }
   for (const directory of [
     "secrets/storage/vectors",
     "storage/analytics-catalog",
   ]) {
-    context.signal?.throwIfAborted();
-    await rm(path.join(context.workspaceRoot, ...directory.split("/")), {
+    await removeSafeBundlePath(context.workspaceRoot, directory, {
       recursive: true,
-      force: true,
+      signal: context.signal,
     });
   }
   context.signal?.throwIfAborted();
