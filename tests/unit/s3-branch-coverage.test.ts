@@ -67,7 +67,9 @@ async function fixture(contents = "s3 branch coverage fixture"): Promise<{
   markerKey: string;
   statePath: string;
 }> {
-  const directory = await mkdtemp(path.join(tmpdir(), "pgdumpster-s3-branches-"));
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "pgdumpster-s3-branches-"),
+  );
   temporaryDirectories.push(directory);
   const file = path.join(directory, "pgdumpster-test.tar.zst");
   const bytes = Buffer.from(contents);
@@ -212,7 +214,9 @@ describe("S3 destination branch coverage", () => {
 
     const invalidChunk = fakeClient((command) => {
       if (command instanceof GetObjectCommand) {
-        return { Body: Readable.from([{ invalid: true }], { objectMode: true }) };
+        return {
+          Body: Readable.from([{ invalid: true }], { objectMode: true }),
+        };
       }
       throw new Error("unexpected command");
     });
@@ -227,7 +231,9 @@ describe("S3 destination branch coverage", () => {
     const { file, bytes, objectKey } = await fixture();
     const variants = [
       marker(objectKey, bytes, { runId: "different-run" }),
-      marker(objectKey, bytes, { objectKey: `production/${runId}/other.tar.zst` }),
+      marker(objectKey, bytes, {
+        objectKey: `production/${runId}/other.tar.zst`,
+      }),
       marker(objectKey, bytes, { size: bytes.length + 1 }),
       marker(objectKey, bytes, { sha256: "0".repeat(64) }),
     ];
@@ -235,7 +241,9 @@ describe("S3 destination branch coverage", () => {
     for (const candidate of variants) {
       const { client } = fakeClient((command) => {
         if (command instanceof GetObjectCommand) {
-          return { Body: Readable.from([Buffer.from(canonicalJson(candidate))]) };
+          return {
+            Body: Readable.from([Buffer.from(canonicalJson(candidate))]),
+          };
         }
         throw new Error("remote object should not be inspected");
       });
@@ -275,7 +283,9 @@ describe("S3 destination branch coverage", () => {
     for (const metadata of variants) {
       const { client } = fakeClient((command) => {
         if (command instanceof GetObjectCommand) {
-          return { Body: Readable.from([Buffer.from(canonicalJson(complete))]) };
+          return {
+            Body: Readable.from([Buffer.from(canonicalJson(complete))]),
+          };
         }
         if (command instanceof HeadObjectCommand) return metadata;
         throw new Error("backup bytes should not be read");
@@ -295,7 +305,9 @@ describe("S3 destination branch coverage", () => {
         if (command.input.Key?.endsWith("COMPLETE.json")) {
           markerReads += 1;
           if (markerReads === 1) throw awsError(404, "NoSuchKey");
-          return { Body: Readable.from([Buffer.from(canonicalJson(complete))]) };
+          return {
+            Body: Readable.from([Buffer.from(canonicalJson(complete))]),
+          };
         }
         return { Body: Readable.from([bytes]) };
       }
@@ -347,8 +359,7 @@ describe("S3 destination branch coverage", () => {
   });
 
   it("validates persisted upload state before resuming", async () => {
-    const { directory, file, bytes, objectKey, markerKey, statePath } =
-      await fixture();
+    const { file, bytes, objectKey, markerKey, statePath } = await fixture();
     const missingRemote = fakeClient((command) => {
       if (command instanceof GetObjectCommand) throw awsError(404, "NoSuchKey");
       if (command instanceof HeadObjectCommand) throw awsError(404, "NotFound");
@@ -465,7 +476,9 @@ describe("S3 destination branch coverage", () => {
         if (command.input.Key?.endsWith("COMPLETE.json")) {
           markerReads += 1;
           if (markerReads === 1) throw awsError(404, "NoSuchKey");
-          return { Body: Readable.from([Buffer.from(canonicalJson(complete))]) };
+          return {
+            Body: Readable.from([Buffer.from(canonicalJson(complete))]),
+          };
         }
         return { Body: Readable.from([bytes]) };
       }
@@ -518,7 +531,9 @@ describe("S3 destination branch coverage", () => {
     expect(result.recovered).toBe(false);
     expect(listReads).toBe(2);
     expect(
-      send.mock.calls.filter(([command]) => command instanceof UploadPartCommand),
+      send.mock.calls.filter(
+        ([command]) => command instanceof UploadPartCommand,
+      ),
     ).toHaveLength(0);
     await expect(access(statePath)).rejects.toThrow();
   });
@@ -556,7 +571,9 @@ describe("S3 destination branch coverage", () => {
       const { client } = fakeClient((command) => {
         if (command instanceof GetObjectCommand) {
           if (command.input.Key?.endsWith("COMPLETE.json")) {
-            return { Body: Readable.from([Buffer.from(canonicalJson(complete))]) };
+            return {
+              Body: Readable.from([Buffer.from(canonicalJson(complete))]),
+            };
           }
           return { Body: Readable.from([bytes]) };
         }
@@ -584,7 +601,9 @@ describe("S3 destination branch coverage", () => {
     const downloadFailure = fakeClient((command) => {
       if (command instanceof GetObjectCommand) {
         if (command.input.Key?.endsWith("COMPLETE.json")) {
-          return { Body: Readable.from([Buffer.from(canonicalJson(complete))]) };
+          return {
+            Body: Readable.from([Buffer.from(canonicalJson(complete))]),
+          };
         }
         throw awsError(503, "ServiceUnavailable");
       }

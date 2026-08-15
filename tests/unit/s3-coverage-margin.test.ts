@@ -67,7 +67,10 @@ async function fixture(): Promise<{
   return { file, bytes, digest, objectKey, markerBody };
 }
 
-function matchingHead(bytes: Buffer, digest: string): {
+function matchingHead(
+  bytes: Buffer,
+  digest: string,
+): {
   ContentLength: number;
   Metadata: Record<string, string>;
 } {

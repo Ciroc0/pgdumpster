@@ -780,7 +780,7 @@ async function reconcileCompletedParts(
   signal: AbortSignal | undefined,
 ): Promise<UploadState | undefined> {
   const remote = new Map<number, { etag: string; size: number }>();
-  let marker: number | undefined;
+  let marker: string | undefined;
   for (;;) {
     try {
       const response = await client.send(
@@ -1154,6 +1154,9 @@ function parseLocator(locator: string): ParsedLocator {
       .split("/")
       .map((segment) => decodeURIComponent(segment))
       .join("/");
+    if (key.split("/").filter(Boolean).length === 0) {
+      throw new Error("missing backup directory");
+    }
     const directoryKey = key.endsWith("COMPLETE.json")
       ? key.slice(0, -"COMPLETE.json".length)
       : key.endsWith("/")
