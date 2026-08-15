@@ -25,7 +25,7 @@ The parser rejects duplicate `--json` / `--config` declarations and missing conf
 
 Target global UX still includes additional non-interactive/logging/terminal options such as `--quiet`, `--verbose`, `--no-color`, `--non-interactive` and `--log-file`; those are not current CLI claims.
 
-Secrets must not be accepted through flags when that would predictably expose them in process listings. Database URLs and other credentials are passed through environment-variable names or environment configuration.
+Secrets must not be accepted through flags when that would predictably expose them in process listings. Database URLs and other credentials are passed through environment-variable names or environment configuration. `age` private-key material is referenced through an identity-file path in config rather than passed as a secret CLI value.
 
 ## Commands
 
@@ -37,7 +37,9 @@ Current form:
 pgdumpster doctor [--project-ref <ref>] [--json]
 ```
 
-It checks runtime, Supabase CLI, Docker reachability, Management API/project health, database identity access, privileged Storage access, local destination capacity and `age` tool availability. A warning for missing `age` does not make encryption available; the backup encryption path is still a separate pending implementation.
+It checks runtime, Supabase CLI, Docker reachability, Management API/project health, database identity access, privileged Storage access, local destination capacity and `age` tool availability.
+
+The `age` check runs `age --version`. Missing or unusable `age` is reported separately from source/destination failures. The encryption/decryption runtime path also maps a missing executable into the dependency error domain.
 
 ### `backup`
 
@@ -47,7 +49,6 @@ Current required source contract:
 pgdumpster backup \
   --project-ref <ref> \
   (--linked | --db-url-env <environment-variable>) \
-  --allow-plaintext-secrets \
   [options]
 ```
 
@@ -78,44 +79,51 @@ Current consistency behavior:
 
 The consistency guarantee is application-level stabilization over the source evidence available to pgDumpster. It is not a claim that the platform exposes one atomic cross-service snapshot transaction.
 
+Current encryption/publication behavior:
+
+- without `age`, secret-bearing output requires explicit `--allow-plaintext-secrets`;
+- config `encryption.mode: age` requires `encryption.recipient`;
+- encrypted backup does not require `--allow-plaintext-secrets`;
+- encrypted backup automatically creates the deterministic `.tar.zst` transport form and wraps it as `.tar.zst.age`; `--archive` is not required separately;
+- successful encrypted publication removes the normal plaintext archive and directory workspace;
+- an encryption failure attempts to remove the plaintext archive/workspace before returning the error;
+- a hard process termination can still leave the protected resumable workspace/checkpoint, which is handled by the backup resume model rather than being falsely described as crash-proof zero-plaintext staging.
+
 Other important current gates:
 
-- secret-bearing output requires explicit `--allow-plaintext-secrets` because `age` publication is not wired yet;
 - config destination `s3` fails closed because S3 publication is not wired yet;
-- `--archive` packs the finalized directory as deterministic `.tar.zst`.
-
-Target release behavior still requires standard `age` protection and S3-compatible publication.
+- plaintext `--archive` packs the finalized directory as deterministic `.tar.zst`.
 
 ### `inspect`
 
 ```bash
-pgdumpster inspect <bundle-directory|archive.tar.zst> [--json]
+pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
 ```
 
-Reads a verified bundle and summarizes metadata without printing protected values.
+Reads a verified bundle and summarizes metadata without printing protected values. Encrypted input requires config with `encryption.mode: age` and `encryption.identityFile`.
 
 ### `coverage`
 
 ```bash
-pgdumpster coverage <bundle-directory|archive.tar.zst> [--json]
+pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
 ```
 
-Prints/evaluates every registered component outcome.
+Prints/evaluates every registered component outcome. Encrypted input uses the same identity-file requirement as `inspect`.
 
 ### `verify`
 
 ```bash
-pgdumpster verify <bundle-directory|archive.tar.zst> [--json]
+pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
 ```
 
-Performs offline bundle/schema/integrity verification and archive safety checks.
+Performs offline bundle/schema/integrity verification and archive safety checks. `.tar.zst.age` is decrypted into a restricted temporary workspace, verified as the normal deterministic archive form, and cleaned afterward.
 
 ### `restore`
 
 Current syntax:
 
 ```bash
-pgdumpster restore <bundle-directory|archive.tar.zst> \
+pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age> \
   --target-project-ref <ref> \
   --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
   --dry-run
@@ -134,6 +142,7 @@ Implemented restore options:
 Current behavior:
 
 - bundle integrity is verified before plan generation;
+- encrypted input is supported for dry-run when `encryption.identityFile` is configured;
 - source==target is rejected by the restore planning contract;
 - deterministic restore plan generation exists;
 - core restore executor/checkpoint/handlers exist in the repository;
@@ -158,7 +167,16 @@ Future S3 publication may additionally use standard AWS/provider credential mech
 
 ## Configuration file
 
-The current config schema supports backup concurrency/consistency settings plus local/S3 destination and none/age encryption shapes. **Schema acceptance is not equivalent to runtime implementation**: S3 and age modes are still rejected explicitly, while all three consistency modes are now implemented.
+The current config schema supports backup concurrency/consistency settings plus local/S3 destination and none/age encryption shapes.
+
+Current runtime truth:
+
+- `destination.type: local` is implemented;
+- `destination.type: s3` is schema-valid but runtime-blocked until S3 publication is implemented;
+- `encryption.mode: none` is implemented with explicit plaintext-secret opt-in;
+- `encryption.mode: age` is implemented for local encrypted publication;
+- `encryption.recipient` is required for encrypted backup;
+- `encryption.identityFile` is used to open `.tar.zst.age` input and is resolved relative to the config file when relative.
 
 The config contains options/references, not raw secret values.
 
@@ -172,7 +190,7 @@ Current structured domain-error mapping includes:
 4  dependency / preflight
 5  source component failures (network, rate limit, database, storage, edge, control plane)
 6  consistency verification / stabilization failure
-7  other backup/restore/runtime failure
+7  other backup/restore/runtime failure, including encryption-domain failures
 8  destination / I/O failure
 9  platform contract drift
 10 cancellation
@@ -186,7 +204,7 @@ Machine consumers should rely on the documented category/structured error contra
 
 ## Redaction
 
-The output/error layer uses the central redactor. Bearer tokens, database credentials, project secret/service-role keys, Edge secret values, Vault root-key material and other registered secret values must not appear in ordinary stdout/stderr/error serialization.
+The output/error layer uses the central redactor. Bearer tokens, database credentials, project secret/service-role keys, Edge secret values, Vault root-key material, `age` identity contents and other registered secret values must not appear in ordinary stdout/stderr/error serialization.
 
 ## Non-interactive target behavior
 
