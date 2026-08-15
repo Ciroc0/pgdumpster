@@ -10,7 +10,7 @@ backup:
 encryption:
   mode: age
   recipient: age1replace_with_real_recipient
-  # Needed when this config is also used to read .tar.zst.age bundles.
+  # Optional for backup; required when this config is used to read .tar.zst.age.
   identityFile: ./age-identity.txt
 
 destination:
