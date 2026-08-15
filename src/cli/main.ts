@@ -16,6 +16,7 @@ import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import { buildRestorePlan, type RestorePlan } from "../core/restore/plan.js";
 import {
+  assertRestorePlanExecutable,
   executeRestore,
   validatePlanForExecution,
 } from "../core/restore/executor.js";
@@ -663,28 +664,10 @@ export async function runCli(
       const targetProjectRef = args.targetProjectRef!;
       const targetDbUrlEnvironment = args.targetDbUrlEnvironment!;
       const environment = context.environment ?? process.env;
-      const targetDatabaseUrl = environment[targetDbUrlEnvironment];
-      if (targetDatabaseUrl === undefined || targetDatabaseUrl.length === 0) {
-        throw new DomainError({
-          code: "CONFIG_MISSING_REQUIRED",
-          category: "config",
-          message: `Required target database URL environment variable ${targetDbUrlEnvironment} is not set.`,
-          retryable: false,
-          details: { variable: targetDbUrlEnvironment },
-        });
-      }
-      const targetDatabase = new SecretValue(targetDatabaseUrl, redactor);
       const resume =
         args.resume === undefined
           ? undefined
           : await readResumeCheckpoint(args.resume);
-      const target = loadSourceEnvironment(environment, redactor, {
-        projectRef: targetProjectRef,
-      });
-      const management = new ManagementClient({
-        accessToken: target.accessToken,
-        ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
-      });
       const outcome = await withConfiguredBundleInput(
         bundlePath,
         loadedConfig,
@@ -705,6 +688,28 @@ export async function runCli(
             },
           );
           if (args.mode !== "apply") return { plan };
+          assertRestorePlanExecutable(plan);
+          const targetDatabaseUrl = environment[targetDbUrlEnvironment];
+          if (
+            targetDatabaseUrl === undefined ||
+            targetDatabaseUrl.length === 0
+          ) {
+            throw new DomainError({
+              code: "CONFIG_MISSING_REQUIRED",
+              category: "config",
+              message: `Required target database URL environment variable ${targetDbUrlEnvironment} is not set.`,
+              retryable: false,
+              details: { variable: targetDbUrlEnvironment },
+            });
+          }
+          const targetDatabase = new SecretValue(targetDatabaseUrl, redactor);
+          const target = loadSourceEnvironment(environment, redactor, {
+            projectRef: targetProjectRef,
+          });
+          const management = new ManagementClient({
+            accessToken: target.accessToken,
+            ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+          });
           const storageComponents = new Set([
             "storage.file_buckets",
             "storage.file_objects",

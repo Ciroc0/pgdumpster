@@ -58,7 +58,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [x] Wire standard `age` encryption into local backup publication and verified bundle input; keep plaintext secret output behind explicit opt-in.
 - [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
-- [ ] Complete CLI `restore --apply`: implemented handlers are assembled against the verified bundle root, handler completeness is checked before checkpoint/mutation, target Storage credentials are discovered only when needed, checkpoint resume can bind an immutable prior plan, and Auth config/SSO/TPA plus modern/legacy API-key state are restored through current validated contracts. Modern keys create target replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Read-only PgBouncer, backup-schedule and custom-hostname captures are explicit platform limits. Remaining: API/project handlers, exhaustive action-material preflight and full final parity report.
+- [ ] Complete CLI `restore --apply`: a blocked plan is now rejected before target credential/resource discovery; executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, discover target Storage credentials only when needed, and can bind checkpoint resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create target replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Read-only PgBouncer, backup-schedule and custom-hostname captures are explicit platform limits. Remaining: API/project handlers and hosted semantic-parity evidence.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Complete SBOM/provenance/package smoke/release workflow and final source-of-truth revalidation.
@@ -74,6 +74,7 @@ The CLI continues to fail closed for unfinished release behavior:
 - non-encrypted secret-bearing backup still requires explicit `--allow-plaintext-secrets`;
 - S3 configuration → `DESTINATION_NOT_IMPLEMENTED`;
 - `restore --apply` → `RESTORE_ADAPTER_MISSING` when any planned component lacks a concrete handler; this is intentionally pre-mutation. The remaining unsupported automatic components must receive documented handlers or explicit platform/manual classifications before a full plan can execute.
+- `restore --apply` → `RESTORE_PLAN_BLOCKED` before reading target credentials or calling target APIs when backup/source/policy constraints make the plan non-executable.
 
 The remaining guards are release blockers, not placeholders to remove without their underlying implementations.
 
@@ -141,6 +142,12 @@ The backed-up function body is the deployed representation returned by the platf
 Current Realtime contract drift, including optional `postgres_changes_pool` and numeric writable settings, is runtime-validated. Nullable read fields are not guessed into unsupported PATCH values.
 
 ## Validation log
+
+### 2026-08-16 — blocked-plan credential-discovery boundary
+
+- Extracted `assertRestorePlanExecutable` as the core boundary used by both CLI and executor. It rejects `plan.status: blocked` before CLI reads the target database URL, loads the target Management token or performs target API discovery.
+- Added a CLI regression with no target credentials and a mocked fetch; it deterministically returns `RESTORE_PLAN_BLOCKED` and makes no network call.
+- Focused local validation: **2 test files / 12 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 707 tests, PASS**. Global coverage: **94.62% statements / 90.10% branches / 92.39% functions / 95.66% lines**; all 90% global thresholds: **PASS**.
 
 ### 2026-08-15 — restore artifact preflight checkpoint
 

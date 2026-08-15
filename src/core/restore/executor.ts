@@ -75,6 +75,23 @@ export function restorePlanSha256(plan: RestorePlan): string {
   return createHash("sha256").update(canonicalJson(plan)).digest("hex");
 }
 
+/**
+ * Reject a plan which cannot execute before callers acquire target credentials
+ * or discover target resources. This intentionally does not validate handler
+ * completeness: assembling handlers can itself require target credentials.
+ */
+export function assertRestorePlanExecutable(plan: RestorePlan): void {
+  if (plan.status === "blocked") {
+    throw new PgDumpsterError({
+      code: "RESTORE_PLAN_BLOCKED",
+      category: "restore_policy",
+      message:
+        "Restore plan contains unresolved policy or source-failure blockers.",
+      retryable: false,
+    });
+  }
+}
+
 function failureCode(error: unknown, signal?: AbortSignal): string {
   if (signal?.aborted === true) return "OPERATION_CANCELLED";
   const code = (error as Partial<PgDumpsterError> | undefined)?.code;
@@ -248,15 +265,7 @@ export async function executeRestore(
   options: ExecuteRestoreOptions,
 ): Promise<RestoreExecutionResult> {
   const plan = restorePlanSchema.parse(options.plan);
-  if (plan.status === "blocked") {
-    throw new PgDumpsterError({
-      code: "RESTORE_PLAN_BLOCKED",
-      category: "restore_policy",
-      message:
-        "Restore plan contains unresolved policy or source-failure blockers.",
-      retryable: false,
-    });
-  }
+  assertRestorePlanExecutable(plan);
   validatePlanForExecution(plan, options.handlers);
   validateSuccessfulActionStatuses(plan);
   const immutablePlanSha256 = restorePlanSha256(plan);

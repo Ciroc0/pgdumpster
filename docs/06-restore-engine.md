@@ -6,7 +6,7 @@ A backup is not professionally useful until its restore path has been implemente
 
 ## Current implementation status
 
-As of 2026-08-15:
+As of 2026-08-16:
 
 - bundle verification precedes restore planning;
 - deterministic restore-plan generation exists;
@@ -14,7 +14,7 @@ As of 2026-08-15:
 - database, control-plane, publication and Vault root-key handlers exist with semantic verification behavior;
 - conflict and billable-resource policy are represented in the plan;
 - the CLI exposes `--dry-run` and guarded `--apply`;
-- `--apply` executes only from a verified bundle root, rejects unsupported planned components and unsafe/missing planned artifacts before creating a checkpoint or mutating the target, and uses the checkpointed executor for supported actions.
+- `--apply` executes only from a verified bundle root and rejects a blocked plan before reading target credentials or discovering target resources. It rejects unsupported planned components and unsafe/missing planned artifacts before creating a checkpoint or mutating the target, and uses the checkpointed executor for supported actions.
 
 This is not a release-completeness claim. Final parity reporting and the required hosted source-to-target validation remain incomplete.
 
