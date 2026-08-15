@@ -151,6 +151,52 @@ describe("restore planning", () => {
     ).toMatchObject({ risk: "inspection" });
   });
 
+  it("propagates non-exportable prerequisites so dependent work is manual instead of executor-invalid", async () => {
+    const { manifest, coverage } = await source();
+    const edgeSecrets = coverage.components.find(
+      ({ id }) => id === "edge.secrets",
+    )!;
+    edgeSecrets.status = "not_exportable";
+    edgeSecrets.reasonCode = "edge_secret_digest_only";
+    edgeSecrets.artifacts = ["secrets/edge-secret-digests.json"];
+    const edgeFunctions = coverage.components.find(
+      ({ id }) => id === "edge.functions",
+    )!;
+    edgeFunctions.status = "backed_up";
+    edgeFunctions.artifacts = [
+      "functions/index.json",
+      "functions/example/source.multipart",
+    ];
+
+    const plan = await buildRestorePlan(manifest, coverage, {
+      planId: "22222222-2222-4222-8222-222222222222",
+      createdAt: "2026-08-14T02:00:00.000Z",
+      targetProjectRef: "zyxwvutsrqponmlkjihg",
+      conflictPolicy: "fail",
+      allowBillableResources: true,
+    });
+
+    expect(plan.status).toBe("ready_with_platform_limits");
+    expect(
+      plan.actions.find(({ component }) => component === "edge.secrets"),
+    ).toMatchObject({
+      status: "blocked_platform_limit",
+      reasonCode: "edge_secret_digest_only",
+    });
+    expect(
+      plan.actions.find(({ component }) => component === "edge.functions"),
+    ).toMatchObject({
+      status: "blocked_platform_limit",
+      risk: "manual",
+      fidelity: "manual",
+      reasonCode: "dependency_platform_limit",
+    });
+    expect(
+      plan.manualActions.find(({ component }) => component === "edge.functions")
+        ?.message,
+    ).toContain("edge.secrets");
+  });
+
   it("refuses an in-place target", async () => {
     const { manifest, coverage } = await source();
     await expect(

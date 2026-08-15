@@ -236,6 +236,40 @@ function manualMessage(component: string, reasonCode: string): string {
   return `Manual action is required because ${reasonCode}.`;
 }
 
+function propagatePlatformLimits(
+  actions: RestoreAction[],
+  manualActions: RestorePlan["manualActions"],
+): void {
+  const byId = new Map(actions.map((action) => [action.id, action]));
+  const manualIds = new Set(manualActions.map(({ id }) => id));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const action of actions) {
+      if (action.status !== "planned") continue;
+      const blockedDependency = action.dependsOn
+        .map((id) => byId.get(id))
+        .find((dependency) => dependency?.status === "blocked_platform_limit");
+      if (blockedDependency === undefined) continue;
+      action.status = "blocked_platform_limit";
+      action.risk = "manual";
+      action.fidelity = "manual";
+      action.reasonCode = "dependency_platform_limit";
+      const manualId = `manual.${action.component}`;
+      if (!manualIds.has(manualId)) {
+        manualIds.add(manualId);
+        manualActions.push({
+          id: manualId,
+          component: action.component,
+          reasonCode: "dependency_platform_limit",
+          message: `Automatic restore is blocked until ${blockedDependency.component} is resolved manually.`,
+        });
+      }
+      changed = true;
+    }
+  }
+}
+
 export async function buildRestorePlan(
   manifest: Manifest,
   coverage: CoverageDocument,
@@ -359,6 +393,7 @@ export async function buildRestorePlan(
       left.phase - right.phase ||
       left.component.localeCompare(right.component, "en"),
   );
+  propagatePlatformLimits(actions, manualActions);
   const blocked = actions.some(({ status }) =>
     ["blocked_by_policy", "blocked_source_failure"].includes(status),
   );
