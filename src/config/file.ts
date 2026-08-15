@@ -37,7 +37,8 @@ const configSchema = z
         z
           .object({
             mode: z.literal("age"),
-            recipient: z.string().startsWith("age1").min(20),
+            recipient: z.string().startsWith("age1").min(20).optional(),
+            identityFile: z.string().min(1).optional(),
           })
           .strict(),
         z.object({ mode: z.literal("none") }).strict(),
@@ -112,18 +113,28 @@ export async function loadConfigFile(filePath: string): Promise<LoadedConfig> {
         },
       });
     }
+    const directory = path.dirname(absolute);
+    const encryption =
+      parsed.data.encryption.mode === "age" &&
+      parsed.data.encryption.identityFile !== undefined
+        ? {
+            ...parsed.data.encryption,
+            identityFile: path.resolve(
+              directory,
+              parsed.data.encryption.identityFile,
+            ),
+          }
+        : parsed.data.encryption;
     return {
       path: absolute,
-      directory: path.dirname(absolute),
+      directory,
       config: {
         ...parsed.data,
         backup: {
           ...parsed.data.backup,
-          output: path.resolve(
-            path.dirname(absolute),
-            parsed.data.backup.output,
-          ),
+          output: path.resolve(directory, parsed.data.backup.output),
         },
+        encryption,
       },
     };
   } catch (error) {
