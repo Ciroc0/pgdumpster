@@ -15,6 +15,19 @@ import type {
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import { buildRestorePlan } from "../core/restore/plan.js";
+import {
+  executeRestore,
+  validatePlanForExecution,
+} from "../core/restore/executor.js";
+import { restoreCheckpointSchema } from "../core/checkpoint/restore.js";
+import { createDatabaseRestoreHandlers } from "../core/restore/database-handlers.js";
+import { createDatabaseSupplementRestoreHandlers } from "../core/restore/database-supplement-handlers.js";
+import { createPublicationRestoreHandler } from "../core/restore/publication-handler.js";
+import { createVaultRootKeyRestoreHandler } from "../core/restore/vault-root-key-handler.js";
+import { createControlPlaneRestoreHandlers } from "../core/restore/control-plane-handler.js";
+import { createFileStorageRestoreHandlers } from "../core/restore/file-storage-handlers.js";
+import { createVectorStorageRestoreHandlers } from "../core/restore/vector-storage-handlers.js";
+import { createEdgeFunctionRestoreHandler } from "../core/restore/edge-function-handler.js";
 import type { PgDumpsterError } from "../core/errors/error.js";
 import { PgDumpsterError as DomainError } from "../core/errors/error.js";
 import { serializeError } from "../core/errors/serialize.js";
@@ -32,6 +45,7 @@ import {
 import { Redactor } from "../security/redactor.js";
 import { SecretValue } from "../security/secret-value.js";
 import { ManagementClient } from "../supabase/management/client.js";
+import { discoverPrivilegedStorageKey } from "../supabase/management/api-keys.js";
 
 interface Io {
   stdout: (value: string) => void;
@@ -50,6 +64,7 @@ export interface CliContext {
   s3Materializer?: typeof materializeS3Backup;
   now?: () => Date;
   randomUUID?: () => string;
+  restoreExecutor?: typeof executeRestore;
 }
 
 const HELP = `pgDumpster
@@ -60,7 +75,7 @@ Usage:
   pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
   pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
   pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
-  pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
+  pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply) [--resume <checkpoint>]
   pgdumpster --version
   pgdumpster --help
 `;
@@ -90,6 +105,7 @@ interface ParsedRestoreArguments {
   mode?: "dry-run" | "apply";
   conflictPolicy: "fail" | "replace";
   allowBillableResources: boolean;
+  resume?: string;
 }
 
 function positiveInteger(value: string | undefined, option: string): number {
@@ -197,6 +213,9 @@ function parseRestoreArguments(
       index += 1;
     } else if (argument === "--allow-billable-resources") {
       parsed.allowBillableResources = true;
+    } else if (argument === "--resume") {
+      parsed.resume = valueOption(index, argument);
+      index += 1;
     } else {
       throw new Error(`Unknown restore option: ${argument}`);
     }
@@ -295,6 +314,29 @@ async function version(): Promise<string> {
   if (typeof pkg.version !== "string")
     throw new Error("Package version is invalid");
   return pkg.version;
+}
+
+function restoreCheckpointPath(planId: string): string {
+  return path.resolve(".pgdumpster-restore", `${planId}.checkpoint.json`);
+}
+
+async function readResumeCheckpoint(filename: string) {
+  const resolved = path.resolve(filename);
+  const stat = await lstat(resolved);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 4_194_304) {
+    throw new DomainError({
+      code: "RESTORE_CHECKPOINT_INVALID",
+      category: "restore_policy",
+      message: "Restore resume checkpoint must be a bounded regular file.",
+      retryable: false,
+    });
+  }
+  return {
+    path: resolved,
+    checkpoint: restoreCheckpointSchema.parse(
+      JSON.parse(await readFile(resolved, "utf8")),
+    ),
+  };
 }
 
 export async function runCli(
@@ -589,18 +631,136 @@ export async function runCli(
           details: { variable: targetDbUrlEnvironment },
         });
       }
-      new SecretValue(targetDatabaseUrl, redactor);
-      const plan = await withConfiguredBundleInput(
+      const targetDatabase = new SecretValue(targetDatabaseUrl, redactor);
+      const resume =
+        args.resume === undefined
+          ? undefined
+          : await readResumeCheckpoint(args.resume);
+      const target = loadSourceEnvironment(environment, redactor, {
+        projectRef: targetProjectRef,
+      });
+      const management = new ManagementClient({
+        accessToken: target.accessToken,
+        ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+      });
+      const outcome = await withConfiguredBundleInput(
         bundlePath,
         loadedConfig,
-        (bundle) =>
-          buildRestorePlan(bundle.manifest, bundle.coverage, {
-            planId: (context.randomUUID ?? randomUUID)(),
-            createdAt: (context.now ?? (() => new Date()))().toISOString(),
-            targetProjectRef,
-            conflictPolicy: args.conflictPolicy,
-            allowBillableResources: args.allowBillableResources,
-          }),
+        async (bundle) => {
+          const plan = await buildRestorePlan(
+            bundle.manifest,
+            bundle.coverage,
+            {
+              planId:
+                resume?.checkpoint.planId ??
+                (context.randomUUID ?? randomUUID)(),
+              createdAt:
+                resume?.checkpoint.createdAt ??
+                (context.now ?? (() => new Date()))().toISOString(),
+              targetProjectRef,
+              conflictPolicy: args.conflictPolicy,
+              allowBillableResources: args.allowBillableResources,
+            },
+          );
+          if (args.mode !== "apply") return { plan };
+          const storageComponents = new Set([
+            "storage.file_buckets",
+            "storage.file_objects",
+            "storage.file_metadata",
+            "storage.vector_buckets",
+            "storage.vector_indexes",
+            "storage.vectors",
+          ]);
+          const storageRequired = plan.actions.some(
+            (action) =>
+              action.status === "planned" &&
+              storageComponents.has(action.component),
+          );
+          const storageKey = storageRequired
+            ? await discoverPrivilegedStorageKey(
+                management,
+                targetProjectRef,
+                redactor,
+              )
+            : undefined;
+          if (storageRequired && storageKey === undefined) {
+            throw new DomainError({
+              code: "RESTORE_TARGET_STORAGE_KEY_UNAVAILABLE",
+              category: "auth",
+              message:
+                "A target privileged Storage credential could not be obtained from the Management API.",
+              retryable: false,
+            });
+          }
+          const handlers = {
+            ...createDatabaseRestoreHandlers({
+              bundleRoot: bundle.root,
+              targetDatabaseUrl: targetDatabase,
+            }),
+            ...createDatabaseSupplementRestoreHandlers({
+              bundleRoot: bundle.root,
+              targetDatabaseUrl: targetDatabase,
+              conflictPolicy: args.conflictPolicy,
+            }),
+            "database.publications": createPublicationRestoreHandler({
+              bundleRoot: bundle.root,
+              targetDatabaseUrl: targetDatabase,
+              conflictPolicy: args.conflictPolicy,
+            }),
+            "database.vault_root_key": createVaultRootKeyRestoreHandler({
+              bundleRoot: bundle.root,
+              targetProjectRef,
+              targetDatabaseUrl: targetDatabase,
+              client: management,
+              redactor,
+            }),
+            ...createControlPlaneRestoreHandlers({
+              bundleRoot: bundle.root,
+              targetProjectRef,
+              conflictPolicy: args.conflictPolicy,
+              client: management,
+            }),
+            ...(storageKey === undefined
+              ? {}
+              : {
+                  ...createFileStorageRestoreHandlers({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    targetDatabaseUrl: targetDatabase,
+                    storageKey,
+                    conflictPolicy: args.conflictPolicy,
+                  }),
+                  ...createVectorStorageRestoreHandlers({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    storageKey,
+                    conflictPolicy: args.conflictPolicy,
+                  }),
+                }),
+            "edge.functions": createEdgeFunctionRestoreHandler({
+              bundleRoot: bundle.root,
+              targetProjectRef,
+              accessToken: target.accessToken,
+              conflictPolicy: args.conflictPolicy,
+              ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+            }),
+          };
+          validatePlanForExecution(plan, handlers);
+          const checkpointPath =
+            resume?.path ?? restoreCheckpointPath(plan.planId);
+          if (resume === undefined)
+            await mkdir(path.dirname(checkpointPath), {
+              recursive: true,
+              mode: 0o700,
+            });
+          const result = await (context.restoreExecutor ?? executeRestore)({
+            plan,
+            checkpointPath,
+            handlers,
+            ...(resume === undefined ? {} : { resume: true }),
+          });
+          return { plan, result, checkpointPath };
+        },
         {
           environment,
           ...(context.ageDecryptor === undefined
@@ -611,19 +771,19 @@ export async function runCli(
             : { s3Materializer: context.s3Materializer }),
         },
       );
-      if (args.mode === "apply") {
-        throw new DomainError({
-          code: "RESTORE_APPLY_NOT_IMPLEMENTED",
-          category: "restore_policy",
-          message:
-            "Restore apply is not available in this build; the verified dry-run plan performed no target mutation.",
-          retryable: false,
-        });
+      if (outcome.result !== undefined) {
+        const { result, checkpointPath } = outcome;
+        io.stdout(
+          json
+            ? `${JSON.stringify({ ...result, checkpointPath })}\n`
+            : `RESTORE ${result.status.toUpperCase()}\n${result.completedActions} actions completed\n${checkpointPath}\n`,
+        );
+        return 0;
       }
       io.stdout(
         json
-          ? `${JSON.stringify(plan)}\n`
-          : `RESTORE PLAN ${plan.status.toUpperCase()}\n${plan.actions.length} actions, ${plan.manualActions.length} manual actions\n`,
+          ? `${JSON.stringify(outcome.plan)}\n`
+          : `RESTORE PLAN ${outcome.plan.status.toUpperCase()}\n${outcome.plan.actions.length} actions, ${outcome.plan.manualActions.length} manual actions\n`,
       );
       return 0;
     } catch (error) {

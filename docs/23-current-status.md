@@ -68,7 +68,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Secret protection**: standard `age` encryption is implemented for local backup publication. Non-encrypted secret-bearing backups still require explicit `--allow-plaintext-secrets`.
 - **Encrypted input**: `.tar.zst.age` is supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`. pgDumpster never needs the private key value as a CLI argument.
 - **Destination**: only local destination is exposed. Streaming/resumable S3-compatible publication and independent remote integrity verification remain unimplemented.
-- **Restore**: integrity-first dry-run planning is exposed and the core executor/handlers exist. CLI `--apply`, protected substitutions, resume and final semantic parity still need to be wired end-to-end.
+- **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. The CLI executes only from a verified bundle root and validates all planned handlers before creating a checkpoint or mutating the target. It still fails closed for any unimplemented planned component; protected substitutions and full final parity reporting remain pending.
 - **Hosted E2E**: partial live observations exist, but the dedicated source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure has not passed yet.
 - **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
 - **Release**: normal CI exists. Remaining live-E2E, SBOM, provenance, package-smoke and final release gates are still required.
@@ -101,7 +101,7 @@ For `encryption.mode: age`, backup requires `encryption.recipient`, automaticall
 
 `doctor` probes `age --version`. If the executable is missing when encryption/decryption is attempted, the runtime maps that failure to the dependency error domain. The backup command does not currently duplicate the `doctor` probe before source capture, so operators should keep `doctor` as the intended preflight step. A hard process termination can still leave the protected resumable workspace/checkpoint; crash recovery is separate from normal encryption cleanup.
 
-`restore --apply` is parsed but currently fails closed with `RESTORE_APPLY_NOT_IMPLEMENTED`.
+`restore --apply` performs target credential preflight and handler-completeness validation. A plan with an unsupported planned component fails before mutation with `RESTORE_ADAPTER_MISSING`; a fully supported plan proceeds through the existing checkpointed executor. `--resume <checkpoint>` reuses the checkpoint-bound immutable plan identity.
 
 ## Consistency implementation boundary
 

@@ -58,7 +58,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [x] Wire standard `age` encryption into local backup publication and verified bundle input; keep plaintext secret output behind explicit opt-in.
 - [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
-- [ ] Wire the existing restore executor/handlers through CLI `restore --apply`, protected replacement-key output, resume and final semantic parity report.
+- [ ] Complete CLI `restore --apply`: implemented handlers are now assembled against the verified bundle root, handler completeness is checked before checkpoint/mutation, target Storage credentials are discovered only when needed, and checkpoint resume can bind an immutable prior plan. Remaining: Auth/API/project handlers, protected replacement-key output and full final parity report.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Complete SBOM/provenance/package smoke/release workflow and final source-of-truth revalidation.
@@ -73,7 +73,7 @@ The CLI continues to fail closed for unfinished release behavior:
 - standard local `age` encryption is implemented: `encryption.mode: age` requires `encryption.recipient`, outputs `.tar.zst.age`, and encrypted input uses configured `encryption.identityFile`;
 - non-encrypted secret-bearing backup still requires explicit `--allow-plaintext-secrets`;
 - S3 configuration → `DESTINATION_NOT_IMPLEMENTED`;
-- `restore --apply` → `RESTORE_APPLY_NOT_IMPLEMENTED`.
+- `restore --apply` → `RESTORE_ADAPTER_MISSING` when any planned component lacks a concrete handler; this is intentionally pre-mutation. The remaining unsupported automatic components must receive documented handlers or explicit platform/manual classifications before a full plan can execute.
 
 The remaining guards are release blockers, not placeholders to remove without their underlying implementations.
 

@@ -131,4 +131,55 @@ describe("CLI encrypted bundle input", () => {
     expect(stdout).toEqual([]);
     expect(stderr.join("")).toContain("ENCRYPTION_IDENTITY_MISSING");
   });
+
+  it("rejects apply before creating a checkpoint when a planned handler is absent", async () => {
+    const parent = await mkdtemp(
+      path.join(tmpdir(), "pgdumpster-cli-restore-preflight-"),
+    );
+    temporaryDirectories.push(parent);
+    const bundle = await finalizedBundle(parent);
+    const { stdout, stderr, io } = ioBuffers();
+
+    const exitCode = await runCli(
+      [
+        "restore",
+        bundle,
+        "--target-project-ref",
+        "uvwxyzabcdefghijklmn",
+        "--target-db-url-env",
+        "PGDUMPSTER_TARGET_DB_URL",
+        "--apply",
+      ],
+      io,
+      {
+        environment: {
+          PGDUMPSTER_ACCESS_TOKEN: "management-secret",
+          PGDUMPSTER_TARGET_DB_URL: "postgresql://target-secret@localhost/db",
+        },
+        fetch: vi.fn((input) => {
+          expect(String(input)).toContain(
+            "/v1/projects/uvwxyzabcdefghijklmn/api-keys",
+          );
+          return Promise.resolve(
+            new Response(
+              JSON.stringify([
+                {
+                  name: "target service key",
+                  type: "secret",
+                  api_key: "sb_secret_target-service-key",
+                },
+              ]),
+              { status: 200 },
+            ),
+          );
+        }),
+      },
+    );
+
+    expect(exitCode).toBe(7);
+    expect(stdout).toEqual([]);
+    expect(stderr.join("")).toContain("RESTORE_ADAPTER_MISSING");
+    expect(stderr.join("")).not.toContain("target-secret");
+    expect(stderr.join("")).not.toContain("target-service-key");
+  });
 });

@@ -19,7 +19,7 @@ Current branch snapshot as of 2026-08-15:
 - hosted-project capture adapters exist for database state, Auth, API keys, Edge, Vault, File Storage, specialized Storage and the documented Management API/control-plane surfaces;
 - secure bundle generation, SHA-256 integrity, offline inspect/coverage/verify, deterministic `.tar.zst`, checkpointing and resume are implemented;
 - restore planning, checkpoints, database/control-plane/publication/Vault handlers and semantic verification primitives are implemented;
-- the user-facing restore command currently exposes a verified **dry run only**; `--apply` is deliberately blocked until the complete executor/parity path is wired through the CLI and live-tested;
+- `restore --apply` verifies the bundle, validates target credentials, assembles the implemented handlers and proves handler completeness before it creates a checkpoint or mutates a target; plans containing any unimplemented component still fail closed with `RESTORE_ADAPTER_MISSING`;
 - backup consistency supports `verified`, `best-effort` and `quiesced`; omitted consistency defaults to `verified`;
 - all 10 product backup steps participate in the consistency contract with source snapshots, drift handling and step-owned partial cleanup;
 - best-effort reports `drift_detected` when observable drift occurs and preserves that evidence through resume;

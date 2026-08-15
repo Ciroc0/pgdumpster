@@ -60,7 +60,7 @@ function failureCode(error: unknown, signal?: AbortSignal): string {
     : "RESTORE_ACTION_FAILED";
 }
 
-function validatePlanForExecution(
+export function validatePlanForExecution(
   plan: RestorePlan,
   handlers: Readonly<Record<string, RestoreActionHandler>>,
 ): void {
