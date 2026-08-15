@@ -148,7 +148,7 @@ describe("CLI encrypted bundle input", () => {
     expect(stderr.join("")).toContain("ENCRYPTION_IDENTITY_MISSING");
   });
 
-  it("rejects apply before creating a checkpoint when a planned handler is absent", async () => {
+  it("rejects blocked apply before creating a checkpoint", async () => {
     const parent = await mkdtemp(
       path.join(tmpdir(), "pgdumpster-cli-restore-preflight-"),
     );
@@ -194,7 +194,7 @@ describe("CLI encrypted bundle input", () => {
 
     expect(exitCode).toBe(7);
     expect(stdout).toEqual([]);
-    expect(stderr.join("")).toContain("RESTORE_ADAPTER_MISSING");
+    expect(stderr.join("")).toContain("RESTORE_PLAN_BLOCKED");
     expect(stderr.join("")).not.toContain("target-secret");
     expect(stderr.join("")).not.toContain("target-service-key");
   });
