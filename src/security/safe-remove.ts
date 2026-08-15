@@ -1,4 +1,4 @@
-import { lstat, realpath, rm } from "node:fs/promises";
+import { lstat, readdir, realpath, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { PgDumpsterError } from "../core/errors/error.js";
@@ -8,6 +8,9 @@ export interface SafeRemoveOptions {
   recursive?: boolean;
   signal?: AbortSignal | undefined;
 }
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 function errorCode(error: unknown): string | undefined {
   if (error === null || typeof error !== "object" || !("code" in error)) {
@@ -39,6 +42,43 @@ function assertWithinRoot(
   ) {
     throw rejected(relativePath, "resolved_path_escapes_bundle_root");
   }
+}
+
+async function safeDirectoryEntries(
+  root: string,
+  relativeDirectory: string,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  signal?.throwIfAborted();
+  const rootStat = await lstat(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+    throw rejected(relativeDirectory || ".", "bundle_root_is_not_a_real_directory");
+  }
+  const resolvedRoot = await realpath(root);
+  let current = root;
+
+  if (relativeDirectory.length > 0) {
+    assertSafeBundlePath(relativeDirectory);
+    for (const segment of relativeDirectory.split("/")) {
+      signal?.throwIfAborted();
+      current = path.join(current, segment);
+      let stat;
+      try {
+        stat = await lstat(current);
+      } catch (error) {
+        if (errorCode(error) === "ENOENT") return [];
+        throw error;
+      }
+      if (!stat.isDirectory() || stat.isSymbolicLink()) {
+        throw rejected(relativeDirectory, "artifact_parent_is_not_a_real_directory");
+      }
+      const resolved = await realpath(current);
+      assertWithinRoot(resolvedRoot, resolved, relativeDirectory);
+    }
+  }
+
+  signal?.throwIfAborted();
+  return readdir(current);
 }
 
 export async function removeSafeBundlePath(
@@ -92,4 +132,36 @@ export async function removeSafeBundlePath(
     });
     options.signal?.throwIfAborted();
   }
+}
+
+function isArtifactPartial(entry: string, basename: string): boolean {
+  for (const prefix of [`.${basename}.partial-`, `${basename}.partial-`]) {
+    if (entry.startsWith(prefix) && UUID_PATTERN.test(entry.slice(prefix.length))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function removeSafeBundleArtifactWithPartials(
+  root: string,
+  relativePath: string,
+  options: Omit<SafeRemoveOptions, "recursive"> = {},
+): Promise<void> {
+  options.signal?.throwIfAborted();
+  assertSafeBundlePath(relativePath);
+
+  const parent = path.posix.dirname(relativePath);
+  const relativeParent = parent === "." ? "" : parent;
+  const basename = path.posix.basename(relativePath);
+  const entries = await safeDirectoryEntries(root, relativeParent, options.signal);
+  const partials = entries.filter((entry) => isArtifactPartial(entry, basename));
+
+  await removeSafeBundlePath(root, relativePath, { signal: options.signal });
+  for (const partial of partials) {
+    const candidate =
+      relativeParent.length === 0 ? partial : `${relativeParent}/${partial}`;
+    await removeSafeBundlePath(root, candidate, { signal: options.signal });
+  }
+  options.signal?.throwIfAborted();
 }
