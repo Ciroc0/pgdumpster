@@ -25,8 +25,8 @@ Current branch snapshot as of 2026-08-15:
 - best-effort reports `drift_detected` when observable drift occurs and preserves that evidence through resume;
 - hard-interruption resume cleanup is step-scoped and symlink-safe;
 - `age` output encryption and S3-compatible publication are specified but not yet wired into the CLI, so secret-bearing development backups require explicit `--allow-plaintext-secrets`;
-- latest local `pnpm check`: **85 test files / 500 tests, PASS**;
-- the most recent recorded global coverage percentages predate the completed consistency slice and must be refreshed with `pnpm test:coverage` before being treated as current evidence;
+- latest local validation: **88 test files / 525 tests, PASS**;
+- current global coverage is **94.47% statements / 90.74% branches / 92.05% functions / 95.64% lines**, with all independent 90% thresholds passing;
 - earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the account's current Actions quota is exhausted, so newly pushed workflow results are not presently a meaningful branch-quality signal;
 - CodeQL analysis has previously run to SARIF generation, but result publication/status is blocked by repository code-scanning configuration/access;
 - the mandatory hosted source → backup → offline verify → fresh-target restore → semantic-parity E2E has **not** passed yet.
