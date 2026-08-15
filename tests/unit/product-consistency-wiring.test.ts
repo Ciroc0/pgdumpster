@@ -76,11 +76,14 @@ const EXPECTED_WIRED_STEPS = [
   "platform-v2",
   "auth",
   "api-keys",
+  "edge",
+  "vault-root-key",
   "file-storage",
+  "specialized-storage",
 ];
 
 describe("product consistency wiring", () => {
-  it("wires Database, Management and File Storage adapters in direct mode", async () => {
+  it("wires every product backup step in direct mode", async () => {
     const root = await workspace();
     const redactor = new Redactor();
 
@@ -98,7 +101,7 @@ describe("product consistency wiring", () => {
     expect(wiredStepIds()).toEqual(EXPECTED_WIRED_STEPS);
   });
 
-  it("wires the same fail-closed surfaces in linked mode", async () => {
+  it("wires the same complete consistency surface in linked mode", async () => {
     const root = await workspace();
     const redactor = new Redactor();
 
