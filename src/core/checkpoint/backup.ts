@@ -28,6 +28,7 @@ const checkpointStepSchema = z
     attempts: z.number().int().nonnegative(),
     artifacts: z.array(checkpointArtifactSchema),
     coverage: z.array(coverageEntrySchema),
+    consistencyDriftDetected: z.boolean().default(false),
     failureCode: z.string().min(1).optional(),
   })
   .strict()
@@ -189,6 +190,7 @@ export function createBackupCheckpoint(input: {
       attempts: 0,
       artifacts: [],
       coverage: [],
+      consistencyDriftDetected: false,
     })),
   });
 }
@@ -201,6 +203,7 @@ export function transitionCheckpointStep(
     now: string;
     artifacts?: readonly CheckpointArtifact[];
     coverage?: readonly z.infer<typeof coverageEntrySchema>[];
+    consistencyDriftDetected?: boolean;
     failureCode?: string;
   },
 ): BackupCheckpoint {
@@ -227,6 +230,8 @@ export function transitionCheckpointStep(
             attempts: step.attempts + (startsAttempt ? 1 : 0),
             artifacts: input.artifacts ?? step.artifacts,
             coverage: input.coverage ?? step.coverage,
+            consistencyDriftDetected:
+              input.consistencyDriftDetected ?? step.consistencyDriftDetected,
             ...(input.failureCode === undefined
               ? {}
               : { failureCode: input.failureCode }),
