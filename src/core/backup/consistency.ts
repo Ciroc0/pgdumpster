@@ -82,8 +82,7 @@ async function cleanupCompletedCopy<TResult>(
 }
 
 async function cleanupAfterCopyFailure(
-  cleanupPartial:
-    ((signal?: AbortSignal) => Promise<void>) | undefined,
+  cleanupPartial: ((signal?: AbortSignal) => Promise<void>) | undefined,
   signal: AbortSignal | undefined,
   required: boolean,
 ): Promise<void> {

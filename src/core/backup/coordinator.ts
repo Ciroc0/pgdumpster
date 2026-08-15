@@ -63,8 +63,7 @@ export interface BackupStepConsistencyAdapter {
     context: BackupStepConsistencyContext,
   ) => Promise<void>;
   cleanupPartial?:
-    | ((context: BackupStepConsistencyContext) => Promise<void>)
-    | undefined;
+    ((context: BackupStepConsistencyContext) => Promise<void>) | undefined;
   equals?: ((before: unknown, after: unknown) => boolean) | undefined;
   maxRetries?: number | undefined;
 }
@@ -133,8 +132,8 @@ function consistencyResult(
   checkpoint: BackupCheckpoint,
 ): Manifest["result"]["consistency"] {
   if (consistency !== "best-effort") return consistency;
-  return checkpoint.steps.some(({ consistencyDriftDetected }) =>
-    consistencyDriftDetected,
+  return checkpoint.steps.some(
+    ({ consistencyDriftDetected }) => consistencyDriftDetected,
   )
     ? "drift_detected"
     : "best_effort";

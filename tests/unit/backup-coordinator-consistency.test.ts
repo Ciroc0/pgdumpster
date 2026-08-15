@@ -245,7 +245,9 @@ describe("backup coordinator consistency integration", () => {
     expect(attempts).toEqual([1, 2]);
     expect(cleanupPartial).toHaveBeenCalledOnce();
     expect(completed.manifest.result.consistency).toBe("verified");
-    await expect(readFile(path.join(workspaceRoot, "partial.bin"))).rejects.toThrow();
+    await expect(
+      readFile(path.join(workspaceRoot, "partial.bin")),
+    ).rejects.toThrow();
   });
 
   it("cleans partial artifacts after an ordinary copy failure so resume can rerun", async () => {
@@ -279,7 +281,9 @@ describe("backup coordinator consistency integration", () => {
 
     await expect(executeBackup(common)).rejects.toThrow("interrupted copy");
     expect(cleanupPartial).toHaveBeenCalledOnce();
-    await expect(readFile(path.join(workspaceRoot, "partial.bin"))).rejects.toThrow();
+    await expect(
+      readFile(path.join(workspaceRoot, "partial.bin")),
+    ).rejects.toThrow();
 
     shouldFail = false;
     const completed = await executeBackup({ ...common, resume: true });

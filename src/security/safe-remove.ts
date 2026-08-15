@@ -52,7 +52,10 @@ async function safeDirectoryEntries(
   signal?.throwIfAborted();
   const rootStat = await lstat(root);
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
-    throw rejected(relativeDirectory || ".", "bundle_root_is_not_a_real_directory");
+    throw rejected(
+      relativeDirectory || ".",
+      "bundle_root_is_not_a_real_directory",
+    );
   }
   const resolvedRoot = await realpath(root);
   let current = root;
@@ -70,7 +73,10 @@ async function safeDirectoryEntries(
         throw error;
       }
       if (!stat.isDirectory() || stat.isSymbolicLink()) {
-        throw rejected(relativeDirectory, "artifact_parent_is_not_a_real_directory");
+        throw rejected(
+          relativeDirectory,
+          "artifact_parent_is_not_a_real_directory",
+        );
       }
       const resolved = await realpath(current);
       assertWithinRoot(resolvedRoot, resolved, relativeDirectory);
@@ -110,7 +116,10 @@ export async function removeSafeBundlePath(
 
     const final = index === segments.length - 1;
     if (stat.isSymbolicLink()) {
-      throw rejected(relativePath, final ? "target_is_symlink" : "parent_is_symlink");
+      throw rejected(
+        relativePath,
+        final ? "target_is_symlink" : "parent_is_symlink",
+      );
     }
     if (!final && !stat.isDirectory()) {
       throw rejected(relativePath, "parent_is_not_directory");
@@ -165,8 +174,14 @@ export async function removeSafeBundleArtifactWithPartials(
   const parent = path.posix.dirname(relativePath);
   const relativeParent = parent === "." ? "" : parent;
   const basename = path.posix.basename(relativePath);
-  const entries = await safeDirectoryEntries(root, relativeParent, options.signal);
-  const partials = entries.filter((entry) => isArtifactPartial(entry, basename));
+  const entries = await safeDirectoryEntries(
+    root,
+    relativeParent,
+    options.signal,
+  );
+  const partials = entries.filter((entry) =>
+    isArtifactPartial(entry, basename),
+  );
 
   await removeSafeBundlePath(root, relativePath, { signal: options.signal });
   for (const partial of partials) {

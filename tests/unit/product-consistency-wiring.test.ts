@@ -67,14 +67,16 @@ function execution(): ExecuteBackupOptions {
 }
 
 function wiredStepIds(): string[] {
-  return execution().steps
-    .filter(({ consistency }) => consistency !== undefined)
+  return execution()
+    .steps.filter(({ consistency }) => consistency !== undefined)
     .map(({ id }) => id);
 }
 
 function partialCleanupStepIds(): string[] {
-  return execution().steps
-    .filter(({ consistency }) => consistency?.cleanupPartial !== undefined)
+  return execution()
+    .steps.filter(
+      ({ consistency }) => consistency?.cleanupPartial !== undefined,
+    )
     .map(({ id }) => id);
 }
 

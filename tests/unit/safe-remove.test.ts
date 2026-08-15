@@ -29,7 +29,9 @@ afterEach(async () => {
 });
 
 async function root(): Promise<string> {
-  const directory = await mkdtemp(path.join(tmpdir(), "pgdumpster-safe-remove-"));
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "pgdumpster-safe-remove-"),
+  );
   temporaryDirectories.push(directory);
   return directory;
 }
@@ -150,6 +152,8 @@ describe("safe bundle cleanup", () => {
     await expect(
       removeSafeBundlePath(bundleRoot, "functions"),
     ).rejects.toMatchObject({ code: "SECURITY_PATH_REJECTED" });
-    await expect(access(path.join(bundleRoot, "functions"))).resolves.toBeUndefined();
+    await expect(
+      access(path.join(bundleRoot, "functions")),
+    ).resolves.toBeUndefined();
   });
 });
