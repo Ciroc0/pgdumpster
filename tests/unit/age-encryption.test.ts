@@ -26,7 +26,7 @@ async function root(): Promise<string> {
   return directory;
 }
 
-function successfulRunner(contents: string): AgeProcessRunner {
+function successfulRunner(contents: string) {
   return vi.fn<AgeProcessRunner>(async (_command, args) => {
     const outputIndex = args.indexOf("--output");
     const output = args[outputIndex + 1];
