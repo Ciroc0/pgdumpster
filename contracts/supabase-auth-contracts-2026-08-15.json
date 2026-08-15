@@ -3,7 +3,7 @@
   "source": "https://api.supabase.com/api/v1-json",
   "sourceBytes": 334426,
   "sourceSha256": "6f0d585db14bb6b601b0e6d1bbd5af8be37c1ee1c91411c097f3c4764c6d73a4",
-  "retrievedAt": "2026-08-15T19:32:19.674Z",
+  "retrievedAt": "2026-08-15T19:38:05.018Z",
   "operations": {
     "/v1/projects/{ref}/config/auth": {
       "operationId": "v1-get-auth-service-config",
@@ -100,6 +100,142 @@
         "429": {
           "description": "Rate limit exceeded"
         }
+      },
+      "post": {
+        "operationId": "v1-create-a-sso-provider",
+        "summary": "Creates a new SSO provider",
+        "oauthScope": "auth:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProviderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateProviderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden action"
+          },
+          "404": {
+            "description": "SAML 2.0 support is not enabled for this project"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/v1/projects/{ref}/config/auth/sso/providers/{provider_id}": {
+      "operationId": "v1-get-a-sso-provider",
+      "summary": "Gets a SSO provider by its UUID",
+      "oauthScope": "auth:read",
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetProviderResponse"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "404": {
+          "description": "Either SAML 2.0 was not enabled for this project, or the provider does not exist"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      },
+      "put": {
+        "operationId": "v1-update-a-sso-provider",
+        "summary": "Updates a SSO provider by its UUID",
+        "oauthScope": "auth:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProviderBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateProviderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden action"
+          },
+          "404": {
+            "description": "Either SAML 2.0 was not enabled for this project, or the provider does not exist"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "v1-delete-a-sso-provider",
+        "summary": "Removes a SSO provider by its UUID",
+        "oauthScope": "auth:write",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteProviderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden action"
+          },
+          "404": {
+            "description": "Either SAML 2.0 was not enabled for this project, or the provider does not exist"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
       }
     },
     "/v1/projects/{ref}/config/auth/third-party-auth": {
@@ -129,6 +265,94 @@
         "429": {
           "description": "Rate limit exceeded"
         }
+      },
+      "post": {
+        "operationId": "v1-create-project-tpa-integration",
+        "summary": "Creates a new third-party auth integration",
+        "oauthScope": "auth:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateThirdPartyAuthBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThirdPartyAuth"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden action"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/v1/projects/{ref}/config/auth/third-party-auth/{tpa_id}": {
+      "operationId": "v1-get-project-tpa-integration",
+      "summary": "Get a third-party integration",
+      "oauthScope": "auth:read",
+      "responses": {
+        "200": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThirdPartyAuth"
+              }
+            }
+          }
+        },
+        "401": {
+          "description": "Unauthorized"
+        },
+        "403": {
+          "description": "Forbidden action"
+        },
+        "429": {
+          "description": "Rate limit exceeded"
+        }
+      },
+      "delete": {
+        "operationId": "v1-delete-project-tpa-integration",
+        "summary": "Removes a third-party auth integration",
+        "oauthScope": "auth:write",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThirdPartyAuth"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden action"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
       }
     },
     "/v1/projects/{ref}/config/auth/signing-keys": {
@@ -155,6 +379,42 @@
         "429": {
           "description": "Rate limit exceeded"
         }
+      },
+      "post": {
+        "operationId": "v1-create-project-signing-key",
+        "summary": "Create a new signing key for the project in standby status",
+        "oauthScope": "secrets:write",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSigningKeyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden action"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
       }
     },
     "/v1/projects/{ref}/config/auth/signing-keys/legacy": {
@@ -180,6 +440,32 @@
         },
         "429": {
           "description": "Rate limit exceeded"
+        }
+      },
+      "post": {
+        "operationId": "v1-create-legacy-signing-key",
+        "summary": "Set up the project's existing JWT secret as an in_use JWT signing key. This endpoint will be removed in the future always check for HTTP 404 Not Found.",
+        "oauthScope": "secrets:write",
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden action"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
         }
       }
     }
@@ -2553,6 +2839,469 @@
       },
       "required": ["items"]
     },
+    "CreateProviderBody": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["saml"],
+          "description": "What type of provider will be created"
+        },
+        "metadata_xml": {
+          "type": "string"
+        },
+        "metadata_url": {
+          "type": "string"
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attribute_mapping": {
+          "type": "object",
+          "properties": {
+            "keys": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "default": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {}
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "array": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "required": ["keys"]
+        },
+        "name_id_format": {
+          "type": "string",
+          "enum": [
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+          ]
+        }
+      },
+      "required": ["type"],
+      "example": {
+        "type": "saml",
+        "metadata_url": "https://sso.acme.com/metadata.xml",
+        "domains": ["acme.com"],
+        "attribute_mapping": {
+          "keys": {
+            "email": {
+              "name": "email"
+            },
+            "first_name": {
+              "name": "first_name"
+            },
+            "last_name": {
+              "name": "last_name"
+            }
+          }
+        }
+      }
+    },
+    "CreateProviderResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "saml": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "string"
+            },
+            "metadata_url": {
+              "type": "string"
+            },
+            "metadata_xml": {
+              "type": "string"
+            },
+            "attribute_mapping": {
+              "type": "object",
+              "properties": {
+                "keys": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "names": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "default": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {}
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "array": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              },
+              "required": ["keys"]
+            },
+            "name_id_format": {
+              "type": "string",
+              "enum": [
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+              ]
+            }
+          },
+          "required": ["entity_id"]
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": ["id"]
+    },
+    "UpdateProviderBody": {
+      "type": "object",
+      "properties": {
+        "metadata_xml": {
+          "type": "string"
+        },
+        "metadata_url": {
+          "type": "string"
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attribute_mapping": {
+          "type": "object",
+          "properties": {
+            "keys": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "default": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {}
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ]
+                  },
+                  "array": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "required": ["keys"]
+        },
+        "name_id_format": {
+          "type": "string",
+          "enum": [
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+          ]
+        }
+      },
+      "example": {
+        "metadata_url": "https://sso.acme.com/metadata.xml",
+        "domains": ["acme.com", "contractors.acme.com"]
+      }
+    },
+    "UpdateProviderResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "saml": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "string"
+            },
+            "metadata_url": {
+              "type": "string"
+            },
+            "metadata_xml": {
+              "type": "string"
+            },
+            "attribute_mapping": {
+              "type": "object",
+              "properties": {
+                "keys": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "names": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "default": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {}
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "array": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              },
+              "required": ["keys"]
+            },
+            "name_id_format": {
+              "type": "string",
+              "enum": [
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+              ]
+            }
+          },
+          "required": ["entity_id"]
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": ["id"]
+    },
+    "DeleteProviderResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "saml": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "string"
+            },
+            "metadata_url": {
+              "type": "string"
+            },
+            "metadata_xml": {
+              "type": "string"
+            },
+            "attribute_mapping": {
+              "type": "object",
+              "properties": {
+                "keys": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "names": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "default": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {}
+                          },
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "array": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              },
+              "required": ["keys"]
+            },
+            "name_id_format": {
+              "type": "string",
+              "enum": [
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+                "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"
+              ]
+            }
+          },
+          "required": ["entity_id"]
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": ["id"]
+    },
     "ThirdPartyAuth": {
       "type": "object",
       "properties": {
@@ -2590,6 +3339,22 @@
         }
       },
       "required": ["id", "type", "inserted_at", "updated_at"]
+    },
+    "CreateThirdPartyAuthBody": {
+      "type": "object",
+      "properties": {
+        "oidc_issuer_url": {
+          "type": "string"
+        },
+        "jwks_url": {
+          "type": "string"
+        },
+        "custom_jwks": {}
+      },
+      "example": {
+        "oidc_issuer_url": "https://login.acme.com",
+        "jwks_url": "https://login.acme.com/.well-known/jwks.json"
+      }
     },
     "SigningKeysResponse": {
       "type": "object",

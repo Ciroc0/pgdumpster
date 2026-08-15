@@ -58,7 +58,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [x] Wire standard `age` encryption into local backup publication and verified bundle input; keep plaintext secret output behind explicit opt-in.
 - [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
-- [ ] Complete CLI `restore --apply`: implemented handlers are assembled against the verified bundle root, handler completeness is checked before checkpoint/mutation, target Storage credentials are discovered only when needed, checkpoint resume can bind an immutable prior plan, and Auth config is restored through the current validated PATCH contract without replaying masked secrets. Remaining: Auth SSO/TPA, API/project handlers, protected replacement-key output and full final parity report.
+- [ ] Complete CLI `restore --apply`: implemented handlers are assembled against the verified bundle root, handler completeness is checked before checkpoint/mutation, target Storage credentials are discovered only when needed, checkpoint resume can bind an immutable prior plan, and Auth config/SSO/TPA are restored through current validated contracts without replaying masked secrets. Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on a non-empty divergent target and explicit `replace` deletes/recreates the scoped collection. Remaining: API/project handlers, protected replacement-key output and full final parity report.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Complete SBOM/provenance/package smoke/release workflow and final source-of-truth revalidation.
@@ -141,6 +141,14 @@ The backed-up function body is the deployed representation returned by the platf
 Current Realtime contract drift, including optional `postgres_changes_pool` and numeric writable settings, is runtime-validated. Nullable read fields are not guessed into unsupported PATCH values.
 
 ## Validation log
+
+### 2026-08-15 — Auth provider restore checkpoint
+
+- Refreshed the dated official Auth contract snapshot with the current SSO-provider and Third-party Auth mutation contracts.
+- Added runtime-validated Management API `POST` and `DELETE` transport methods.
+- `restore --apply` now assembles Auth SSO and Third-party Auth handlers. They compare canonical semantic provider collections, fail before mutation on a divergent non-empty target under the default `fail` policy, and allow only explicit scoped delete/recreate under `replace`.
+- Local result: **108 test files / 678 tests, PASS**; contract-drift check: **PASS**.
+- Global coverage: **94.71% statements / 90.01% branches / 92.46% functions / 95.83% lines**; all 90% global thresholds: **PASS**.
 
 ### 2026-08-14/15 — coverage hardening checkpoint
 

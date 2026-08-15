@@ -12,7 +12,10 @@ const operationSchema = z
 const authPathSchema = z
   .object({
     get: operationSchema.optional(),
+    post: operationSchema.optional(),
     patch: operationSchema.optional(),
+    put: operationSchema.optional(),
+    delete: operationSchema.optional(),
   })
   .passthrough();
 
@@ -27,7 +30,13 @@ export const authSchemaNames = [
   "AuthConfigResponse",
   "UpdateAuthConfigBody",
   "ListProvidersResponse",
+  "CreateProviderBody",
+  "CreateProviderResponse",
+  "UpdateProviderBody",
+  "UpdateProviderResponse",
+  "DeleteProviderResponse",
   "ThirdPartyAuth",
+  "CreateThirdPartyAuthBody",
   "SigningKeysResponse",
   "SigningKeyResponse",
 ];
@@ -35,7 +44,9 @@ export const authSchemaNames = [
 export const authPaths = [
   "/v1/projects/{ref}/config/auth",
   "/v1/projects/{ref}/config/auth/sso/providers",
+  "/v1/projects/{ref}/config/auth/sso/providers/{provider_id}",
   "/v1/projects/{ref}/config/auth/third-party-auth",
+  "/v1/projects/{ref}/config/auth/third-party-auth/{tpa_id}",
   "/v1/projects/{ref}/config/auth/signing-keys",
   "/v1/projects/{ref}/config/auth/signing-keys/legacy",
 ];
@@ -55,12 +66,32 @@ export function extractAuthContractSubset(openapi) {
     authPaths.map((pathname) => {
       const get = validated.paths[pathname]?.get;
       if (get === undefined) throw new Error(`Missing GET ${pathname}`);
-      const patch =
-        pathname === "/v1/projects/{ref}/config/auth"
-          ? validated.paths[pathname]?.patch
-          : undefined;
-      if (pathname === "/v1/projects/{ref}/config/auth" && patch === undefined)
-        throw new Error(`Missing PATCH ${pathname}`);
+      const operations = validated.paths[pathname];
+      const methods = [
+        { method: "post", operation: operations?.post },
+        { method: "put", operation: operations?.put },
+        { method: "patch", operation: operations?.patch },
+        { method: "delete", operation: operations?.delete },
+      ];
+      const mutations = Object.fromEntries(
+        methods.flatMap(({ method, operation }) => {
+          if (operation === undefined) return [];
+          return [
+            [
+              method,
+              {
+                operationId: operation.operationId,
+                summary: operation.summary,
+                oauthScope: operation["x-oauth-scope"],
+                ...(operation.requestBody === undefined
+                  ? {}
+                  : { requestBody: operation.requestBody }),
+                responses: operation.responses,
+              },
+            ],
+          ];
+        }),
+      );
       return [
         pathname,
         {
@@ -68,17 +99,7 @@ export function extractAuthContractSubset(openapi) {
           summary: get.summary,
           oauthScope: get["x-oauth-scope"],
           responses: get.responses,
-          ...(patch === undefined
-            ? {}
-            : {
-                patch: {
-                  operationId: patch.operationId,
-                  summary: patch.summary,
-                  oauthScope: patch["x-oauth-scope"],
-                  requestBody: patch.requestBody,
-                  responses: patch.responses,
-                },
-              }),
+          ...mutations,
         },
       ];
     }),

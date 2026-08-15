@@ -29,6 +29,10 @@ import { createFileStorageRestoreHandlers } from "../core/restore/file-storage-h
 import { createVectorStorageRestoreHandlers } from "../core/restore/vector-storage-handlers.js";
 import { createEdgeFunctionRestoreHandler } from "../core/restore/edge-function-handler.js";
 import { createAuthConfigRestoreHandler } from "../core/restore/auth-config-handler.js";
+import {
+  createAuthSsoRestoreHandler,
+  createAuthTpaRestoreHandler,
+} from "../core/restore/auth-provider-handlers.js";
 import type { PgDumpsterError } from "../core/errors/error.js";
 import { PgDumpsterError as DomainError } from "../core/errors/error.js";
 import { serializeError } from "../core/errors/serialize.js";
@@ -748,6 +752,18 @@ export async function runCli(
             "auth.config": createAuthConfigRestoreHandler({
               bundleRoot: bundle.root,
               targetProjectRef,
+              client: management,
+            }),
+            "auth.sso": createAuthSsoRestoreHandler({
+              bundleRoot: bundle.root,
+              targetProjectRef,
+              conflictPolicy: args.conflictPolicy,
+              client: management,
+            }),
+            "auth.tpa": createAuthTpaRestoreHandler({
+              bundleRoot: bundle.root,
+              targetProjectRef,
+              conflictPolicy: args.conflictPolicy,
               client: management,
             }),
           };

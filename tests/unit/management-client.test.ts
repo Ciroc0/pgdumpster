@@ -125,6 +125,37 @@ describe("Supabase Management API transport", () => {
     expect(request).toHaveBeenCalledOnce();
   });
 
+  it("sends runtime-validated POST and DELETE requests", async () => {
+    const schema = z.object({ id: z.string(), enabled: z.boolean() });
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ id: "created", enabled: true }))
+      .mockResolvedValueOnce(Response.json({ id: "created", enabled: true }));
+    const management = client(request);
+
+    await expect(
+      management.post(
+        "/v1/projects/abcdefghijklmnopqrst/example",
+        { id: "created", enabled: true },
+        schema,
+        schema,
+      ),
+    ).resolves.toEqual({ id: "created", enabled: true });
+    await expect(
+      management.delete(
+        "/v1/projects/abcdefghijklmnopqrst/example/created",
+        schema,
+      ),
+    ).resolves.toEqual({ id: "created", enabled: true });
+
+    expect(request.mock.calls[0]?.[1]?.method).toBe("POST");
+    expect(request.mock.calls[0]?.[1]?.body).toBe(
+      JSON.stringify({ id: "created", enabled: true }),
+    );
+    expect(request.mock.calls[1]?.[1]?.method).toBe("DELETE");
+    expect(request.mock.calls[1]?.[1]?.body).toBeUndefined();
+  });
+
   it("returns successful raw bodies with an explicit safe Accept header", async () => {
     const request = vi.fn<typeof fetch>(async (_input, init) =>
       Promise.resolve(

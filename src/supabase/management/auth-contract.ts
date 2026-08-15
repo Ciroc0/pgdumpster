@@ -28,7 +28,13 @@ export type AuthContractName =
   | "AuthConfigResponse"
   | "UpdateAuthConfigBody"
   | "ListProvidersResponse"
+  | "CreateProviderBody"
+  | "CreateProviderResponse"
+  | "UpdateProviderBody"
+  | "UpdateProviderResponse"
+  | "DeleteProviderResponse"
   | "ThirdPartyAuth"
+  | "CreateThirdPartyAuthBody"
   | "SigningKeysResponse"
   | "SigningKeyResponse";
 

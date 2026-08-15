@@ -22,7 +22,7 @@ export interface RequestOptions {
 }
 
 interface RequestExecutionOptions extends RequestOptions {
-  method: "GET" | "PATCH" | "PUT";
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: string | undefined;
 }
 
@@ -316,6 +316,49 @@ export class ManagementClient {
       ...options,
       method: "PUT",
       body: JSON.stringify(parsedBody.data),
+    });
+    return this.#parseJson(response, responseSchema);
+  }
+
+  async post<TBody, TResponse>(
+    pathname: string,
+    body: TBody,
+    bodySchema: z.ZodType<TBody>,
+    responseSchema: z.ZodType<TResponse>,
+    options: RequestOptions = {},
+  ): Promise<TResponse> {
+    const parsedBody = bodySchema.safeParse(body);
+    if (!parsedBody.success) {
+      throw new PgDumpsterError({
+        code: "PLATFORM_API_CONTRACT_CHANGED",
+        category: "platform_contract",
+        message:
+          "Management API request no longer matches its validated contract.",
+        retryable: false,
+        details: {
+          issues: parsedBody.error.issues.map(({ code, path }) => ({
+            code,
+            path,
+          })),
+        },
+      });
+    }
+    const response = await this.#requestResponse(pathname, {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(parsedBody.data),
+    });
+    return this.#parseJson(response, responseSchema);
+  }
+
+  async delete<TResponse>(
+    pathname: string,
+    responseSchema: z.ZodType<TResponse>,
+    options: RequestOptions = {},
+  ): Promise<TResponse> {
+    const response = await this.#requestResponse(pathname, {
+      ...options,
+      method: "DELETE",
     });
     return this.#parseJson(response, responseSchema);
   }
