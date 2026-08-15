@@ -29,6 +29,7 @@ import { createFileStorageRestoreHandlers } from "../core/restore/file-storage-h
 import { createVectorStorageRestoreHandlers } from "../core/restore/vector-storage-handlers.js";
 import { createEdgeFunctionRestoreHandler } from "../core/restore/edge-function-handler.js";
 import { createAuthConfigRestoreHandler } from "../core/restore/auth-config-handler.js";
+import { createApiKeyRestoreHandler } from "../core/restore/api-key-handler.js";
 import {
   createAuthSsoRestoreHandler,
   createAuthTpaRestoreHandler,
@@ -765,6 +766,21 @@ export async function runCli(
               targetProjectRef,
               conflictPolicy: args.conflictPolicy,
               client: management,
+            }),
+            "api.modern_keys": createApiKeyRestoreHandler({
+              bundleRoot: bundle.root,
+              sourceProjectRef: bundle.manifest.source.projectRef,
+              targetProjectRef,
+              rotationMapPath: path.join(
+                path.dirname(
+                  resume?.path ?? restoreCheckpointPath(plan.planId),
+                ),
+                `${plan.planId}.api-key-rotation.json`,
+              ),
+              client: management,
+              registerSecret: (value) => {
+                redactor.register(value);
+              },
             }),
           };
           validatePlanForExecution(plan, handlers);

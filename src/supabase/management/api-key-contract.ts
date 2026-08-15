@@ -21,7 +21,8 @@ const snapshot = snapshotSchema.parse(
   ),
 );
 
-export type ApiKeyContractName = "ApiKeyResponse" | "LegacyApiKeysResponse";
+export type ApiKeyContractName =
+  "ApiKeyResponse" | "LegacyApiKeysResponse" | "CreateApiKeyBody";
 
 const schemas = new Map<ApiKeyContractName, z.ZodType<unknown>>();
 
