@@ -47,7 +47,6 @@ Current required source contract:
 pgdumpster backup \
   --project-ref <ref> \
   (--linked | --db-url-env <environment-variable>) \
-  --consistency best-effort \
   --allow-plaintext-secrets \
   [options]
 ```
@@ -67,14 +66,25 @@ Implemented options:
 --resume <path>
 ```
 
-Important current gates:
+Current consistency behavior:
 
-- the parser accepts all three consistency names, but runtime currently proceeds only for explicit `best-effort`; `verified`/`quiesced` fail closed until cross-service stabilization is implemented;
+- omitted `--consistency` defaults to `verified`;
+- `verified` requires the concrete consistency/partial-cleanup contract for every product step and performs bounded selective retry after observable drift;
+- `quiesced` uses the same source-observation layer but fails when observable state changes;
+- `best-effort` does not claim verification and reports `drift_detected` if a completed copy observed source drift;
+- drift evidence is preserved through checkpoint/resume;
+- source-specific copy-time drift, including Storage/Edge/specialized-storage signals, participates in the same consistency policy;
+- interrupted non-completed steps are cleaned before resume using step-owned, symlink-safe cleanup scopes.
+
+The consistency guarantee is application-level stabilization over the source evidence available to pgDumpster. It is not a claim that the platform exposes one atomic cross-service snapshot transaction.
+
+Other important current gates:
+
 - secret-bearing output requires explicit `--allow-plaintext-secrets` because `age` publication is not wired yet;
 - config destination `s3` fails closed because S3 publication is not wired yet;
 - `--archive` packs the finalized directory as deterministic `.tar.zst`.
 
-Target behavior remains `verified` as the normal production mode, standard `age` protection and S3-compatible publication once their release gates pass.
+Target release behavior still requires standard `age` protection and S3-compatible publication.
 
 ### `inspect`
 
@@ -148,9 +158,27 @@ Future S3 publication may additionally use standard AWS/provider credential mech
 
 ## Configuration file
 
-The current config schema supports backup concurrency/consistency settings plus local/S3 destination and none/age encryption shapes. **Schema acceptance is not equivalent to runtime implementation**: the CLI currently rejects S3 and age modes explicitly.
+The current config schema supports backup concurrency/consistency settings plus local/S3 destination and none/age encryption shapes. **Schema acceptance is not equivalent to runtime implementation**: S3 and age modes are still rejected explicitly, while all three consistency modes are now implemented.
 
 The config contains options/references, not raw secret values.
+
+## Exit codes
+
+Current structured domain-error mapping includes:
+
+```text
+2  configuration / usage
+3  authentication / authorization
+4  dependency / preflight
+5  source component failures (network, rate limit, database, storage, edge, control plane)
+6  consistency verification / stabilization failure
+7  other backup/restore/runtime failure
+8  destination / I/O failure
+9  platform contract drift
+10 cancellation
+```
+
+Machine consumers should rely on the documented category/structured error contract rather than parsing human stderr text.
 
 ## JSON output
 
