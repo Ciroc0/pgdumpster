@@ -62,4 +62,23 @@ await edit("tests/unit/file-storage-restore.test.ts", (text) => {
   return changed;
 });
 
+await edit("tests/unit/restore-runtime-margin-hardening.test.ts", (text) => {
+  const target = `function client(
+  fixture: VectorFixture,
+  overrides: Partial<VectorMutationClient> = {},`;
+  if (!text.includes(target)) throw new Error("Vector runtime helper target not found");
+  return text.replace(
+    target,
+    `function client(
+  fixture: VectorFixture,
+  overrides: Partial<VectorMutationClient> = {},`,
+  ).replace(
+    `): VectorMutationClient {
+  return {`,
+    `): VectorMutationClient {
+  void fixture;
+  return {`,
+  );
+});
+
 await rm(new URL(import.meta.url));
