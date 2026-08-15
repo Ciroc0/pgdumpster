@@ -71,7 +71,7 @@ pgdumpster doctor --project-ref "$PGDUMPSTER_PROJECT_REF"
 
 ## Create a backup with the current build
 
-Until encrypted publication and verified cross-service consistency are implemented, a development backup must be explicit about both limitations.
+Consistency is implemented; encryption is not yet wired. A current development backup therefore defaults to `verified` consistency but still requires explicit plaintext-secret opt-in.
 
 Linked example:
 
@@ -80,7 +80,6 @@ pgdumpster backup \
   --project-ref "$PGDUMPSTER_PROJECT_REF" \
   --linked \
   --output ./backups \
-  --consistency best-effort \
   --allow-plaintext-secrets \
   --archive
 ```
@@ -92,9 +91,18 @@ pgdumpster backup \
   --project-ref "$PGDUMPSTER_PROJECT_REF" \
   --db-url-env PGDUMPSTER_DB_URL \
   --output ./backups \
-  --consistency best-effort \
   --allow-plaintext-secrets
 ```
+
+Omitting `--consistency` selects `verified`. Explicit alternatives are:
+
+```bash
+--consistency verified
+--consistency quiesced
+--consistency best-effort
+```
+
+Use `quiesced` when writes have deliberately been stopped and any observable source change should fail the run. Use `best-effort` only when you accept a non-verified cross-service point in time; if drift is observed, the final manifest reports `drift_detected`.
 
 A plaintext development bundle can contain database/Auth data, API/project keys, Edge secret material and Vault key material. Treat it as a production secret.
 
@@ -102,12 +110,19 @@ A plaintext development bundle can contain database/Auth data, API/project keys,
 
 The following target workflows intentionally fail closed in the current CLI:
 
-- `--consistency verified`;
-- `--consistency quiesced`;
 - config `encryption.mode: age`;
-- config `destination.type: s3`.
+- config `destination.type: s3`;
+- restore `--apply`.
 
-Do not work around those guards by relabeling a best-effort/plaintext/local backup.
+Do not work around those guards by relabeling a plaintext/local/dry-run workflow as the final release workflow.
+
+## Consistency behavior
+
+All 10 product backup steps participate in the consistency layer. Verified runs compare the strongest available source evidence before and after step copy, promote copy-time drift signals into the same policy, and retry only after step-owned provisional/partial output is removed safely.
+
+Interrupted non-completed steps are cleaned before resume. Cleanup validates bundle-relative ownership and refuses symlinked parent paths. Best-effort drift evidence is persisted in the checkpoint so a resumed run cannot silently lose the fact that drift was already observed.
+
+This is not an atomic platform-wide snapshot primitive. It is pgDumpster's application-level stabilization contract over the official source surfaces the platform exposes.
 
 ## Inspect, coverage and verify
 
@@ -127,7 +142,7 @@ The backup command accepts:
 pgdumpster backup ... --resume <workspace-or-checkpoint-path>
 ```
 
-Resume is bound to the original run/project/configuration and revalidates completed artifact integrity before trusting checkpoint state.
+Resume is bound to the original run/project/configuration and revalidates completed artifact integrity before trusting checkpoint state. Non-completed interrupted steps are cleaned within their own artifact scope before rerun.
 
 ## Restore: current dry-run path
 
@@ -147,7 +162,7 @@ pgdumpster restore ./backups/<bundle> \
   --dry-run
 ```
 
-The repository contains restore executor/handler primitives, but the CLI does **not** currently perform target mutation. `--apply` fails closed until the complete apply/parity workflow is wired and live-tested.
+The repository contains restore executor/handler primitives, but the CLI does **not** currently perform target mutation. `--apply` fails closed until the complete apply/substitution/parity workflow is wired and live-tested.
 
 ## Target release workflow (not yet available end-to-end)
 
@@ -166,7 +181,7 @@ That procedure is the mandatory hosted E2E release gate. It must not be represen
 
 ## Scheduling and retention
 
-pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Do not schedule the current development build as though the pending encryption/verified-consistency release gates had already passed.
+pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Do not schedule the current development build as though the pending encryption/destination/restore-apply release gates had already passed.
 
 ## Updating the development checkout
 
@@ -175,5 +190,5 @@ Before relying on a newer commit:
 1. read `CHANGELOG.md` and `docs/23-current-status.md`;
 2. install with the frozen lockfile;
 3. run `pnpm check` and `pnpm test:coverage`;
-4. inspect GitHub CI status;
+4. inspect GitHub CI status when Actions quota permits meaningful execution;
 5. keep previous recovery artifacts until a real restore drill proves the new build.
