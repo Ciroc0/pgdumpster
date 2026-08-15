@@ -103,7 +103,7 @@ async function checkSubset(snapshotPath, label, extract) {
 }
 
 await checkSubset(
-  "contracts/supabase-auth-contracts-2026-08-14.json",
+  "contracts/supabase-auth-contracts-2026-08-15.json",
   "Auth",
   extractAuthContractSubset,
 );

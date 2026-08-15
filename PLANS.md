@@ -58,7 +58,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [x] Wire standard `age` encryption into local backup publication and verified bundle input; keep plaintext secret output behind explicit opt-in.
 - [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
-- [ ] Complete CLI `restore --apply`: implemented handlers are now assembled against the verified bundle root, handler completeness is checked before checkpoint/mutation, target Storage credentials are discovered only when needed, and checkpoint resume can bind an immutable prior plan. Remaining: Auth/API/project handlers, protected replacement-key output and full final parity report.
+- [ ] Complete CLI `restore --apply`: implemented handlers are assembled against the verified bundle root, handler completeness is checked before checkpoint/mutation, target Storage credentials are discovered only when needed, checkpoint resume can bind an immutable prior plan, and Auth config is restored through the current validated PATCH contract without replaying masked secrets. Remaining: Auth SSO/TPA, API/project handlers, protected replacement-key output and full final parity report.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Complete SBOM/provenance/package smoke/release workflow and final source-of-truth revalidation.

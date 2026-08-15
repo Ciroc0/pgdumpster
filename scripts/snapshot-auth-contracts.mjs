@@ -24,7 +24,7 @@ const snapshot = {
   schemas,
 };
 await writeFile(
-  "contracts/supabase-auth-contracts-2026-08-14.json",
+  "contracts/supabase-auth-contracts-2026-08-15.json",
   `${JSON.stringify(snapshot, null, 2)}\n`,
   { flag: "wx", mode: 0o600 },
 );

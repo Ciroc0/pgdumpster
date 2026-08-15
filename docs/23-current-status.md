@@ -48,7 +48,7 @@ The implementation currently includes:
 - finalization handling for recognized UUID-based atomic-writer partials while rejecting unrecognized transient-looking files;
 - restore plan/checkpoint/executor primitives and semantic verification;
 - database logical dump, inventory, excluded managed/extension state, managed-schema diff and restore primitives;
-- Auth, Cron, Queues, Vault, publications and Database Webhook coverage;
+- Auth config restore through a current Management API PATCH contract (excluding non-exportable masked secret fields), Cron, Queues, Vault, publications and Database Webhook coverage;
 - File Storage catalog + streamed content-addressed object capture;
 - specialized Vector and Analytics/Iceberg capability handling with explicit platform-limit semantics;
 - Management API client, contract snapshots/runtime validation and control-plane adapters;

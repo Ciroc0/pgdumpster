@@ -16,7 +16,7 @@ const snapshot = contractSnapshotSchema.parse(
   JSON.parse(
     readFileSync(
       new URL(
-        "../../../contracts/supabase-auth-contracts-2026-08-14.json",
+        "../../../contracts/supabase-auth-contracts-2026-08-15.json",
         import.meta.url,
       ),
       "utf8",
@@ -26,6 +26,7 @@ const snapshot = contractSnapshotSchema.parse(
 
 export type AuthContractName =
   | "AuthConfigResponse"
+  | "UpdateAuthConfigBody"
   | "ListProvidersResponse"
   | "ThirdPartyAuth"
   | "SigningKeysResponse"
@@ -91,6 +92,24 @@ export function authConfigSecretFieldNames(): string[] {
       ),
     )
     .sort((left, right) => left.localeCompare(right, "en"));
+}
+
+export function authConfigUpdateFieldNames(): string[] {
+  const schema = snapshot.schemas["UpdateAuthConfigBody"];
+  if (
+    schema === null ||
+    typeof schema !== "object" ||
+    !("properties" in schema)
+  ) {
+    throw new Error("UpdateAuthConfigBody properties are missing");
+  }
+  const properties = schema.properties;
+  if (properties === null || typeof properties !== "object") {
+    throw new Error("UpdateAuthConfigBody properties are invalid");
+  }
+  return Object.keys(properties).sort((left, right) =>
+    left.localeCompare(right, "en"),
+  );
 }
 
 export const AUTH_CONTRACT_SOURCE_SHA256 = snapshot.sourceSha256;

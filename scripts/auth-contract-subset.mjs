@@ -9,18 +9,23 @@ const operationSchema = z
   })
   .passthrough();
 
+const authPathSchema = z
+  .object({
+    get: operationSchema.optional(),
+    patch: operationSchema.optional(),
+  })
+  .passthrough();
+
 export const authOpenApiSchema = z
   .object({
     components: z.object({ schemas: z.record(z.string(), z.unknown()) }),
-    paths: z.record(
-      z.string(),
-      z.object({ get: operationSchema.optional() }).passthrough(),
-    ),
+    paths: z.record(z.string(), authPathSchema),
   })
   .passthrough();
 
 export const authSchemaNames = [
   "AuthConfigResponse",
+  "UpdateAuthConfigBody",
   "ListProvidersResponse",
   "ThirdPartyAuth",
   "SigningKeysResponse",
@@ -48,15 +53,32 @@ export function extractAuthContractSubset(openapi) {
   );
   const operations = Object.fromEntries(
     authPaths.map((pathname) => {
-      const operation = validated.paths[pathname]?.get;
-      if (operation === undefined) throw new Error(`Missing GET ${pathname}`);
+      const get = validated.paths[pathname]?.get;
+      if (get === undefined) throw new Error(`Missing GET ${pathname}`);
+      const patch =
+        pathname === "/v1/projects/{ref}/config/auth"
+          ? validated.paths[pathname]?.patch
+          : undefined;
+      if (pathname === "/v1/projects/{ref}/config/auth" && patch === undefined)
+        throw new Error(`Missing PATCH ${pathname}`);
       return [
         pathname,
         {
-          operationId: operation.operationId,
-          summary: operation.summary,
-          oauthScope: operation["x-oauth-scope"],
-          responses: operation.responses,
+          operationId: get.operationId,
+          summary: get.summary,
+          oauthScope: get["x-oauth-scope"],
+          responses: get.responses,
+          ...(patch === undefined
+            ? {}
+            : {
+                patch: {
+                  operationId: patch.operationId,
+                  summary: patch.summary,
+                  oauthScope: patch["x-oauth-scope"],
+                  requestBody: patch.requestBody,
+                  responses: patch.responses,
+                },
+              }),
         },
       ];
     }),

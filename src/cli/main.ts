@@ -28,6 +28,7 @@ import { createControlPlaneRestoreHandlers } from "../core/restore/control-plane
 import { createFileStorageRestoreHandlers } from "../core/restore/file-storage-handlers.js";
 import { createVectorStorageRestoreHandlers } from "../core/restore/vector-storage-handlers.js";
 import { createEdgeFunctionRestoreHandler } from "../core/restore/edge-function-handler.js";
+import { createAuthConfigRestoreHandler } from "../core/restore/auth-config-handler.js";
 import type { PgDumpsterError } from "../core/errors/error.js";
 import { PgDumpsterError as DomainError } from "../core/errors/error.js";
 import { serializeError } from "../core/errors/serialize.js";
@@ -743,6 +744,11 @@ export async function runCli(
               accessToken: target.accessToken,
               conflictPolicy: args.conflictPolicy,
               ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+            }),
+            "auth.config": createAuthConfigRestoreHandler({
+              bundleRoot: bundle.root,
+              targetProjectRef,
+              client: management,
             }),
           };
           validatePlanForExecution(plan, handlers);

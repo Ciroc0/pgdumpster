@@ -59,7 +59,7 @@ function authConfigFixture(): Record<string, unknown> {
     JSON.parse(
       readFileSync(
         new URL(
-          "../../contracts/supabase-auth-contracts-2026-08-14.json",
+          "../../contracts/supabase-auth-contracts-2026-08-15.json",
           import.meta.url,
         ),
         "utf8",
