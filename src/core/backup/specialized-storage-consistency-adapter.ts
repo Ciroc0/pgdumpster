@@ -495,6 +495,35 @@ async function cleanupSpecializedStorageArtifacts(
   context.signal?.throwIfAborted();
 }
 
+async function cleanupPartialSpecializedStorageArtifacts(
+  context: BackupStepConsistencyContext,
+): Promise<void> {
+  context.signal?.throwIfAborted();
+  const files = [
+    VECTOR_BUCKETS_ARTIFACT,
+    VECTOR_INDEXES_ARTIFACT,
+    VECTOR_SUMMARY_ARTIFACT,
+    ANALYTICS_BUCKETS_ARTIFACT,
+  ];
+  for (const artifact of files) {
+    context.signal?.throwIfAborted();
+    await rm(path.join(context.workspaceRoot, ...artifact.split("/")), {
+      force: true,
+    });
+  }
+  for (const directory of [
+    "secrets/storage/vectors",
+    "storage/analytics-catalog",
+  ]) {
+    context.signal?.throwIfAborted();
+    await rm(path.join(context.workspaceRoot, ...directory.split("/")), {
+      recursive: true,
+      force: true,
+    });
+  }
+  context.signal?.throwIfAborted();
+}
+
 export function createSpecializedStorageConsistencyAdapter(
   source: SpecializedStorageConsistencyAdapterSource,
 ): BackupStepConsistencyAdapter {
@@ -502,5 +531,6 @@ export function createSpecializedStorageConsistencyAdapter(
     snapshot: ({ signal }) =>
       collectSpecializedStorageConsistencySnapshot(source, signal),
     cleanup: cleanupSpecializedStorageArtifacts,
+    cleanupPartial: cleanupPartialSpecializedStorageArtifacts,
   };
 }
