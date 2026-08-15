@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster documents separately what is **supported by policy**, what has been **exercised by CI**, and what still requires full hosted E2E evidence.
+Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster documents separately what is **supported by policy**, what has been **exercised by CI/local gates**, and what still requires full hosted E2E evidence.
 
 Status snapshot: **2026-08-15**.
 
@@ -15,11 +15,11 @@ Status snapshot: **2026-08-15**.
 - **PostgreSQL**: the target is a Supabase-managed PostgreSQL version compatible with captured logical state. Database backup/restore primitives are tested; the dedicated hosted projects are PostgreSQL 17 generation. Full source-to-target parity is still pending.
 - **Ubuntu**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
 - **macOS**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
-- **Windows**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24; development also exercises Windows/Docker Desktop.
-- **`age`**: standard age format is the target. Tooling can be detected by `doctor`, but the CLI encryption path is not implemented yet.
-- **S3-compatible destination**: this remains a target requirement. AWS SDK dependencies/interface groundwork exists, but publication/recovery is not implemented yet.
+- **Windows**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24; development also exercises Windows/Docker Desktop. The standard `age` publication path was specifically exercised locally on Windows, including the writable-descriptor durability path required before `fsync`.
+- **`age`**: standard `age` recipient encryption/decryption is implemented for local archive publication/input. Tooling is detected by `doctor`; runtime operations also fail through the dependency error domain when the executable cannot be started.
+- **S3-compatible destination**: this remains a target requirement. Publication/recovery is not implemented yet.
 
-The latest local full gate after the consistency/resume hardening slice is `pnpm check` with **85 test files / 500 tests passing**. That local result does not replace cross-platform CI evidence, and the earlier OS matrix does not replace the platform-independent hosted Supabase recovery E2E.
+The latest complete local gate after the standard `age` slice is `pnpm check` plus `pnpm test:coverage` with **92 test files / 541 tests passing** and **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**. That local result does not replace cross-platform CI evidence, and the earlier OS matrix does not replace the platform-independent hosted Supabase recovery E2E.
 
 ## Management API contracts
 
@@ -42,6 +42,14 @@ The repository currently has fixture-tested and selected live-observed surfaces.
 The writer emits the current bundle schema only. Readers reject unsupported security-sensitive schema changes rather than guessing.
 
 Current format contract is `1.0.0` in the manifest/coverage schema family used by the implementation.
+
+The current reader accepts:
+
+- canonical directory bundle;
+- deterministic `.tar.zst` archive;
+- `.tar.zst.age` wrapper when an identity-file reference is configured.
+
+Encryption does not change the internal bundle schema/version; it wraps the deterministic packed form.
 
 ## Source-to-target compatibility
 
@@ -79,7 +87,9 @@ Adapters fail closed on source-contract shapes or cleanup conditions that would 
 
 ## Encryption and S3
 
-Standard `age` and S3-compatible publication remain binding release requirements, but their current CLI paths are deliberately blocked until implementation/test evidence exists. Documentation and release notes must not imply they are usable before those gates pass.
+Standard local `age` publication/input is implemented. Current behavior requires a recipient for encrypted backup and an identity-file path reference for encrypted input. Private identity contents are not normal CLI arguments.
+
+S3-compatible publication remains a binding release requirement and is deliberately blocked until streaming/multipart publication, completion semantics, remote integrity verification and interruption recovery have implementation/test evidence.
 
 ## Deprecation
 
