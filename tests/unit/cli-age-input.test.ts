@@ -248,10 +248,14 @@ describe("CLI encrypted bundle input", () => {
     expect(fetch).not.toHaveBeenCalled();
     const output = JSON.parse(stdout.join("")) as {
       status: string;
+      planPath: string;
       parityReportPath: string;
     };
     expect(output).toMatchObject({ status: "restored" });
-    await unlink(output.parityReportPath);
+    await Promise.all([
+      unlink(output.planPath),
+      unlink(output.parityReportPath),
+    ]);
   });
 
   it("rejects a corrupt planned artifact before executor mutation", async () => {
