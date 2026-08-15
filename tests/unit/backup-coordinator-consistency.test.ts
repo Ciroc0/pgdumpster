@@ -13,6 +13,7 @@ import {
 } from "../../src/core/backup/coordinator.js";
 import { loadBackupCheckpoint } from "../../src/core/checkpoint/backup.js";
 import { loadCoverageRegistry } from "../../src/core/coverage/registry.js";
+import { PgDumpsterError } from "../../src/core/errors/error.js";
 
 const temporaryDirectories: string[] = [];
 const projectRef = "abcdefghijklmnopqrst";
@@ -82,6 +83,10 @@ function options(
   };
 }
 
+function noPartialCleanup(): Promise<void> {
+  return Promise.resolve();
+}
+
 describe("backup coordinator consistency integration", () => {
   it.each(["verified", "quiesced"] as const)(
     "fails closed before checkpoint creation when %s lacks an adapter",
@@ -104,10 +109,44 @@ describe("backup coordinator consistency integration", () => {
     },
   );
 
+  it.each(["verified", "quiesced"] as const)(
+    "fails closed before checkpoint creation when %s lacks partial cleanup",
+    async (mode) => {
+      const { workspaceRoot, checkpointPath } = await fixture();
+      const run = vi.fn(() => completeResult(workspaceRoot, "payload.bin"));
+
+      await expect(
+        executeBackup(
+          options(
+            workspaceRoot,
+            checkpointPath,
+            {
+              id: "all",
+              run,
+              consistency: {
+                snapshot: () => Promise.resolve({ revision: 1 }),
+                cleanup: () => Promise.resolve(),
+              },
+            },
+            mode,
+          ),
+        ),
+      ).rejects.toMatchObject({
+        code: "CONSISTENCY_PARTIAL_CLEANUP_REQUIRED",
+        category: "consistency",
+        details: { mode, steps: ["all"] },
+      });
+
+      expect(run).not.toHaveBeenCalled();
+      await expect(readFile(checkpointPath)).rejects.toThrow();
+    },
+  );
+
   it("finalizes verified only after a stable pre/post snapshot", async () => {
     const { workspaceRoot, checkpointPath } = await fixture();
     const snapshot = vi.fn(() => Promise.resolve({ revision: 1 }));
     const cleanup = vi.fn(() => Promise.resolve());
+    const cleanupPartial = vi.fn(noPartialCleanup);
     const run = vi.fn(() => completeResult(workspaceRoot, "stable.bin"));
 
     const completed = await executeBackup(
@@ -117,7 +156,7 @@ describe("backup coordinator consistency integration", () => {
         {
           id: "all",
           run,
-          consistency: { snapshot, cleanup },
+          consistency: { snapshot, cleanup, cleanupPartial },
         },
         "verified",
       ),
@@ -126,6 +165,7 @@ describe("backup coordinator consistency integration", () => {
     expect(snapshot).toHaveBeenCalledTimes(2);
     expect(run).toHaveBeenCalledOnce();
     expect(cleanup).not.toHaveBeenCalled();
+    expect(cleanupPartial).not.toHaveBeenCalled();
     expect(completed.manifest.result.consistency).toBe("verified");
   });
 
@@ -156,6 +196,7 @@ describe("backup coordinator consistency integration", () => {
             ),
           );
         },
+        cleanupPartial: noPartialCleanup,
       },
     };
 
@@ -165,6 +206,84 @@ describe("backup coordinator consistency integration", () => {
 
     expect(attempts).toEqual([1, 2]);
     expect(cleaned).toEqual(["payload-1.bin"]);
+    expect(completed.manifest.result.consistency).toBe("verified");
+  });
+
+  it("retries recognized copy-time drift after partial cleanup", async () => {
+    const { workspaceRoot, checkpointPath } = await fixture();
+    const attempts: number[] = [];
+    const cleanupPartial = vi.fn(async () => {
+      await rm(path.join(workspaceRoot, "partial.bin"), { force: true });
+    });
+
+    const step: BackupStep = {
+      id: "all",
+      async run({ attempt }) {
+        attempts.push(attempt);
+        if (attempt === 1) {
+          await writeFile(path.join(workspaceRoot, "partial.bin"), "partial\n");
+          throw new PgDumpsterError({
+            code: "STORAGE_OBJECT_CHANGED_DURING_COPY",
+            category: "consistency",
+            message: "object changed",
+            retryable: false,
+          });
+        }
+        return completeResult(workspaceRoot, "stable.bin");
+      },
+      consistency: {
+        snapshot: () => Promise.resolve({ revision: 1 }),
+        cleanup: () => Promise.resolve(),
+        cleanupPartial,
+      },
+    };
+
+    const completed = await executeBackup(
+      options(workspaceRoot, checkpointPath, step, "verified"),
+    );
+
+    expect(attempts).toEqual([1, 2]);
+    expect(cleanupPartial).toHaveBeenCalledOnce();
+    expect(completed.manifest.result.consistency).toBe("verified");
+    await expect(readFile(path.join(workspaceRoot, "partial.bin"))).rejects.toThrow();
+  });
+
+  it("cleans partial artifacts after an ordinary copy failure so resume can rerun", async () => {
+    const { workspaceRoot, checkpointPath } = await fixture();
+    const runId = randomUUID();
+    let shouldFail = true;
+    let runs = 0;
+    const cleanupPartial = vi.fn(async () => {
+      await rm(path.join(workspaceRoot, "partial.bin"), { force: true });
+    });
+    const step: BackupStep = {
+      id: "all",
+      async run() {
+        runs += 1;
+        if (shouldFail) {
+          await writeFile(path.join(workspaceRoot, "partial.bin"), "partial\n");
+          throw new Error("interrupted copy");
+        }
+        return completeResult(workspaceRoot, "complete.bin");
+      },
+      consistency: {
+        snapshot: () => Promise.resolve({ revision: 1 }),
+        cleanup: () => Promise.resolve(),
+        cleanupPartial,
+      },
+    };
+    const common = {
+      ...options(workspaceRoot, checkpointPath, step, "verified"),
+      runId,
+    };
+
+    await expect(executeBackup(common)).rejects.toThrow("interrupted copy");
+    expect(cleanupPartial).toHaveBeenCalledOnce();
+    await expect(readFile(path.join(workspaceRoot, "partial.bin"))).rejects.toThrow();
+
+    shouldFail = false;
+    const completed = await executeBackup({ ...common, resume: true });
+    expect(runs).toBe(2);
     expect(completed.manifest.result.consistency).toBe("verified");
   });
 
@@ -190,6 +309,7 @@ describe("backup coordinator consistency integration", () => {
           consistency: {
             snapshot: () => Promise.resolve(snapshots.shift()!),
             cleanup,
+            cleanupPartial: noPartialCleanup,
           },
         },
         "quiesced",
@@ -241,7 +361,7 @@ describe("backup coordinator consistency integration", () => {
 
     expect(run).toHaveBeenCalledOnce();
     expect(cleanup).not.toHaveBeenCalled();
-    expect(completed.manifest.result.consistency).toBe("best_effort");
+    expect(completed.manifest.result.consistency).toBe("drift_detected");
   });
 
   it("applies the coordinator retry bound and persists SOURCE_DID_NOT_STABILIZE", async () => {
@@ -267,6 +387,7 @@ describe("backup coordinator consistency integration", () => {
           consistency: {
             snapshot: () => Promise.resolve({ revision: (revision += 1) }),
             cleanup,
+            cleanupPartial: noPartialCleanup,
           },
         },
         "verified",
