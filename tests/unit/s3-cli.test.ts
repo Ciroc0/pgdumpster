@@ -145,21 +145,21 @@ describe("S3 CLI integration", () => {
       },
     );
     const s3Publisher = vi.fn<typeof publishS3Backup>(
-      async (localFile, destination, options) => {
+      (localFile, destination, options) => {
         expect(destination).toMatchObject({
           bucket: "backups",
           endpoint: "https://s3.example.test",
           region: "eu-test-1",
         });
         expect(localFile.endsWith(".tar.zst.age")).toBe(true);
-        return {
+        return Promise.resolve({
           locator: `s3://backups/production/${options.runId}/`,
           objectUri: `s3://backups/production/${options.runId}/${path.basename(localFile)}`,
           markerUri: `s3://backups/production/${options.runId}/COMPLETE.json`,
           size: 9,
           sha256: "a".repeat(64),
           recovered: false,
-        };
+        });
       },
     );
 

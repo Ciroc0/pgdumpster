@@ -12,8 +12,8 @@ import {
   HeadObjectCommand,
   ListPartsCommand,
   PutObjectCommand,
-  S3Client,
   UploadPartCommand,
+  type S3Client,
 } from "@aws-sdk/client-s3";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

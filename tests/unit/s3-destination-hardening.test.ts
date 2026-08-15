@@ -43,7 +43,9 @@ function awsError(status: number, name: string): Error {
   return error;
 }
 
-function fakeClient(handler: (command: unknown) => Promise<unknown>): {
+function fakeClient(
+  handler: (command: unknown) => unknown | Promise<unknown>,
+): {
   client: S3Client;
   send: ReturnType<typeof vi.fn>;
 } {
@@ -235,7 +237,7 @@ describe("S3 destination hardening", () => {
     const target = path.join(directory, "pgdumpster-remote.tar.zst");
     await writeFile(target, "existing local backup");
     let requests = 0;
-    const { client } = fakeClient(async (command) => {
+    const { client } = fakeClient((command) => {
       requests += 1;
       if (command instanceof GetObjectCommand && requests === 1) {
         return { Body: Readable.from([Buffer.from(canonicalJson(complete))]) };
@@ -262,7 +264,7 @@ describe("S3 destination hardening", () => {
     const markerMiss = () => Promise.reject(awsError(404, "NoSuchKey"));
 
     {
-      const { client } = fakeClient(async (command) => {
+      const { client } = fakeClient((command) => {
         if (command instanceof GetObjectCommand) return markerMiss();
         if (command instanceof HeadObjectCommand)
           throw awsError(404, "NotFound");
@@ -275,7 +277,7 @@ describe("S3 destination hardening", () => {
     }
 
     {
-      const { client } = fakeClient(async (command) => {
+      const { client } = fakeClient((command) => {
         if (command instanceof GetObjectCommand) return markerMiss();
         if (command instanceof HeadObjectCommand)
           throw awsError(404, "NotFound");
@@ -294,7 +296,7 @@ describe("S3 destination hardening", () => {
     const { file, directory } = await fixture();
     const statePath = path.join(directory, "upload-state.json");
     let aborts = 0;
-    const { client, send } = fakeClient(async (command) => {
+    const { client, send } = fakeClient((command) => {
       if (command instanceof GetObjectCommand) throw awsError(404, "NoSuchKey");
       if (command instanceof HeadObjectCommand) throw awsError(404, "NotFound");
       if (command instanceof CreateMultipartUploadCommand)
@@ -345,7 +347,7 @@ describe("S3 destination hardening", () => {
       }),
     );
 
-    const { client } = fakeClient(async (command) => {
+    const { client } = fakeClient((command) => {
       if (command instanceof GetObjectCommand) {
         if (command.input.Key?.endsWith("COMPLETE.json")) {
           if (markerBody === undefined) throw awsError(404, "NoSuchKey");
@@ -376,7 +378,11 @@ describe("S3 destination hardening", () => {
         return {};
       }
       if (command instanceof PutObjectCommand) {
-        markerBody = Buffer.from(String(command.input.Body));
+        const body = command.input.Body;
+        if (typeof body !== "string") {
+          throw new Error("unexpected completion marker body");
+        }
+        markerBody = Buffer.from(body);
         return {};
       }
       if (command instanceof AbortMultipartUploadCommand) return {};

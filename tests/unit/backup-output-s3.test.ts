@@ -75,14 +75,15 @@ describe("backup output publication", () => {
       },
     );
     const s3Publisher = vi.fn<typeof publishS3Backup>(
-      async (localFile, _config, options) => ({
-        locator: `s3://bucket/backups/${options.runId}/`,
-        objectUri: `s3://bucket/backups/${options.runId}/${path.basename(localFile)}`,
-        markerUri: `s3://bucket/backups/${options.runId}/COMPLETE.json`,
-        size: 9,
-        sha256: "0".repeat(64),
-        recovered: false,
-      }),
+      (localFile, _config, options) =>
+        Promise.resolve({
+          locator: `s3://bucket/backups/${options.runId}/`,
+          objectUri: `s3://bucket/backups/${options.runId}/${path.basename(localFile)}`,
+          markerUri: `s3://bucket/backups/${options.runId}/COMPLETE.json`,
+          size: 9,
+          sha256: "0".repeat(64),
+          recovered: false,
+        }),
     );
 
     const result = await publishBackupOutput({

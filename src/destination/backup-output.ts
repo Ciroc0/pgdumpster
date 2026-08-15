@@ -27,7 +27,7 @@ export interface BackupOutputPublicationResult {
 
 function publicationError(
   code: string,
-  category: "destination" | "encryption",
+  category: "config" | "destination" | "encryption",
   message: string,
   details?: Readonly<Record<string, unknown>>,
 ): PgDumpsterError {
@@ -99,18 +99,19 @@ export async function publishBackupOutput(
         options.workspaceRoot,
         archivePath,
       );
-      if (encrypted) {
-        if (options.encryption.recipient === undefined) {
+      if (options.encryption.mode === "age") {
+        const recipient = options.encryption.recipient;
+        if (recipient === undefined) {
           throw publicationError(
             "CONFIG_MISSING_REQUIRED",
-            "encryption",
+            "config",
             "age backup encryption requires encryption.recipient.",
           );
         }
         await (options.ageEncryptor ?? encryptArchiveWithAge)(
           archivePath,
           encryptedPath,
-          options.encryption.recipient,
+          recipient,
           {
             ...(options.environment === undefined
               ? {}

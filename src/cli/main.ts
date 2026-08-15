@@ -7,9 +7,11 @@ import { pathToFileURL } from "node:url";
 import { loadSourceEnvironment } from "../config/environment.js";
 import { loadConfigFile } from "../config/file.js";
 import { executeProductBackup } from "../core/backup/product.js";
-import { packBundle } from "../core/bundle/archive.js";
-import type { decryptArchiveWithAge } from "../core/bundle/encryption.js";
-import { encryptArchiveWithAge } from "../core/bundle/encryption.js";
+import type { packBundle } from "../core/bundle/archive.js";
+import type {
+  decryptArchiveWithAge,
+  encryptArchiveWithAge,
+} from "../core/bundle/encryption.js";
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import { buildRestorePlan } from "../core/restore/plan.js";
