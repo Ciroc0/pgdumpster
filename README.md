@@ -20,11 +20,15 @@ Current branch snapshot as of 2026-08-15:
 - secure bundle generation, SHA-256 integrity, offline inspect/coverage/verify, deterministic `.tar.zst`, checkpointing and resume are implemented;
 - restore planning, checkpoints, database/control-plane/publication/Vault handlers and semantic verification primitives are implemented;
 - the user-facing restore command currently exposes a verified **dry run only**; `--apply` is deliberately blocked until the complete executor/parity path is wired through the CLI and live-tested;
-- backup currently permits explicit `best-effort` consistency only; `verified` and `quiesced` remain blocked until real cross-service pre/post inventory stabilization is implemented;
+- backup consistency now supports `verified`, `best-effort` and `quiesced`; omitted consistency defaults to `verified`;
+- all 10 product backup steps participate in the consistency contract with source snapshots, drift handling and step-owned partial cleanup;
+- best-effort reports `drift_detected` when observable drift occurs and preserves that evidence through resume;
+- hard-interruption resume cleanup is step-scoped and symlink-safe;
 - `age` output encryption and S3-compatible publication are specified but not yet wired into the CLI, so secret-bearing development backups require explicit `--allow-plaintext-secrets`;
-- the latest validated suite is 70 test files / 395 tests with 94.48% statements, 90.32% branches, 93.22% functions and 95.72% lines;
-- the GitHub CI quality/test/integration/security/OS matrix is green on the current implementation checkpoint;
-- CodeQL analysis runs, but result publication/status is currently blocked by repository code-scanning configuration (`Resource not accessible by integration` / code scanning not enabled);
+- latest local `pnpm check`: **85 test files / 500 tests, PASS**;
+- the most recent recorded global coverage percentages predate the completed consistency slice and must be refreshed with `pnpm test:coverage` before being treated as current evidence;
+- earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the account's current Actions quota is exhausted, so newly pushed workflow results are not presently a meaningful branch-quality signal;
+- CodeQL analysis has previously run to SARIF generation, but result publication/status is blocked by repository code-scanning configuration/access;
 - the mandatory hosted source → backup → offline verify → fresh-target restore → semantic-parity E2E has **not** passed yet.
 
 The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
@@ -57,6 +61,16 @@ The binding target includes:
 - integrity-first restore followed by semantic parity verification.
 
 A target capability is not considered delivered merely because it appears in this list. Current implementation state is recorded in `PLANS.md` and `docs/23-current-status.md`.
+
+## Consistency semantics
+
+`verified` is the default backup mode. pgDumpster takes the strongest stable source fingerprints available to each product surface, copies the step, compares post-copy state and retries a drifting step only after its provisional output has been safely removed. Drift that is detected directly during copy is promoted into the same policy.
+
+`quiesced` uses the same observation layer but fails immediately when observable source state changes. It is intended for runs where application writes have deliberately been stopped.
+
+`best-effort` performs a valid copy without verified retry semantics. When pre/post evidence shows source drift, the final manifest reports `drift_detected` rather than falsely claiming verification.
+
+These are application-level cross-service consistency guarantees. Supabase does not expose one atomic transaction spanning PostgreSQL, Storage, Management APIs, Edge and every managed service, so pgDumpster does not claim one.
 
 ## “Full backup” semantics
 
