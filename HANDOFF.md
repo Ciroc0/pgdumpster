@@ -12,10 +12,12 @@ This repository is no longer a pre-implementation bootstrap package. It contains
 
 ## Current implementation checkpoint
 
-Latest complete local gate on 2026-08-15 after the cross-service consistency/resume hardening slice:
+Latest complete local gate on 2026-08-15 after the cross-service consistency/resume hardening slice and coverage hardening:
 
 - `pnpm check`: **PASS**;
-- **85 test files / 500 tests: PASS**;
+- **88 test files / 525 tests: PASS**;
+- global coverage: **94.47% statements / 90.74% branches / 92.05% functions / 95.64% lines**;
+- all independent 90% coverage thresholds: **PASS**;
 - all 10 product backup steps have consistency adapters and step-owned partial cleanup;
 - default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;
 - best-effort observable drift is persisted as `drift_detected` across checkpoint/resume;
@@ -23,9 +25,7 @@ Latest complete local gate on 2026-08-15 after the cross-service consistency/res
 - hard-interruption resume cleanup is symlink-safe and fail-closed;
 - recognized atomic-writer UUID partials are safely removed before finalization.
 
-The latest recorded global coverage percentages are still from the earlier 70-file / 395-test checkpoint: 94.48% statements, 90.32% branches, 93.22% functions and 95.72% lines. Run `pnpm test:coverage` before quoting them as current evidence for the new slice.
-
-The account's GitHub Actions quota is currently exhausted, so newly pushed workflows may be blocked by quota. Use local `pnpm check` as the active quality gate until reset; do not interpret quota failures as code failures.
+The account's GitHub Actions quota is currently exhausted, so newly pushed workflows may be blocked by quota. Use local `pnpm check` and `pnpm test:coverage` as the active quality gates until reset; do not interpret quota failures as code failures.
 
 ## Consistency boundary
 
@@ -46,7 +46,6 @@ The current CLI deliberately blocks unfinished release behavior:
 - standard `age` encryption is not wired;
 - S3-compatible destination publication is not wired;
 - `restore --apply` is not wired through the complete executor/substitution/parity path;
-- current global coverage evidence must be refreshed after the consistency slice;
 - the dedicated hosted source-to-target recovery E2E has not passed;
 - CodeQL result publication is blocked by repository code-scanning configuration/access;
 - SBOM/provenance/package-smoke/release workflow remains to be completed.
