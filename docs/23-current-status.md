@@ -6,14 +6,14 @@ Snapshot date: **2026-08-15**.
 
 ## Validation summary
 
-Latest complete local validation after the consistency/resume hardening and coverage-hardening slices:
+Latest complete local validation after the consistency/resume, coverage-hardening and standard `age` encryption slices:
 
 - `pnpm check`: **PASS**;
-- test files: **88 passed**;
-- tests: **525 passed**;
-- statements: **94.47%**;
-- branches: **90.74%**;
-- functions: **92.05%**;
+- test files: **92 passed**;
+- tests: **541 passed**;
+- statements: **94.45%**;
+- branches: **90.51%**;
+- functions: **91.89%**;
 - lines: **95.64%**.
 
 All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.
@@ -32,6 +32,10 @@ The implementation currently includes:
 - secure ordinary/protected artifact sinks;
 - deterministic bundle finalization, SHA-256 verification, inspect/coverage/verify;
 - deterministic `.tar.zst` packing and hostile archive protections;
+- standard `age` archive encryption/decryption through a shell-free subprocess wrapper;
+- atomic `.tar.zst.age` publication with restrictive permissions and cleanup of temporary output;
+- encrypted backup CLI publication that removes plaintext archive/workspace after success and attempts the same cleanup on encryption failure;
+- `.tar.zst.age` input for inspect/coverage/verify and restore dry-run through configured `encryption.identityFile`;
 - backup checkpoints, artifact revalidation and resume;
 - cross-service consistency orchestration for all 10 product backup steps;
 - canonical source snapshots plus adapter-specific equality where volatile source evidence must be excluded;
@@ -61,7 +65,8 @@ The implementation currently includes:
 These are the remaining deliberate fail-closed gates in the current CLI:
 
 - **Backup consistency**: `verified`, `best-effort` and `quiesced` are implemented. Backup defaults to `verified`. This is an application-level stabilization contract across the source surfaces pgDumpster can observe; it is not a claim that Supabase exposes one atomic cross-service snapshot transaction.
-- **Secret protection**: plaintext protected artifacts require explicit `--allow-plaintext-secrets`. Standard `age` encryption still needs to be wired.
+- **Secret protection**: standard `age` encryption is implemented for local backup publication. Non-encrypted secret-bearing backups still require explicit `--allow-plaintext-secrets`.
+- **Encrypted input**: `.tar.zst.age` is supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`. pgDumpster never needs the private key value as a CLI argument.
 - **Destination**: only local destination is exposed. Streaming/resumable S3-compatible publication and independent remote integrity verification remain unimplemented.
 - **Restore**: integrity-first dry-run planning is exposed and the core executor/handlers exist. CLI `--apply`, protected substitutions, resume and final semantic parity still need to be wired end-to-end.
 - **Hosted E2E**: partial live observations exist, but the dedicated source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure has not passed yet.
@@ -84,13 +89,17 @@ Implemented commands:
 ```text
 pgdumpster doctor [--project-ref <ref>] [--json]
 pgdumpster backup --project-ref <ref> (--linked|--db-url-env <name>) [options]
-pgdumpster inspect <bundle-directory|archive.tar.zst> [--json]
-pgdumpster coverage <bundle-directory|archive.tar.zst> [--json]
-pgdumpster verify <bundle-directory|archive.tar.zst> [--json]
-pgdumpster restore <bundle-directory|archive.tar.zst> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
+pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
 ```
 
 Backup consistency accepts `verified|best-effort|quiesced`; omitted consistency defaults to `verified`. Best-effort output distinguishes `best_effort` from `drift_detected`.
+
+For `encryption.mode: age`, backup requires `encryption.recipient`, automatically produces the deterministic archive transport form, encrypts it as `.tar.zst.age`, and removes normal plaintext staging after successful publication. `--archive` is therefore not required separately for an encrypted backup.
+
+`doctor` probes `age --version`. If the executable is missing when encryption/decryption is attempted, the runtime maps that failure to the dependency error domain. A hard process termination can still leave the protected resumable workspace/checkpoint; crash recovery is separate from normal encryption cleanup.
 
 `restore --apply` is parsed but currently fails closed with `RESTORE_APPLY_NOT_IMPLEMENTED`.
 
@@ -123,12 +132,11 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. wire standard `age` encryption for protected backup output;
-2. wire S3-compatible destination publication/recovery semantics;
-3. wire the existing restore executor/handlers through `restore --apply` and finish protected substitutions/parity reporting;
-4. seed/reset the dedicated hosted source/target fixtures and run the full live E2E;
-5. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
-6. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
+1. wire S3-compatible destination publication/recovery semantics;
+2. wire the existing restore executor/handlers through `restore --apply` and finish protected substitutions/parity reporting;
+3. seed/reset the dedicated hosted source/target fixtures and run the full live E2E;
+4. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
+5. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
 
 ## Definition of done
 
