@@ -50,6 +50,13 @@ import { createPlaintextProtectedArtifactSink } from "../../security/protected-a
 import { createDatabaseConsistencyAdapter } from "./database-consistency-adapter.js";
 import { createFileStorageConsistencyAdapter } from "./file-storage-consistency-adapter.js";
 import {
+  createApiKeysConsistencyAdapter,
+  createAuthConsistencyAdapter,
+  createControlPlaneConsistencyAdapter,
+  createPlatformV2ConsistencyAdapter,
+  createProjectStateConsistencyAdapter,
+} from "./management-consistency-adapters.js";
+import {
   executeBackup,
   type BackupStep,
   type BackupStepResult,
@@ -418,6 +425,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
         );
         return result(captured.coverage);
       },
+      consistency: createProjectStateConsistencyAdapter(options),
     },
     {
       id: "control-plane",
@@ -452,6 +460,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
               };
         return result([...captured.coverage, dns]);
       },
+      consistency: createControlPlaneConsistencyAdapter(options),
     },
     {
       id: "platform-v2",
@@ -466,6 +475,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
         );
         return result(captured.coverage);
       },
+      consistency: createPlatformV2ConsistencyAdapter(options),
     },
     {
       id: "auth",
@@ -479,6 +489,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
         );
         return result(captured.coverage);
       },
+      consistency: createAuthConsistencyAdapter(options),
     },
     {
       id: "api-keys",
@@ -492,6 +503,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
         );
         return result(captured.coverage);
       },
+      consistency: createApiKeysConsistencyAdapter(options),
     },
     {
       id: "edge",
