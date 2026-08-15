@@ -43,9 +43,7 @@ function awsError(status: number, name: string): Error {
   return error;
 }
 
-function fakeClient(
-  handler: (command: unknown) => unknown | Promise<unknown>,
-): {
+function fakeClient(handler: (command: unknown) => unknown): {
   client: S3Client;
   send: ReturnType<typeof vi.fn>;
 } {
