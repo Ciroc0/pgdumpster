@@ -24,7 +24,14 @@ The repository currently contains:
 
 The earlier validated implementation checkpoint passed the regular CI workflow, including the OS/Node matrix.
 
-The account's GitHub Actions quota is currently exhausted. Newly pushed workflow runs may therefore be blocked before meaningful execution until the quota resets. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. During this period, local `pnpm check` is the active development quality gate; the latest local result is **85 test files / 500 tests passing**.
+The account's GitHub Actions quota is currently exhausted. Newly pushed workflow runs may therefore be blocked before meaningful execution until the quota resets. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate.
+
+During this period, local `pnpm check` and `pnpm test:coverage` are the active development gates. The latest complete local result after the standard `age` slice is:
+
+- `pnpm check`: **PASS**;
+- **92 test files / 541 tests: PASS**;
+- **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**;
+- every configured 90% global coverage threshold: **PASS**.
 
 Once quota is available again, the current branch must be rerun through the normal CI matrix before release evidence is considered current.
 
@@ -42,15 +49,18 @@ This is a **configuration gate**. It must not be documented as a clean static-an
 
 The repository does not yet have a completed release-grade live-E2E/publish pipeline. Remaining work includes:
 
-- current post-consistency coverage refresh;
 - current branch CI rerun once Actions quota permits meaningful execution;
 - protected hosted source/target E2E workflow;
+- S3-compatible publication/recovery implementation and release evidence;
+- restore `--apply`/parity implementation and release evidence;
 - release workflow tied to an exact candidate commit/tag;
 - SBOM generation;
 - provenance/attestation where supported;
 - clean package/install smoke verification;
 - publication policy/registry finalization;
 - final CodeQL result publication and finding disposition.
+
+The standard local `age` encryption path is implemented and locally gated; it is no longer listed as a missing implementation slice. The full encrypted hosted recovery procedure is still pending because S3/restore-apply/parity/live-E2E remain incomplete.
 
 ## Live E2E requirement
 
@@ -69,7 +79,7 @@ Protected secrets only. The release E2E must:
 11. publish only a sanitized result summary;
 12. clean/reset test data according to test-account policy.
 
-Do not upload decrypted bundles, rotation maps or live secret material as CI artifacts.
+Do not upload decrypted bundles, rotation maps, age identity material or live secret material as CI artifacts.
 
 ## Release workflow requirements
 
@@ -90,7 +100,7 @@ The eventual release workflow must:
 
 Use least privilege. Untrusted PRs must not receive live E2E/release secrets. Default `GITHUB_TOKEN` permissions must remain explicit and minimized.
 
-Safe artifacts include sanitized test summaries, fake-fixture coverage reports, SBOM and intended release packages. Unsafe artifacts include `.env`, live HTTP traces, secret-bearing backup bundles, Vault/API/Edge secrets and rotation maps.
+Safe artifacts include sanitized test summaries, fake-fixture coverage reports, SBOM and intended release packages. Unsafe artifacts include `.env`, live HTTP traces, secret-bearing backup bundles, decrypted age payloads, age identity files, Vault/API/Edge secrets and rotation maps.
 
 ## Failure policy
 
