@@ -12,29 +12,43 @@ This repository is no longer a pre-implementation bootstrap package. It contains
 
 ## Current implementation checkpoint
 
-Before this documentation reconciliation the branch checkpoint was `be4df4e` (`test: complete coverage threshold hardening`).
+Latest complete local gate on 2026-08-15 after the cross-service consistency/resume hardening slice:
 
-Validated locally:
+- `pnpm check`: **PASS**;
+- **85 test files / 500 tests: PASS**;
+- all 10 product backup steps have consistency adapters and step-owned partial cleanup;
+- default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;
+- best-effort observable drift is persisted as `drift_detected` across checkpoint/resume;
+- verified/quiesced drift handling covers pre-snapshot, copy and post-snapshot phases;
+- hard-interruption resume cleanup is symlink-safe and fail-closed;
+- recognized atomic-writer UUID partials are safely removed before finalization.
 
-- 70 test files / 395 tests;
-- 94.48% statements;
-- 90.32% branches;
-- 93.22% functions;
-- 95.72% lines;
-- `pnpm check` passes.
+The latest recorded global coverage percentages are still from the earlier 70-file / 395-test checkpoint: 94.48% statements, 90.32% branches, 93.22% functions and 95.72% lines. Run `pnpm test:coverage` before quoting them as current evidence for the new slice.
 
-Regular GitHub CI is green on that checkpoint, including Ubuntu/macOS/Windows × Node 22/24.
+The account's GitHub Actions quota is currently exhausted, so newly pushed workflows may be blocked by quota. Use local `pnpm check` as the active quality gate until reset; do not interpret quota failures as code failures.
+
+## Consistency boundary
+
+The consistency phase is implemented end-to-end for the current backup product steps.
+
+- `verified`: stable pre/post evidence is required; observable drift causes bounded selective retry after safe cleanup.
+- `quiesced`: observable drift fails immediately.
+- `best-effort`: a valid copy can complete without verified retry, but observed drift is reported as `drift_detected`.
+- copy-time drift from source-specific adapters participates in the same policy.
+- interrupted non-completed steps are cleaned before resume.
+
+This is an application-level cross-service stabilization contract. It is not a claim that Supabase exposes one atomic snapshot transaction across PostgreSQL, Storage, Management APIs, Edge and every managed service.
 
 ## Remaining hard gates
 
 The current CLI deliberately blocks unfinished release behavior:
 
-- `verified`/`quiesced` cross-service consistency is not implemented end-to-end;
-- `age` encryption is not wired;
+- standard `age` encryption is not wired;
 - S3-compatible destination publication is not wired;
-- `restore --apply` is not wired through the complete executor/parity path;
+- `restore --apply` is not wired through the complete executor/substitution/parity path;
+- current global coverage evidence must be refreshed after the consistency slice;
 - the dedicated hosted source-to-target recovery E2E has not passed;
-- CodeQL result publication is blocked by repository code-scanning configuration;
+- CodeQL result publication is blocked by repository code-scanning configuration/access;
 - SBOM/provenance/package-smoke/release workflow remains to be completed.
 
 The safe implementation order is recorded in `PLANS.md`.
