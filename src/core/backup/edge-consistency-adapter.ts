@@ -1,6 +1,4 @@
 import { createHash } from "node:crypto";
-import { rm } from "node:fs/promises";
-import path from "node:path";
 
 import type {
   ArtifactWriteResult,
@@ -11,6 +9,7 @@ import type { CoverageDocument } from "../bundle/schemas.js";
 import { PgDumpsterError } from "../errors/error.js";
 import { assertSafeBundlePath } from "../../security/bundle-path.js";
 import type { ProtectedArtifactSink } from "../../security/protected-artifact.js";
+import { removeSafeBundlePath } from "../../security/safe-remove.js";
 import type { ManagementClient } from "../../supabase/management/client.js";
 import { captureEdgeState } from "../../supabase/management/edge.js";
 import { canonicalJson } from "../../utils/canonical-json.js";
@@ -229,7 +228,7 @@ async function collectEdgeConsistencySnapshot(
   }
 }
 
-function edgeArtifactTarget(workspaceRoot: string, artifact: string): string {
+function assertEdgeArtifact(artifact: string): void {
   assertSafeBundlePath(artifact);
   if (
     artifact !== FUNCTION_INDEX_ARTIFACT &&
@@ -246,7 +245,6 @@ function edgeArtifactTarget(workspaceRoot: string, artifact: string): string {
       details: { artifact },
     });
   }
-  return path.join(workspaceRoot, ...artifact.split("/"));
 }
 
 async function cleanupEdgeArtifacts(
@@ -254,16 +252,12 @@ async function cleanupEdgeArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
   context.signal?.throwIfAborted();
-  const targets = [
-    ...new Set(
-      result.artifacts.map((artifact) =>
-        edgeArtifactTarget(context.workspaceRoot, artifact),
-      ),
-    ),
-  ];
-  for (const target of targets) {
-    context.signal?.throwIfAborted();
-    await rm(target, { force: true });
+  const artifacts = [...new Set(result.artifacts)];
+  for (const artifact of artifacts) assertEdgeArtifact(artifact);
+  for (const artifact of artifacts) {
+    await removeSafeBundlePath(context.workspaceRoot, artifact, {
+      signal: context.signal,
+    });
   }
   context.signal?.throwIfAborted();
 }
@@ -271,17 +265,13 @@ async function cleanupEdgeArtifacts(
 async function cleanupPartialEdgeArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
-  context.signal?.throwIfAborted();
-  await rm(path.join(context.workspaceRoot, "functions"), {
+  await removeSafeBundlePath(context.workspaceRoot, "functions", {
     recursive: true,
-    force: true,
+    signal: context.signal,
   });
-  context.signal?.throwIfAborted();
-  await rm(
-    path.join(context.workspaceRoot, ...SECRET_DIGEST_ARTIFACT.split("/")),
-    { force: true },
-  );
-  context.signal?.throwIfAborted();
+  await removeSafeBundlePath(context.workspaceRoot, SECRET_DIGEST_ARTIFACT, {
+    signal: context.signal,
+  });
 }
 
 export function createEdgeConsistencyAdapter(
