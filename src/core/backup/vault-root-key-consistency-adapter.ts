@@ -1,11 +1,10 @@
 import { createHash } from "node:crypto";
-import { rm } from "node:fs/promises";
-import path from "node:path";
 
 import { PgDumpsterError } from "../errors/error.js";
 import { assertSafeBundlePath } from "../../security/bundle-path.js";
 import type { ProtectedArtifactSink } from "../../security/protected-artifact.js";
 import { Redactor } from "../../security/redactor.js";
+import { removeSafeBundlePath } from "../../security/safe-remove.js";
 import type { ManagementClient } from "../../supabase/management/client.js";
 import {
   captureVaultRootKey,
@@ -106,7 +105,7 @@ async function collectVaultRootKeyConsistencySnapshot(
   }
 }
 
-function vaultArtifactTarget(workspaceRoot: string, artifact: string): string {
+function assertVaultArtifact(artifact: string): void {
   assertSafeBundlePath(artifact);
   if (artifact !== VAULT_ROOT_KEY_ARTIFACT) {
     throw new PgDumpsterError({
@@ -119,7 +118,6 @@ function vaultArtifactTarget(workspaceRoot: string, artifact: string): string {
       details: { artifact },
     });
   }
-  return path.join(workspaceRoot, ...artifact.split("/"));
 }
 
 async function cleanupVaultRootKeyArtifact(
@@ -127,16 +125,12 @@ async function cleanupVaultRootKeyArtifact(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
   context.signal?.throwIfAborted();
-  const targets = [
-    ...new Set(
-      result.artifacts.map((artifact) =>
-        vaultArtifactTarget(context.workspaceRoot, artifact),
-      ),
-    ),
-  ];
-  for (const target of targets) {
-    context.signal?.throwIfAborted();
-    await rm(target, { force: true });
+  const artifacts = [...new Set(result.artifacts)];
+  for (const artifact of artifacts) assertVaultArtifact(artifact);
+  for (const artifact of artifacts) {
+    await removeSafeBundlePath(context.workspaceRoot, artifact, {
+      signal: context.signal,
+    });
   }
   context.signal?.throwIfAborted();
 }
@@ -144,12 +138,9 @@ async function cleanupVaultRootKeyArtifact(
 async function cleanupPartialVaultRootKeyArtifact(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
-  context.signal?.throwIfAborted();
-  await rm(
-    path.join(context.workspaceRoot, ...VAULT_ROOT_KEY_ARTIFACT.split("/")),
-    { force: true },
-  );
-  context.signal?.throwIfAborted();
+  await removeSafeBundlePath(context.workspaceRoot, VAULT_ROOT_KEY_ARTIFACT, {
+    signal: context.signal,
+  });
 }
 
 export function createVaultRootKeyConsistencyAdapter(
