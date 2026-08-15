@@ -1,0 +1,7 @@
+# Keep repository text files deterministic across platforms.
+# Prettier and .editorconfig both require LF line endings.
+* text=auto eol=lf
+
+# Native Windows batch files conventionally use CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
