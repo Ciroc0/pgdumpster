@@ -22,6 +22,9 @@ export interface FileStorageConsistencyAdapterSource {
 }
 
 const SHARED_DATABASE_ARTIFACT = "database/storage-metadata.sql";
+const FILE_CATALOG_ARTIFACT = "storage/file-catalog.json";
+const FILE_OBJECT_INDEX_ARTIFACT = "secrets/storage/file-object-index.json";
+const FILE_OBJECT_DIRECTORY = "storage/file-objects";
 
 function assertStorageSource(
   source: FileStorageConsistencyAdapterSource,
@@ -51,9 +54,9 @@ function storageArtifactTarget(
   }
 
   if (
-    artifact !== "storage/file-catalog.json" &&
-    artifact !== "secrets/storage/file-object-index.json" &&
-    !artifact.startsWith("storage/file-objects/")
+    artifact !== FILE_CATALOG_ARTIFACT &&
+    artifact !== FILE_OBJECT_INDEX_ARTIFACT &&
+    !artifact.startsWith(`${FILE_OBJECT_DIRECTORY}/`)
   ) {
     throw new PgDumpsterError({
       code: "CONSISTENCY_CLEANUP_SCOPE_INVALID",
@@ -91,6 +94,25 @@ async function cleanupFileStorageArtifacts(
   context.signal?.throwIfAborted();
 }
 
+async function cleanupPartialFileStorageArtifacts(
+  context: BackupStepConsistencyContext,
+): Promise<void> {
+  context.signal?.throwIfAborted();
+  const targets = [
+    path.join(context.workspaceRoot, ...FILE_CATALOG_ARTIFACT.split("/")),
+    path.join(context.workspaceRoot, ...FILE_OBJECT_INDEX_ARTIFACT.split("/")),
+    path.join(context.workspaceRoot, ...FILE_OBJECT_DIRECTORY.split("/")),
+  ];
+  for (const [index, target] of targets.entries()) {
+    context.signal?.throwIfAborted();
+    await rm(target, {
+      force: true,
+      ...(index === targets.length - 1 ? { recursive: true } : {}),
+    });
+  }
+  context.signal?.throwIfAborted();
+}
+
 function snapshotsEqual(before: unknown, after: unknown): boolean {
   return fileStorageConsistencySnapshotsEqual(
     before as FileStorageConsistencySnapshot,
@@ -108,6 +130,7 @@ export function createFileStorageConsistencyAdapter(
         ? collectLinkedFileStorageConsistencySnapshot(signal)
         : collectFileStorageConsistencySnapshot(source.databaseUrl, signal),
     cleanup: cleanupFileStorageArtifacts,
+    cleanupPartial: cleanupPartialFileStorageArtifacts,
     equals: snapshotsEqual,
   };
 }
