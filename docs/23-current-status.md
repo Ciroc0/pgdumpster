@@ -99,7 +99,7 @@ Backup consistency accepts `verified|best-effort|quiesced`; omitted consistency 
 
 For `encryption.mode: age`, backup requires `encryption.recipient`, automatically produces the deterministic archive transport form, encrypts it as `.tar.zst.age`, and removes normal plaintext staging after successful publication. `--archive` is therefore not required separately for an encrypted backup.
 
-`doctor` probes `age --version`. If the executable is missing when encryption/decryption is attempted, the runtime maps that failure to the dependency error domain. A hard process termination can still leave the protected resumable workspace/checkpoint; crash recovery is separate from normal encryption cleanup.
+`doctor` probes `age --version`. If the executable is missing when encryption/decryption is attempted, the runtime maps that failure to the dependency error domain. The backup command does not currently duplicate the `doctor` probe before source capture, so operators should keep `doctor` as the intended preflight step. A hard process termination can still leave the protected resumable workspace/checkpoint; crash recovery is separate from normal encryption cleanup.
 
 `restore --apply` is parsed but currently fails closed with `RESTORE_APPLY_NOT_IMPLEMENTED`.
 
