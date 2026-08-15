@@ -134,13 +134,24 @@ export async function removeSafeBundlePath(
   }
 }
 
+function partialUuid(entry: string): string | undefined {
+  const marker = ".partial-";
+  const index = entry.lastIndexOf(marker);
+  if (index <= 0) return undefined;
+  const suffix = entry.slice(index + marker.length);
+  return UUID_PATTERN.test(suffix) ? suffix : undefined;
+}
+
+export function isBundleWriterPartialName(entry: string): boolean {
+  return partialUuid(entry) !== undefined;
+}
+
 function isArtifactPartial(entry: string, basename: string): boolean {
-  for (const prefix of [`.${basename}.partial-`, `${basename}.partial-`]) {
-    if (entry.startsWith(prefix) && UUID_PATTERN.test(entry.slice(prefix.length))) {
-      return true;
-    }
-  }
-  return false;
+  if (!isBundleWriterPartialName(entry)) return false;
+  return (
+    entry.startsWith(`.${basename}.partial-`) ||
+    entry.startsWith(`${basename}.partial-`)
+  );
 }
 
 export async function removeSafeBundleArtifactWithPartials(
