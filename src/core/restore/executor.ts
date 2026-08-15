@@ -50,7 +50,7 @@ export interface RestoreActionEvidence {
   component: string;
   planStatus: Extract<
     RestoreAction["status"],
-    "planned" | "skipped" | "blocked_platform_limit"
+    "planned" | "skipped" | "blocked_platform_limit",
   >;
   sourceStatus: RestoreAction["sourceStatus"];
   declaredFidelity: RestoreAction["fidelity"];
