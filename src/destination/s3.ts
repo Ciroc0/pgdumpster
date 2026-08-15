@@ -635,7 +635,9 @@ async function writeMarker(
   });
 }
 
-async function readUploadState(statePath: string): Promise<UploadState | undefined> {
+async function readUploadState(
+  statePath: string,
+): Promise<UploadState | undefined> {
   try {
     const stat = await lstat(statePath);
     if (!stat.isFile() || stat.isSymbolicLink()) {
@@ -677,7 +679,10 @@ async function writeUploadState(
   });
 }
 
-function resolvePartSize(size: number, configuredMiB: number | undefined): number {
+function resolvePartSize(
+  size: number,
+  configuredMiB: number | undefined,
+): number {
   return Math.max(
     (configuredMiB ?? DEFAULT_PART_SIZE_MIB) * MIB,
     Math.ceil(size / MAX_MULTIPART_PARTS),
@@ -844,9 +849,10 @@ async function uploadRemainingParts(
   const parts = new Map(
     state.completedParts.map((part) => [part.partNumber, part] as const),
   );
-  const pending = Array.from({ length: totalParts }, (_, index) => index + 1).filter(
-    (partNumber) => !parts.has(partNumber),
-  );
+  const pending = Array.from(
+    { length: totalParts },
+    (_, index) => index + 1,
+  ).filter((partNumber) => !parts.has(partNumber));
   let checkpointWrites = Promise.resolve();
   await mapBounded(
     pending,
@@ -919,7 +925,10 @@ async function completeMultipartUpload(
       "S3_MULTIPART_INCOMPLETE",
       "S3 multipart upload is missing completed parts.",
       undefined,
-      { expectedParts: totalParts, completedParts: state.completedParts.length },
+      {
+        expectedParts: totalParts,
+        completedParts: state.completedParts.length,
+      },
     );
   }
   try {
@@ -1034,7 +1043,8 @@ export async function publishS3Backup(
   const digest = await digestFile(localFile, options.signal);
   const keys = remoteKeys(config, options.runId, localFile);
   const client =
-    options.client ?? createS3Client(config, options.environment ?? process.env);
+    options.client ??
+    createS3Client(config, options.environment ?? process.env);
   const statePath = options.statePath ?? `${localFile}.s3-upload.json`;
   const now = options.now ?? (() => new Date());
 
@@ -1058,8 +1068,12 @@ export async function publishS3Backup(
   }
 
   if (
-    (await headObject(client, config.bucket, keys.objectKey, options.signal)) !==
-    undefined
+    (await headObject(
+      client,
+      config.bucket,
+      keys.objectKey,
+      options.signal,
+    )) !== undefined
   ) {
     await verifyRemoteObject(
       client,
@@ -1186,7 +1200,10 @@ async function assertOutputDirectory(directory: string): Promise<void> {
   }
 }
 
-function markerFileName(marker: CompletionMarker, locator: ParsedLocator): string {
+function markerFileName(
+  marker: CompletionMarker,
+  locator: ParsedLocator,
+): string {
   if (!marker.objectKey.startsWith(locator.directoryKey)) {
     throw destinationError(
       "S3_MARKER_INVALID",
@@ -1218,7 +1235,8 @@ export async function materializeS3Backup(
   const locator = parseLocator(locatorValue);
   assertLocatorScope(locator, config);
   const client =
-    options.client ?? createS3Client(config, options.environment ?? process.env);
+    options.client ??
+    createS3Client(config, options.environment ?? process.env);
   const marker = await readMarker(
     client,
     locator.bucket,
@@ -1269,10 +1287,13 @@ export async function materializeS3Backup(
     handle = undefined;
     const sha256 = hash.digest("hex");
     if (size !== marker.size || sha256 !== marker.sha256) {
-      throw integrityError("Downloaded S3 backup failed SHA-256 verification.", {
-        expectedSize: marker.size,
-        observedSize: size,
-      });
+      throw integrityError(
+        "Downloaded S3 backup failed SHA-256 verification.",
+        {
+          expectedSize: marker.size,
+          observedSize: size,
+        },
+      );
     }
     await link(temporary, target);
     await rm(temporary);

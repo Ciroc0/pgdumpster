@@ -1,12 +1,6 @@
 import { createHash } from "node:crypto";
 import { Readable } from "node:stream";
-import {
-  access,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -49,9 +43,10 @@ function awsError(status: number, name: string): Error {
   return error;
 }
 
-function fakeClient(
-  handler: (command: unknown) => Promise<unknown>,
-): { client: S3Client; send: ReturnType<typeof vi.fn> } {
+function fakeClient(handler: (command: unknown) => Promise<unknown>): {
+  client: S3Client;
+  send: ReturnType<typeof vi.fn>;
+} {
   const send = vi.fn(handler);
   return { client: { send } as unknown as S3Client, send };
 }
@@ -61,7 +56,9 @@ async function fixture(contents = "remote backup fixture"): Promise<{
   file: string;
   bytes: Buffer;
 }> {
-  const directory = await mkdtemp(path.join(tmpdir(), "pgdumpster-s3-hardening-"));
+  const directory = await mkdtemp(
+    path.join(tmpdir(), "pgdumpster-s3-hardening-"),
+  );
   temporaryDirectories.push(directory);
   const file = path.join(directory, "pgdumpster-test.tar.zst");
   const bytes = Buffer.from(contents);
@@ -172,7 +169,9 @@ describe("S3 destination hardening", () => {
 
   it("rejects malformed, out-of-scope, and incomplete remote locators", async () => {
     const { directory } = await fixture();
-    const { client } = fakeClient(() => Promise.reject(awsError(404, "NoSuchKey")));
+    const { client } = fakeClient(() =>
+      Promise.reject(awsError(404, "NoSuchKey")),
+    );
 
     await expect(
       materializeS3Backup("https://example.test/not-s3", directory, config, {
@@ -191,12 +190,9 @@ describe("S3 destination hardening", () => {
       ),
     ).rejects.toMatchObject({ code: "S3_LOCATOR_OUT_OF_SCOPE" });
     await expect(
-      materializeS3Backup(
-        `s3://backups/other/${runId}/`,
-        directory,
-        config,
-        { client },
-      ),
+      materializeS3Backup(`s3://backups/other/${runId}/`, directory, config, {
+        client,
+      }),
     ).rejects.toMatchObject({ code: "S3_LOCATOR_OUT_OF_SCOPE" });
     await expect(
       materializeS3Backup(
@@ -217,9 +213,7 @@ describe("S3 destination hardening", () => {
       Buffer.from(
         canonicalJson(marker(`production/${runId}/nested/file.tar.zst`, bytes)),
       ),
-      Buffer.from(
-        canonicalJson(marker(`production/${runId}/file.zip`, bytes)),
-      ),
+      Buffer.from(canonicalJson(marker(`production/${runId}/file.zip`, bytes))),
     ];
 
     for (const response of responses) {
@@ -301,10 +295,8 @@ describe("S3 destination hardening", () => {
     const statePath = path.join(directory, "upload-state.json");
     let aborts = 0;
     const { client, send } = fakeClient(async (command) => {
-      if (command instanceof GetObjectCommand)
-        throw awsError(404, "NoSuchKey");
-      if (command instanceof HeadObjectCommand)
-        throw awsError(404, "NotFound");
+      if (command instanceof GetObjectCommand) throw awsError(404, "NoSuchKey");
+      if (command instanceof HeadObjectCommand) throw awsError(404, "NotFound");
       if (command instanceof CreateMultipartUploadCommand)
         return { UploadId: "upload-conflict" };
       if (command instanceof UploadPartCommand) return { ETag: "part-etag" };

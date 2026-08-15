@@ -4,10 +4,7 @@ import type { PgDumpsterConfig } from "../config/file.js";
 import { packBundle } from "../core/bundle/archive.js";
 import { encryptArchiveWithAge } from "../core/bundle/encryption.js";
 import { PgDumpsterError } from "../core/errors/error.js";
-import {
-  publishS3Backup,
-  type S3PublicationResult,
-} from "./s3.js";
+import { publishS3Backup, type S3PublicationResult } from "./s3.js";
 
 export interface BackupOutputPublicationOptions {
   workspaceRoot: string;

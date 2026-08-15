@@ -14,9 +14,7 @@ const s3PrefixSchema = z
   .refine(
     (value) =>
       !value.includes("\\") &&
-      !value
-        .split("/")
-        .some((segment) => segment === "." || segment === ".."),
+      !value.split("/").some((segment) => segment === "." || segment === ".."),
   );
 
 const configSchema = z

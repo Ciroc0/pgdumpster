@@ -112,9 +112,11 @@ describe("backup output publication", () => {
     const archivePacker = vi.fn<typeof packBundle>(async (_root, output) => {
       await writeFile(output, "archive");
     });
-    const ageEncryptor = vi.fn<typeof encryptArchiveWithAge>(async (_input, output) => {
-      await writeFile(output, "encrypted");
-    });
+    const ageEncryptor = vi.fn<typeof encryptArchiveWithAge>(
+      async (_input, output) => {
+        await writeFile(output, "encrypted");
+      },
+    );
     const s3Publisher = vi.fn<typeof publishS3Backup>(() =>
       Promise.reject(
         new PgDumpsterError({
@@ -139,7 +141,9 @@ describe("backup output publication", () => {
 
     await expect(access(workspaceRoot)).resolves.toBeUndefined();
     await expect(access(checkpointPath)).resolves.toBeUndefined();
-    await expect(access(`${workspaceRoot}.tar.zst.age`)).resolves.toBeUndefined();
+    await expect(
+      access(`${workspaceRoot}.tar.zst.age`),
+    ).resolves.toBeUndefined();
     await expect(access(`${workspaceRoot}.tar.zst`)).rejects.toThrow();
   });
 

@@ -46,7 +46,8 @@ async function bodyBytes(body: unknown): Promise<Buffer> {
   }
   const chunks: Buffer[] = [];
   for await (const chunk of body as AsyncIterable<unknown>) {
-    if (!(chunk instanceof Uint8Array)) throw new Error("invalid fake S3 chunk");
+    if (!(chunk instanceof Uint8Array))
+      throw new Error("invalid fake S3 chunk");
     chunks.push(Buffer.from(chunk));
   }
   return Buffer.concat(chunks);
@@ -72,104 +73,109 @@ class FakeS3Service {
   failMarkerOnce = false;
   private nextUpload = 1;
 
-  readonly send = vi.fn(async (command: unknown): Promise<Record<string, unknown>> => {
-    if (command instanceof HeadObjectCommand) {
-      const object = this.objects.get(command.input.Key!);
-      if (object === undefined) throw awsError(404, "NotFound");
-      return {
-        ContentLength: object.body.length,
-        Metadata: object.metadata,
-      };
-    }
-    if (command instanceof GetObjectCommand) {
-      const object = this.objects.get(command.input.Key!);
-      if (object === undefined) throw awsError(404, "NoSuchKey");
-      return {
-        ContentLength: object.body.length,
-        Metadata: object.metadata,
-        Body: Readable.from([object.body]),
-      };
-    }
-    if (command instanceof CreateMultipartUploadCommand) {
-      const uploadId = `upload-${this.nextUpload++}`;
-      this.uploads.set(uploadId, {
-        bucket: command.input.Bucket!,
-        key: command.input.Key!,
-        metadata: { ...(command.input.Metadata ?? {}) },
-        parts: new Map(),
-      });
-      return { UploadId: uploadId };
-    }
-    if (command instanceof UploadPartCommand) {
-      const upload = this.uploads.get(command.input.UploadId!);
-      if (upload === undefined) throw awsError(404, "NoSuchUpload");
-      const partNumber = command.input.PartNumber!;
-      if (this.failPartOnce === partNumber) {
-        this.failPartOnce = undefined;
-        throw awsError(503, "SlowDown");
+  readonly send = vi.fn(
+    async (command: unknown): Promise<Record<string, unknown>> => {
+      if (command instanceof HeadObjectCommand) {
+        const object = this.objects.get(command.input.Key!);
+        if (object === undefined) throw awsError(404, "NotFound");
+        return {
+          ContentLength: object.body.length,
+          Metadata: object.metadata,
+        };
       }
-      const body = await bodyBytes(command.input.Body);
-      const etag = `etag-${partNumber}-${body.length}`;
-      upload.parts.set(partNumber, { body, etag });
-      return { ETag: etag };
-    }
-    if (command instanceof ListPartsCommand) {
-      const upload = this.uploads.get(command.input.UploadId!);
-      if (upload === undefined) throw awsError(404, "NoSuchUpload");
-      return {
-        IsTruncated: false,
-        Parts: [...upload.parts.entries()]
-          .sort(([left], [right]) => left - right)
-          .map(([partNumber, part]) => ({
-            PartNumber: partNumber,
-            ETag: part.etag,
-            Size: part.body.length,
-          })),
-      };
-    }
-    if (command instanceof CompleteMultipartUploadCommand) {
-      const upload = this.uploads.get(command.input.UploadId!);
-      if (upload === undefined) throw awsError(404, "NoSuchUpload");
-      const parts = command.input.MultipartUpload?.Parts ?? [];
-      const body = Buffer.concat(
-        parts.map(({ PartNumber }) => {
-          const part = upload.parts.get(PartNumber!);
-          if (part === undefined) throw new Error("missing multipart part");
-          return part.body;
-        }),
-      );
-      this.objects.set(upload.key, {
-        body,
-        metadata: upload.metadata,
-        contentType: "application/octet-stream",
-      });
-      this.uploads.delete(command.input.UploadId!);
-      return { ETag: "completed-etag" };
-    }
-    if (command instanceof AbortMultipartUploadCommand) {
-      this.uploads.delete(command.input.UploadId!);
-      return {};
-    }
-    if (command instanceof PutObjectCommand) {
-      if (this.failMarkerOnce && command.input.Key?.endsWith("COMPLETE.json")) {
-        this.failMarkerOnce = false;
-        throw awsError(503, "ServiceUnavailable");
+      if (command instanceof GetObjectCommand) {
+        const object = this.objects.get(command.input.Key!);
+        if (object === undefined) throw awsError(404, "NoSuchKey");
+        return {
+          ContentLength: object.body.length,
+          Metadata: object.metadata,
+          Body: Readable.from([object.body]),
+        };
       }
-      if (
-        command.input.IfNoneMatch === "*" &&
-        this.objects.has(command.input.Key!)
-      ) {
-        throw awsError(412, "PreconditionFailed");
+      if (command instanceof CreateMultipartUploadCommand) {
+        const uploadId = `upload-${this.nextUpload++}`;
+        this.uploads.set(uploadId, {
+          bucket: command.input.Bucket!,
+          key: command.input.Key!,
+          metadata: { ...(command.input.Metadata ?? {}) },
+          parts: new Map(),
+        });
+        return { UploadId: uploadId };
       }
-      this.objects.set(command.input.Key!, {
-        body: await bodyBytes(command.input.Body),
-        metadata: { ...(command.input.Metadata ?? {}) },
-        contentType: command.input.ContentType,
-      });
-      return { ETag: "put-etag" };
-    }
-    throw new Error(`unsupported fake S3 command: ${String(command)}`);
-  });
+      if (command instanceof UploadPartCommand) {
+        const upload = this.uploads.get(command.input.UploadId!);
+        if (upload === undefined) throw awsError(404, "NoSuchUpload");
+        const partNumber = command.input.PartNumber!;
+        if (this.failPartOnce === partNumber) {
+          this.failPartOnce = undefined;
+          throw awsError(503, "SlowDown");
+        }
+        const body = await bodyBytes(command.input.Body);
+        const etag = `etag-${partNumber}-${body.length}`;
+        upload.parts.set(partNumber, { body, etag });
+        return { ETag: etag };
+      }
+      if (command instanceof ListPartsCommand) {
+        const upload = this.uploads.get(command.input.UploadId!);
+        if (upload === undefined) throw awsError(404, "NoSuchUpload");
+        return {
+          IsTruncated: false,
+          Parts: [...upload.parts.entries()]
+            .sort(([left], [right]) => left - right)
+            .map(([partNumber, part]) => ({
+              PartNumber: partNumber,
+              ETag: part.etag,
+              Size: part.body.length,
+            })),
+        };
+      }
+      if (command instanceof CompleteMultipartUploadCommand) {
+        const upload = this.uploads.get(command.input.UploadId!);
+        if (upload === undefined) throw awsError(404, "NoSuchUpload");
+        const parts = command.input.MultipartUpload?.Parts ?? [];
+        const body = Buffer.concat(
+          parts.map(({ PartNumber }) => {
+            const part = upload.parts.get(PartNumber!);
+            if (part === undefined) throw new Error("missing multipart part");
+            return part.body;
+          }),
+        );
+        this.objects.set(upload.key, {
+          body,
+          metadata: upload.metadata,
+          contentType: "application/octet-stream",
+        });
+        this.uploads.delete(command.input.UploadId!);
+        return { ETag: "completed-etag" };
+      }
+      if (command instanceof AbortMultipartUploadCommand) {
+        this.uploads.delete(command.input.UploadId!);
+        return {};
+      }
+      if (command instanceof PutObjectCommand) {
+        if (
+          this.failMarkerOnce &&
+          command.input.Key?.endsWith("COMPLETE.json")
+        ) {
+          this.failMarkerOnce = false;
+          throw awsError(503, "ServiceUnavailable");
+        }
+        if (
+          command.input.IfNoneMatch === "*" &&
+          this.objects.has(command.input.Key!)
+        ) {
+          throw awsError(412, "PreconditionFailed");
+        }
+        this.objects.set(command.input.Key!, {
+          body: await bodyBytes(command.input.Body),
+          metadata: { ...(command.input.Metadata ?? {}) },
+          contentType: command.input.ContentType,
+        });
+        return { ETag: "put-etag" };
+      }
+      throw new Error(`unsupported fake S3 command: ${String(command)}`);
+    },
+  );
 
   client(): S3Client {
     return { send: this.send } as unknown as S3Client;
@@ -228,7 +234,9 @@ describe("S3-compatible destination", () => {
     expect(result.objectUri).toMatch(/\.tar\.zst\.age$/u);
     expect(result.recovered).toBe(false);
     expect(result.size).toBe(bytes.length);
-    expect(result.sha256).toBe(createHash("sha256").update(bytes).digest("hex"));
+    expect(result.sha256).toBe(
+      createHash("sha256").update(bytes).digest("hex"),
+    );
     expect(
       service.send.mock.calls.filter(
         ([command]) => command instanceof UploadPartCommand,
@@ -262,7 +270,9 @@ describe("S3-compatible destination", () => {
     const saved = JSON.parse(await readFile(statePath, "utf8")) as {
       completedParts: { partNumber: number }[];
     };
-    expect(saved.completedParts.map(({ partNumber }) => partNumber)).toEqual([1]);
+    expect(saved.completedParts.map(({ partNumber }) => partNumber)).toEqual([
+      1,
+    ]);
 
     const result = await publishS3Backup(file, config, {
       runId,
