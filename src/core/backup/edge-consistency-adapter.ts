@@ -268,11 +268,28 @@ async function cleanupEdgeArtifacts(
   context.signal?.throwIfAborted();
 }
 
+async function cleanupPartialEdgeArtifacts(
+  context: BackupStepConsistencyContext,
+): Promise<void> {
+  context.signal?.throwIfAborted();
+  await rm(path.join(context.workspaceRoot, "functions"), {
+    recursive: true,
+    force: true,
+  });
+  context.signal?.throwIfAborted();
+  await rm(
+    path.join(context.workspaceRoot, ...SECRET_DIGEST_ARTIFACT.split("/")),
+    { force: true },
+  );
+  context.signal?.throwIfAborted();
+}
+
 export function createEdgeConsistencyAdapter(
   source: EdgeConsistencyAdapterSource,
 ): BackupStepConsistencyAdapter {
   return {
     snapshot: ({ signal }) => collectEdgeConsistencySnapshot(source, signal),
     cleanup: cleanupEdgeArtifacts,
+    cleanupPartial: cleanupPartialEdgeArtifacts,
   };
 }
