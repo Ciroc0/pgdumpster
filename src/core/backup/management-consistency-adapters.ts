@@ -354,6 +354,23 @@ function cleanupArtifacts(
   };
 }
 
+function cleanupPartialArtifacts(
+  allowedArtifacts: ReadonlySet<string>,
+): NonNullable<BackupStepConsistencyAdapter["cleanupPartial"]> {
+  return async (context: BackupStepConsistencyContext): Promise<void> => {
+    context.signal?.throwIfAborted();
+    const targets = [...allowedArtifacts].map((artifact) => {
+      assertSafeBundlePath(artifact);
+      return path.join(context.workspaceRoot, ...artifact.split("/"));
+    });
+    for (const target of targets) {
+      context.signal?.throwIfAborted();
+      await rm(target, { force: true });
+    }
+    context.signal?.throwIfAborted();
+  };
+}
+
 function adapter(
   stepId: string,
   allowedArtifacts: ReadonlySet<string>,
@@ -364,6 +381,7 @@ function adapter(
     snapshot: ({ signal }) =>
       collectManagementSnapshot(stepId, capture, signal, includeCoverage),
     cleanup: cleanupArtifacts(stepId, allowedArtifacts),
+    cleanupPartial: cleanupPartialArtifacts(allowedArtifacts),
   };
 }
 
