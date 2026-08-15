@@ -50,10 +50,12 @@ describe("backup consistency hardening", () => {
   it("cleans a completed copy without reusing an already-aborted signal", async () => {
     const controller = new AbortController();
     const reason = new Error("cancel after copy");
-    const cleanup = vi.fn((_result: { artifact: string }, signal?: AbortSignal) => {
-      expect(signal).toBeUndefined();
-      return Promise.resolve();
-    });
+    const cleanup = vi.fn(
+      (_result: { artifact: string }, signal?: AbortSignal) => {
+        expect(signal).toBeUndefined();
+        return Promise.resolve();
+      },
+    );
 
     await expect(
       runConsistentCopy({

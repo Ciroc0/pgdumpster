@@ -38,12 +38,18 @@ async function root(): Promise<string> {
 
 describe("safe cleanup hardening", () => {
   it("recognizes only UUID-suffixed writer partial names", () => {
-    expect(isBundleWriterPartialName(`value.partial-${PARTIAL_UUID}`)).toBe(true);
-    expect(isBundleWriterPartialName(`.value.partial-${PARTIAL_UUID}`)).toBe(true);
-    expect(isBundleWriterPartialName("partial-without-marker")).toBe(false);
-    expect(isBundleWriterPartialName(".partial-11111111-1111-4111-8111-111111111111")).toBe(
-      false,
+    expect(isBundleWriterPartialName(`value.partial-${PARTIAL_UUID}`)).toBe(
+      true,
     );
+    expect(isBundleWriterPartialName(`.value.partial-${PARTIAL_UUID}`)).toBe(
+      true,
+    );
+    expect(isBundleWriterPartialName("partial-without-marker")).toBe(false);
+    expect(
+      isBundleWriterPartialName(
+        ".partial-11111111-1111-4111-8111-111111111111",
+      ),
+    ).toBe(false);
     expect(isBundleWriterPartialName("value.partial-not-a-uuid")).toBe(false);
     expect(
       isBundleWriterPartialName(

@@ -193,7 +193,9 @@ describe("final consistency adapter hardening", () => {
       },
     );
     await expect(
-      createEdgeConsistencyAdapter(edgeSource).snapshot({ workspaceRoot: "unused" }),
+      createEdgeConsistencyAdapter(edgeSource).snapshot({
+        workspaceRoot: "unused",
+      }),
     ).rejects.toMatchObject({ code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID" });
 
     let cancelled = false;
@@ -212,7 +214,9 @@ describe("final consistency adapter hardening", () => {
       },
     );
     await expect(
-      createEdgeConsistencyAdapter(edgeSource).snapshot({ workspaceRoot: "unused" }),
+      createEdgeConsistencyAdapter(edgeSource).snapshot({
+        workspaceRoot: "unused",
+      }),
     ).rejects.toMatchObject({ code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID" });
     expect(cancelled).toBe(true);
 
@@ -225,22 +229,30 @@ describe("final consistency adapter hardening", () => {
       },
     );
     await expect(
-      createEdgeConsistencyAdapter(edgeSource).snapshot({ workspaceRoot: "unused" }),
+      createEdgeConsistencyAdapter(edgeSource).snapshot({
+        workspaceRoot: "unused",
+      }),
     ).rejects.toMatchObject({ code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID" });
   });
 
   it("requires both Edge markers and wraps non-consistency capture failures", async () => {
     vi.mocked(captureEdgeState).mockResolvedValueOnce({ coverage: [] });
     await expect(
-      createEdgeConsistencyAdapter(edgeSource).snapshot({ workspaceRoot: "unused" }),
+      createEdgeConsistencyAdapter(edgeSource).snapshot({
+        workspaceRoot: "unused",
+      }),
     ).rejects.toMatchObject({
       code: "CONSISTENCY_SNAPSHOT_ARTIFACT_MISSING",
       category: "consistency",
     });
 
-    vi.mocked(captureEdgeState).mockRejectedValueOnce(new Error("edge unavailable"));
+    vi.mocked(captureEdgeState).mockRejectedValueOnce(
+      new Error("edge unavailable"),
+    );
     await expect(
-      createEdgeConsistencyAdapter(edgeSource).snapshot({ workspaceRoot: "unused" }),
+      createEdgeConsistencyAdapter(edgeSource).snapshot({
+        workspaceRoot: "unused",
+      }),
     ).rejects.toMatchObject({
       code: "EDGE_CONSISTENCY_SNAPSHOT_FAILED",
       category: "consistency",
@@ -269,7 +281,9 @@ describe("final consistency adapter hardening", () => {
     );
 
     await expect(
-      createEdgeConsistencyAdapter(edgeSource).snapshot({ workspaceRoot: "unused" }),
+      createEdgeConsistencyAdapter(edgeSource).snapshot({
+        workspaceRoot: "unused",
+      }),
     ).resolves.toMatchObject({ schemaVersion: 1 });
 
     const root = await workspace();
@@ -317,7 +331,9 @@ describe("final consistency adapter hardening", () => {
       }),
     ).rejects.toMatchObject({ code: "CONSISTENCY_SNAPSHOT_ARTIFACT_MISSING" });
 
-    vi.mocked(captureVaultRootKey).mockRejectedValueOnce(new Error("vault unavailable"));
+    vi.mocked(captureVaultRootKey).mockRejectedValueOnce(
+      new Error("vault unavailable"),
+    );
     await expect(
       createVaultRootKeyConsistencyAdapter(vaultSource).snapshot({
         workspaceRoot: "unused",
@@ -398,7 +414,9 @@ describe("final consistency adapter hardening", () => {
         createSpecializedStorageConsistencyAdapter(storageSource).snapshot({
           workspaceRoot: "unused",
         }),
-      ).rejects.toMatchObject({ code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID" });
+      ).rejects.toMatchObject({
+        code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID",
+      });
     }
   });
 
@@ -431,7 +449,9 @@ describe("final consistency adapter hardening", () => {
         createSpecializedStorageConsistencyAdapter(storageSource).snapshot({
           workspaceRoot: "unused",
         }),
-      ).rejects.toMatchObject({ code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID" });
+      ).rejects.toMatchObject({
+        code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID",
+      });
     }
   });
 
@@ -545,12 +565,16 @@ describe("final consistency adapter hardening", () => {
         createSpecializedStorageConsistencyAdapter(storageSource).snapshot({
           workspaceRoot: "unused",
         }),
-      ).rejects.toMatchObject({ code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID" });
+      ).rejects.toMatchObject({
+        code: "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID",
+      });
     }
   });
 
   it("requires complete specialized snapshot evidence and wraps source failures", async () => {
-    vi.mocked(captureSpecializedStorage).mockResolvedValueOnce({ coverage: [] });
+    vi.mocked(captureSpecializedStorage).mockResolvedValueOnce({
+      coverage: [],
+    });
     await expect(
       createSpecializedStorageConsistencyAdapter(storageSource).snapshot({
         workspaceRoot: "unused",
@@ -574,7 +598,9 @@ describe("final consistency adapter hardening", () => {
         await writeRequiredSpecializedCatalogs(ordinary, signal);
         await writeValidVectorSummary(protectedSink, signal);
         return {
-          coverage: [coverage("storage.analytics_catalog", [ANALYTICS_CATALOG])],
+          coverage: [
+            coverage("storage.analytics_catalog", [ANALYTICS_CATALOG]),
+          ],
         };
       },
     );
