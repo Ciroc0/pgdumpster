@@ -142,6 +142,12 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ## Validation log
 
+### 2026-08-15 — restore artifact preflight checkpoint
+
+- `restore --apply` now validates every artifact named by a planned action after handler-completeness validation and before checkpoint creation or target mutation. Direct artifacts must be non-symlink files and resolve within the verified bundle root.
+- Verified-input checksum enforcement rejects a removed declared artifact even earlier as `BUNDLE_INCOMPLETE`; the executor is not invoked and diagnostics remain redacted.
+- Local result: **110 test files / 690 tests, PASS**. Global coverage: **94.67% statements / 90.01% branches / 92.45% functions / 95.73% lines**; all 90% global thresholds: **PASS**.
+
 ### 2026-08-15 — Auth provider restore checkpoint
 
 - Refreshed the dated official Auth contract snapshot with the current SSO-provider and Third-party Auth mutation contracts.

@@ -14,13 +14,16 @@ import type {
 } from "../core/bundle/encryption.js";
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
-import { buildRestorePlan } from "../core/restore/plan.js";
+import { buildRestorePlan, type RestorePlan } from "../core/restore/plan.js";
 import {
   executeRestore,
   validatePlanForExecution,
 } from "../core/restore/executor.js";
 import { restoreCheckpointSchema } from "../core/checkpoint/restore.js";
-import { createDatabaseRestoreHandlers } from "../core/restore/database-handlers.js";
+import {
+  createDatabaseRestoreHandlers,
+  resolveBundleArtifact,
+} from "../core/restore/database-handlers.js";
 import { createDatabaseSupplementRestoreHandlers } from "../core/restore/database-supplement-handlers.js";
 import { createPublicationRestoreHandler } from "../core/restore/publication-handler.js";
 import { createVaultRootKeyRestoreHandler } from "../core/restore/vault-root-key-handler.js";
@@ -325,6 +328,34 @@ async function version(): Promise<string> {
 
 function restoreCheckpointPath(planId: string): string {
   return path.resolve(".pgdumpster-restore", `${planId}.checkpoint.json`);
+}
+
+export async function preflightPlannedRestoreArtifacts(
+  bundleRoot: string,
+  plan: Pick<RestorePlan, "actions">,
+): Promise<void> {
+  for (const action of plan.actions) {
+    if (action.status !== "planned") continue;
+    for (const artifact of action.artifacts) {
+      try {
+        const direct = path.join(bundleRoot, ...artifact.split("/"));
+        const directStat = await lstat(direct);
+        if (directStat.isSymbolicLink()) {
+          throw new Error("symlink");
+        }
+        await resolveBundleArtifact(bundleRoot, artifact);
+      } catch (cause) {
+        throw new DomainError({
+          code: "RESTORE_ARTIFACT_INVALID",
+          category: "integrity",
+          message: "A planned restore artifact is unavailable or unsafe.",
+          retryable: false,
+          component: action.component,
+          cause,
+        });
+      }
+    }
+  }
 }
 
 async function readResumeCheckpoint(filename: string) {
@@ -791,6 +822,7 @@ export async function runCli(
             }),
           };
           validatePlanForExecution(plan, handlers);
+          await preflightPlannedRestoreArtifacts(bundle.root, plan);
           const checkpointPath =
             resume?.path ?? restoreCheckpointPath(plan.planId);
           if (resume === undefined)

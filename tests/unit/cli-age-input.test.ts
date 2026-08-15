@@ -1,10 +1,20 @@
-import { copyFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdtemp,
+  mkdir,
+  rm,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { runCli } from "../../src/cli/main.js";
+import {
+  preflightPlannedRestoreArtifacts,
+  runCli,
+} from "../../src/cli/main.js";
 import { packBundle } from "../../src/core/bundle/archive.js";
 import type { decryptArchiveWithAge } from "../../src/core/bundle/encryption.js";
 import {
@@ -16,13 +26,19 @@ import { canonicalJson } from "../../src/utils/canonical-json.js";
 
 const temporaryDirectories: string[] = [];
 
-async function finalizedBundle(parent: string): Promise<string> {
+async function finalizedBundle(
+  parent: string,
+  options: { minimalPlan?: boolean } = {},
+): Promise<string> {
   const root = path.join(parent, "staging");
   await mkdir(path.join(root, "database"), { recursive: true });
   const registry = await loadCoverageRegistry();
   const components = registry.components.map(({ id, sensitivity }) => ({
     id,
-    status: "backed_up" as const,
+    status:
+      options.minimalPlan === true && id !== "database.schema"
+        ? ("not_configured" as const)
+        : ("backed_up" as const),
     sensitivity,
     artifacts: id === "database.schema" ? ["database/schema.sql"] : [],
   }));
@@ -181,5 +197,73 @@ describe("CLI encrypted bundle input", () => {
     expect(stderr.join("")).toContain("RESTORE_ADAPTER_MISSING");
     expect(stderr.join("")).not.toContain("target-secret");
     expect(stderr.join("")).not.toContain("target-service-key");
+  });
+
+  it("rejects a corrupt planned artifact before executor mutation", async () => {
+    const parent = await mkdtemp(
+      path.join(tmpdir(), "pgdumpster-cli-artifact-preflight-"),
+    );
+    temporaryDirectories.push(parent);
+    const bundle = await finalizedBundle(parent, { minimalPlan: true });
+    await unlink(path.join(bundle, "database", "schema.sql"));
+    const { stdout, stderr, io } = ioBuffers();
+    const restoreExecutor = vi.fn();
+
+    const exitCode = await runCli(
+      [
+        "restore",
+        bundle,
+        "--target-project-ref",
+        "uvwxyzabcdefghijklmn",
+        "--target-db-url-env",
+        "PGDUMPSTER_TARGET_DB_URL",
+        "--apply",
+      ],
+      io,
+      {
+        environment: {
+          PGDUMPSTER_ACCESS_TOKEN: "management-secret",
+          PGDUMPSTER_TARGET_DB_URL: "postgresql://target-secret@localhost/db",
+        },
+        restoreExecutor,
+      },
+    );
+
+    expect(exitCode).toBe(7);
+    expect(stdout).toEqual([]);
+    expect(stderr.join("")).toContain("BUNDLE_INCOMPLETE");
+    expect(stderr.join("")).not.toContain("target-secret");
+    expect(restoreExecutor).not.toHaveBeenCalled();
+  });
+
+  it("preflights every planned restore artifact before checkpointing", async () => {
+    const parent = await mkdtemp(
+      path.join(tmpdir(), "pgdumpster-cli-artifact-preflight-direct-"),
+    );
+    temporaryDirectories.push(parent);
+    const bundle = await finalizedBundle(parent, { minimalPlan: true });
+    const plan = {
+      actions: [
+        {
+          component: "database.schema",
+          status: "planned",
+          artifacts: ["database/schema.sql"],
+        },
+        {
+          component: "database.pooler",
+          status: "blocked_platform_limit",
+          artifacts: [],
+        },
+      ],
+    } as Parameters<typeof preflightPlannedRestoreArtifacts>[1];
+
+    await expect(
+      preflightPlannedRestoreArtifacts(bundle, plan),
+    ).resolves.toBeUndefined();
+
+    await unlink(path.join(bundle, "database", "schema.sql"));
+    await expect(
+      preflightPlannedRestoreArtifacts(bundle, plan),
+    ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
   });
 });
