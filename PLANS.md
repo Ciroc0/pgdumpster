@@ -16,10 +16,12 @@ The broad capture/restore architecture and the cross-service consistency layer n
 
 ## Current evidence
 
-Latest complete local gate on 2026-08-15 after the consistency/resume hardening slice:
+Latest complete local gate on 2026-08-15 after the consistency/resume and coverage-hardening slices:
 
 - `pnpm check`: **PASS**;
-- **85 test files / 500 tests: PASS**;
+- **88 test files / 525 tests: PASS**;
+- global coverage: **94.47% statements / 90.74% branches / 92.05% functions / 95.64% lines**;
+- all independent 90% global thresholds: **PASS**;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
 - default `verified`, explicit `quiesced`, and `best-effort` consistency are accepted by the backup CLI;
 - best-effort drift is preserved as `drift_detected`, including across resume;
@@ -27,9 +29,7 @@ Latest complete local gate on 2026-08-15 after the consistency/resume hardening 
 - interrupted-step resume cleanup and symlink-safe cleanup are covered;
 - atomic writer `.partial-<uuid>` leftovers are fail-safe during finalization.
 
-The most recent recorded global coverage percentages predate this slice: 94.48% statements / 90.32% branches / 93.22% functions / 95.72% lines. Run `pnpm test:coverage` again before treating those percentages as current evidence.
-
-GitHub Actions quota is currently exhausted for this account, so remote CI cannot provide a meaningful new branch signal until the quota resets. Local `pnpm check` remains the active quality gate during that period. The earlier regular CI matrix passed on its validated checkpoint. CodeQL analysis previously reached SARIF generation, but result publication/status remained blocked by repository code-scanning configuration.
+GitHub Actions quota is currently exhausted for this account, so remote CI cannot provide a meaningful new branch signal until the quota resets. Local `pnpm check` and `pnpm test:coverage` remain the active quality gates during that period. The earlier regular CI matrix passed on its validated checkpoint. CodeQL analysis previously reached SARIF generation, but result publication/status remained blocked by repository code-scanning configuration.
 
 The full hosted source → encrypted verified backup → offline verify → clean-target restore → semantic-parity E2E remains **PENDING**.
 
@@ -51,7 +51,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Raise meaningful global test coverage above the repository's 90% thresholds without lowering/excluding production code.
 - [x] Run the regular GitHub quality/test/integration/security/OS-matrix workflow successfully on the earlier validated implementation checkpoint.
 - [x] Implement real `verified`, `best-effort` and `quiesced` cross-service consistency with concrete adapters for every product step, canonical source snapshots, copy-time drift detection, bounded verified retry, quiesced fail-fast semantics, safe provisional/partial cleanup, resume preservation and manifest drift reporting.
-- [ ] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
+- [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [ ] Wire standard `age` encryption into backup publication and verification; keep plaintext secret output behind explicit opt-in.
 - [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
 - [ ] Wire the existing restore executor/handlers through CLI `restore --apply`, protected replacement-key output, resume and final semantic parity report.
@@ -143,7 +143,15 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Bundle finalization removes only recognized UUID writer partials and still rejects unrecognized transient-looking files.
 - CLI consistency guard removed; default `verified`, explicit `quiesced` and `best-effort` now flow to product execution.
 - CLI exit-code mapping includes consistency → 6, source-component failures → 5 and destination/I/O → 8.
-- Final local `pnpm check`: **85 test files / 500 tests, PASS**.
+- Local `pnpm check` after the initial slice: **85 test files / 500 tests, PASS**.
+
+### 2026-08-15 — post-consistency coverage hardening checkpoint
+
+- Added focused failure/security-path tests for Edge, Vault, specialized Storage, safe cleanup and generic consistency cleanup/cancellation semantics.
+- Final local suite: **88 test files / 525 tests, PASS**.
+- Global coverage: **94.47% statements / 90.74% branches / 92.05% functions / 95.64% lines**.
+- Repository 90% global thresholds: **PASS**.
+- Coverage thresholds were not lowered and production files were not excluded to recover the gate.
 
 ### GitHub CI / CodeQL note
 
@@ -151,10 +159,9 @@ The earlier regular CI matrix passed on its validated checkpoint. Current Action
 
 ## Next implementation order
 
-1. refresh global coverage evidence for the completed consistency slice;
-2. `age` encryption;
-3. S3 destination;
-4. restore `--apply` + parity wiring;
-5. hosted E2E;
-6. CodeQL/release/SBOM/provenance;
-7. final acceptance audit.
+1. `age` encryption;
+2. S3 destination;
+3. restore `--apply` + parity wiring;
+4. hosted E2E;
+5. CodeQL/release/SBOM/provenance;
+6. final acceptance audit.
