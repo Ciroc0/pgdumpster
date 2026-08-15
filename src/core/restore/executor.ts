@@ -46,6 +46,13 @@ export interface RestoreExecutionResult {
   completedActions: number;
   skippedActions: number;
   manualActions: RestorePlan["manualActions"];
+  actionEvidence: {
+    id: string;
+    component: string;
+    fidelity: RestoreAction["fidelity"];
+    status: "verified" | "skipped";
+    fingerprint?: string | undefined;
+  }[];
 }
 
 function planSha256(plan: RestorePlan): string {
@@ -307,5 +314,17 @@ export async function executeRestore(
       ({ status }) => status === "skipped",
     ).length,
     manualActions: plan.manualActions,
+    actionEvidence: plan.actions.map((action) => {
+      const saved = checkpoint.actions.find(({ id }) => id === action.id)!;
+      return {
+        id: action.id,
+        component: action.component,
+        fidelity: action.fidelity,
+        status: saved.status === "completed" ? "verified" : "skipped",
+        ...(saved.fingerprint === undefined
+          ? {}
+          : { fingerprint: saved.fingerprint }),
+      };
+    }),
   };
 }

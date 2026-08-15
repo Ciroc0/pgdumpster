@@ -35,6 +35,10 @@ import { createAuthConfigRestoreHandler } from "../core/restore/auth-config-hand
 import { createApiKeyRestoreHandler } from "../core/restore/api-key-handler.js";
 import { createLegacyApiKeyRestoreHandler } from "../core/restore/legacy-api-key-handler.js";
 import {
+  createRestoreParityReport,
+  writeRestoreParityReport,
+} from "../core/restore/parity-report.js";
+import {
   createAuthSsoRestoreHandler,
   createAuthTpaRestoreHandler,
 } from "../core/restore/auth-provider-handlers.js";
@@ -836,7 +840,15 @@ export async function runCli(
             handlers,
             ...(resume === undefined ? {} : { resume: true }),
           });
-          return { plan, result, checkpointPath };
+          const parityReportPath = path.join(
+            path.dirname(checkpointPath),
+            `${plan.planId}.parity.json`,
+          );
+          await writeRestoreParityReport(
+            parityReportPath,
+            createRestoreParityReport(plan, result),
+          );
+          return { plan, result, checkpointPath, parityReportPath };
         },
         {
           environment,
@@ -849,11 +861,11 @@ export async function runCli(
         },
       );
       if (outcome.result !== undefined) {
-        const { result, checkpointPath } = outcome;
+        const { result, checkpointPath, parityReportPath } = outcome;
         io.stdout(
           json
-            ? `${JSON.stringify({ ...result, checkpointPath })}\n`
-            : `RESTORE ${result.status.toUpperCase()}\n${result.completedActions} actions completed\n${checkpointPath}\n`,
+            ? `${JSON.stringify({ ...result, checkpointPath, parityReportPath })}\n`
+            : `RESTORE ${result.status.toUpperCase()}\n${result.completedActions} actions completed\n${checkpointPath}\n${parityReportPath}\n`,
         );
         return 0;
       }
