@@ -46,25 +46,39 @@ function defaultEquals<TSnapshot>(
   return canonicalJson(before) === canonicalJson(after);
 }
 
-async function cleanupAfterDrift<TResult>(
+function retryUnsafe(message: string): PgDumpsterError {
+  return new PgDumpsterError({
+    code: "CONSISTENCY_RETRY_UNSAFE",
+    category: "consistency",
+    message,
+    retryable: false,
+  });
+}
+
+async function cleanupCompletedCopy<TResult>(
   result: TResult,
   cleanup:
     ((result: TResult, signal?: AbortSignal) => Promise<void>) | undefined,
   signal?: AbortSignal,
 ): Promise<void> {
   if (cleanup === undefined) {
-    throw new PgDumpsterError({
-      code: "CONSISTENCY_RETRY_UNSAFE",
-      category: "consistency",
-      message:
-        "Source drift was detected but the backup adapter cannot safely remove its provisional copy before retry or failure.",
-      retryable: false,
-    });
+    throw retryUnsafe(
+      "The backup adapter cannot safely remove its provisional completed copy before retry or failure.",
+    );
   }
 
-  signal?.throwIfAborted();
-  await cleanup(result, signal);
-  signal?.throwIfAborted();
+  const cleanupSignal = signal?.aborted === true ? undefined : signal;
+  try {
+    await cleanup(result, cleanupSignal);
+  } catch (error) {
+    throw new PgDumpsterError({
+      code: "CONSISTENCY_PARTIAL_CLEANUP_FAILED",
+      category: "consistency",
+      message: "Failed to remove provisional backup artifacts.",
+      retryable: false,
+      cause: error,
+    });
+  }
 }
 
 async function cleanupAfterCopyFailure(
@@ -75,20 +89,15 @@ async function cleanupAfterCopyFailure(
 ): Promise<void> {
   if (cleanupPartial === undefined) {
     if (!required) return;
-    throw new PgDumpsterError({
-      code: "CONSISTENCY_RETRY_UNSAFE",
-      category: "consistency",
-      message:
-        "Source drift interrupted the copy but the backup adapter cannot safely remove partial artifacts before retry.",
-      retryable: false,
-    });
+    throw retryUnsafe(
+      "Source drift interrupted the copy but the backup adapter cannot safely remove partial artifacts before retry.",
+    );
   }
 
   const cleanupSignal = signal?.aborted === true ? undefined : signal;
   try {
     await cleanupPartial(cleanupSignal);
   } catch (error) {
-    if (signal?.aborted === true) signal.throwIfAborted();
     throw new PgDumpsterError({
       code: "CONSISTENCY_PARTIAL_CLEANUP_FAILED",
       category: "consistency",
@@ -126,18 +135,39 @@ function stabilizationError(
   });
 }
 
+function driftAction(
+  mode: ConsistencyMode,
+  attempt: number,
+  maxRetries: number,
+): "retry" | "best-effort" {
+  if (mode === "best-effort") return "best-effort";
+  if (mode === "quiesced") throw quiescedDriftError(attempt);
+  if (attempt > maxRetries) throw stabilizationError(attempt, maxRetries);
+  return "retry";
+}
+
 export async function runConsistentCopy<TSnapshot, TResult>(
   options: ConsistencyRunOptions<TSnapshot, TResult>,
 ): Promise<ConsistencyRunResult<TResult>> {
   validateRetryCount(options.maxRetries);
 
   const equals = options.equals ?? defaultEquals;
+  const isDriftError = options.isDriftError ?? (() => false);
   let driftDetected = false;
 
   for (let attempt = 1; attempt <= options.maxRetries + 1; attempt += 1) {
     options.signal?.throwIfAborted();
 
-    const before = await options.snapshot(options.signal);
+    let before: TSnapshot;
+    try {
+      before = await options.snapshot(options.signal);
+    } catch (error) {
+      if (options.signal?.aborted === true) options.signal.throwIfAborted();
+      if (!isDriftError(error) || options.mode === "best-effort") throw error;
+      driftDetected = true;
+      driftAction(options.mode, attempt, options.maxRetries);
+      continue;
+    }
 
     options.signal?.throwIfAborted();
 
@@ -145,7 +175,7 @@ export async function runConsistentCopy<TSnapshot, TResult>(
     try {
       result = await options.copy(attempt, options.signal);
     } catch (error) {
-      const driftError = options.isDriftError?.(error) === true;
+      const driftError = isDriftError(error);
       await cleanupAfterCopyFailure(
         options.cleanupPartial,
         options.signal,
@@ -155,18 +185,42 @@ export async function runConsistentCopy<TSnapshot, TResult>(
       if (!driftError || options.mode === "best-effort") throw error;
 
       driftDetected = true;
-      if (options.mode === "quiesced") throw quiescedDriftError(attempt);
-      if (attempt > options.maxRetries) {
-        throw stabilizationError(attempt, options.maxRetries);
-      }
+      driftAction(options.mode, attempt, options.maxRetries);
       continue;
     }
 
-    options.signal?.throwIfAborted();
+    if (options.signal?.aborted === true) {
+      await cleanupCompletedCopy(result, options.cleanup, options.signal);
+      options.signal.throwIfAborted();
+    }
 
-    const after = await options.snapshot(options.signal);
+    let after: TSnapshot;
+    try {
+      after = await options.snapshot(options.signal);
+    } catch (error) {
+      const driftError = isDriftError(error);
+      if (driftError && options.mode === "best-effort") {
+        return {
+          result,
+          attempts: attempt,
+          driftDetected: true,
+          stable: false,
+        };
+      }
 
-    options.signal?.throwIfAborted();
+      await cleanupCompletedCopy(result, options.cleanup, options.signal);
+      if (options.signal?.aborted === true) options.signal.throwIfAborted();
+      if (!driftError) throw error;
+
+      driftDetected = true;
+      driftAction(options.mode, attempt, options.maxRetries);
+      continue;
+    }
+
+    if (options.signal?.aborted === true) {
+      await cleanupCompletedCopy(result, options.cleanup, options.signal);
+      options.signal.throwIfAborted();
+    }
 
     if (equals(before, after)) {
       return {
@@ -188,13 +242,8 @@ export async function runConsistentCopy<TSnapshot, TResult>(
       };
     }
 
-    await cleanupAfterDrift(result, options.cleanup, options.signal);
-
-    if (options.mode === "quiesced") throw quiescedDriftError(attempt);
-
-    if (attempt > options.maxRetries) {
-      throw stabilizationError(attempt, options.maxRetries);
-    }
+    await cleanupCompletedCopy(result, options.cleanup, options.signal);
+    driftAction(options.mode, attempt, options.maxRetries);
   }
 
   throw new PgDumpsterError({
