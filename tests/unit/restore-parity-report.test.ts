@@ -177,7 +177,9 @@ function cliArtifactPaths(id: string): {
 
 async function removeGeneratedRestoreFiles(): Promise<void> {
   await Promise.all(
-    generatedRestoreFiles.splice(0).map((filename) => rm(filename, { force: true })),
+    generatedRestoreFiles
+      .splice(0)
+      .map((filename) => rm(filename, { force: true })),
   );
 }
 
@@ -257,7 +259,9 @@ describe("restore parity report", () => {
       now: () => completedAt,
     });
     const report = createRestoreParityReport(value, result);
-    const directory = await mkdtemp(path.join(tmpdir(), "pgdumpster-parity-write-"));
+    const directory = await mkdtemp(
+      path.join(tmpdir(), "pgdumpster-parity-write-"),
+    );
     temporaryDirectories.push(directory);
     const filename = path.join(directory, "restore.parity.json");
 
@@ -365,7 +369,9 @@ describe("restore parity report", () => {
       }).success,
     ).toBe(false);
 
-    const directory = await mkdtemp(path.join(tmpdir(), "pgdumpster-parity-invalid-"));
+    const directory = await mkdtemp(
+      path.join(tmpdir(), "pgdumpster-parity-invalid-"),
+    );
     temporaryDirectories.push(directory);
     const filename = path.join(directory, "invalid.parity.json");
     await expect(
