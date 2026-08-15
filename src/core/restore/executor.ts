@@ -40,22 +40,40 @@ export interface ExecuteRestoreOptions {
   now?: () => string;
 }
 
+export type RestoreVerificationMethod =
+  | "applied_and_verified"
+  | "resume_reverified"
+  | "resume_recovered";
+
+export interface RestoreActionEvidence {
+  id: string;
+  component: string;
+  planStatus: Extract<
+    RestoreAction["status"],
+    "planned" | "skipped" | "blocked_platform_limit"
+  >;
+  sourceStatus: RestoreAction["sourceStatus"];
+  declaredFidelity: RestoreAction["fidelity"];
+  outcome: "verified" | "skipped" | "platform_limit";
+  verification?: RestoreVerificationMethod | undefined;
+  reasonCode?: string | undefined;
+}
+
 export interface RestoreExecutionResult {
   status: "restored" | "restored_with_platform_limits";
   planId: string;
+  planSha256: string;
+  backupOperationId: string;
+  sourceProjectRef: string;
+  targetProjectRef: string;
+  completedAt: string;
   completedActions: number;
   skippedActions: number;
   manualActions: RestorePlan["manualActions"];
-  actionEvidence: {
-    id: string;
-    component: string;
-    fidelity: RestoreAction["fidelity"];
-    status: "verified" | "skipped";
-    fingerprint?: string | undefined;
-  }[];
+  actionEvidence: RestoreActionEvidence[];
 }
 
-function planSha256(plan: RestorePlan): string {
+export function restorePlanSha256(plan: RestorePlan): string {
   return createHash("sha256").update(canonicalJson(plan)).digest("hex");
 }
 
@@ -132,6 +150,23 @@ export function validatePlanForExecution(
   for (const action of plan.actions) visit(action.id);
 }
 
+function validateSuccessfulActionStatuses(plan: RestorePlan): void {
+  const blocked = plan.actions.find(
+    ({ status }) =>
+      status === "blocked_by_policy" || status === "blocked_source_failure",
+  );
+  if (blocked !== undefined) {
+    throw new PgDumpsterError({
+      code: "RESTORE_PLAN_INVALID",
+      category: "restore_policy",
+      message:
+        "A non-blocked restore plan contains an action that cannot produce successful restore evidence.",
+      retryable: false,
+      component: blocked.component,
+    });
+  }
+}
+
 function dependenciesSatisfied(
   action: RestoreAction,
   checkpoint: RestoreCheckpoint,
@@ -139,6 +174,75 @@ function dependenciesSatisfied(
   return action.dependsOn.every((id) => {
     const dependency = checkpoint.actions.find((entry) => entry.id === id)!;
     return dependency.status === "completed" || dependency.status === "skipped";
+  });
+}
+
+function finalRestoreStatus(
+  plan: RestorePlan,
+): RestoreExecutionResult["status"] {
+  return plan.manualActions.length > 0 ||
+    plan.actions.some(({ status }) => status === "blocked_platform_limit")
+    ? "restored_with_platform_limits"
+    : "restored";
+}
+
+function actionEvidence(
+  plan: RestorePlan,
+  checkpoint: RestoreCheckpoint,
+  verificationMethods: ReadonlyMap<string, RestoreVerificationMethod>,
+): RestoreActionEvidence[] {
+  return plan.actions.map((action) => {
+    const base = {
+      id: action.id,
+      component: action.component,
+      sourceStatus: action.sourceStatus,
+      declaredFidelity: action.fidelity,
+      ...(action.reasonCode === undefined
+        ? {}
+        : { reasonCode: action.reasonCode }),
+    };
+    if (action.status === "planned") {
+      const saved = checkpoint.actions.find(({ id }) => id === action.id)!;
+      const verification = verificationMethods.get(action.id);
+      if (saved.status !== "completed" || verification === undefined) {
+        throw new PgDumpsterError({
+          code: "RESTORE_PARITY_EVIDENCE_INVALID",
+          category: "consistency",
+          message:
+            "A planned restore action is missing completed verification evidence.",
+          retryable: false,
+          component: action.component,
+        });
+      }
+      return {
+        ...base,
+        planStatus: "planned" as const,
+        outcome: "verified" as const,
+        verification,
+      };
+    }
+    if (action.status === "skipped") {
+      return {
+        ...base,
+        planStatus: "skipped" as const,
+        outcome: "skipped" as const,
+      };
+    }
+    if (action.status === "blocked_platform_limit") {
+      return {
+        ...base,
+        planStatus: "blocked_platform_limit" as const,
+        outcome: "platform_limit" as const,
+      };
+    }
+    throw new PgDumpsterError({
+      code: "RESTORE_PARITY_EVIDENCE_INVALID",
+      category: "consistency",
+      message:
+        "A successful restore result contains an unsupported action status.",
+      retryable: false,
+      component: action.component,
+    });
   });
 }
 
@@ -156,8 +260,10 @@ export async function executeRestore(
     });
   }
   validatePlanForExecution(plan, options.handlers);
-  const immutablePlanSha256 = planSha256(plan);
+  validateSuccessfulActionStatuses(plan);
+  const immutablePlanSha256 = restorePlanSha256(plan);
   const now = options.now ?? (() => new Date().toISOString());
+  const verificationMethods = new Map<string, RestoreVerificationMethod>();
   let checkpoint = options.resume
     ? await loadRestoreCheckpoint(options.checkpointPath, {
         planId: plan.planId,
@@ -209,6 +315,7 @@ export async function executeRestore(
           component: action.component,
         });
       }
+      verificationMethods.set(action.id, "resume_reverified");
       continue;
     }
     if (
@@ -230,6 +337,7 @@ export async function executeRestore(
           checkpoint,
           options.signal,
         );
+        verificationMethods.set(action.id, "resume_recovered");
         continue;
       }
     }
@@ -290,6 +398,7 @@ export async function executeRestore(
         checkpoint,
         options.signal,
       );
+      verificationMethods.set(action.id, "applied_and_verified");
     } catch (error) {
       checkpoint = transitionRestoreAction(checkpoint, {
         id: action.id,
@@ -301,30 +410,21 @@ export async function executeRestore(
       throw error;
     }
   }
+
+  const evidence = actionEvidence(plan, checkpoint, verificationMethods);
   return {
-    status:
-      plan.manualActions.length === 0
-        ? "restored"
-        : "restored_with_platform_limits",
+    status: finalRestoreStatus(plan),
     planId: plan.planId,
-    completedActions: checkpoint.actions.filter(
-      ({ status }) => status === "completed",
-    ).length,
-    skippedActions: checkpoint.actions.filter(
-      ({ status }) => status === "skipped",
-    ).length,
+    planSha256: immutablePlanSha256,
+    backupOperationId: plan.source.backupOperationId,
+    sourceProjectRef: plan.source.projectRef,
+    targetProjectRef: plan.target.projectRef,
+    completedAt: now(),
+    completedActions: evidence.filter(({ outcome }) => outcome === "verified")
+      .length,
+    skippedActions: evidence.filter(({ outcome }) => outcome === "skipped")
+      .length,
     manualActions: plan.manualActions,
-    actionEvidence: plan.actions.map((action) => {
-      const saved = checkpoint.actions.find(({ id }) => id === action.id)!;
-      return {
-        id: action.id,
-        component: action.component,
-        fidelity: action.fidelity,
-        status: saved.status === "completed" ? "verified" : "skipped",
-        ...(saved.fingerprint === undefined
-          ? {}
-          : { fingerprint: saved.fingerprint }),
-      };
-    }),
+    actionEvidence: evidence,
   };
 }
