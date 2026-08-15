@@ -64,7 +64,9 @@ function invalidSnapshotArtifact(
   });
 }
 
-function normalizedFunctionIndex(value: Readonly<Record<string, unknown>>): unknown {
+function normalizedFunctionIndex(
+  value: Readonly<Record<string, unknown>>,
+): unknown {
   const functions = value["functions"];
   if (!Array.isArray(functions)) {
     throw invalidSnapshotArtifact(
@@ -227,10 +229,7 @@ async function collectEdgeConsistencySnapshot(
   }
 }
 
-function edgeArtifactTarget(
-  workspaceRoot: string,
-  artifact: string,
-): string {
+function edgeArtifactTarget(workspaceRoot: string, artifact: string): string {
   assertSafeBundlePath(artifact);
   if (
     artifact !== FUNCTION_INDEX_ARTIFACT &&
