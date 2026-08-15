@@ -161,6 +161,34 @@ describe("restore plan branch margin", () => {
     ).toContain("analytics_export_unavailable");
   });
 
+  it("turns metadata-only Analytics capture into an explicit manual limit", async () => {
+    const { manifest, coverage } = await source();
+    const catalog = component(coverage, "storage.analytics_catalog");
+    catalog.status = "backed_up";
+    catalog.artifacts = ["storage/analytics-buckets.json"];
+    catalog.reasonCode = "analytics_s3_data_export_required";
+    catalog.sourceContract = {
+      restoreFidelity: "not_identically_restorable",
+    };
+    const data = component(coverage, "storage.analytics_data");
+    data.status = "not_exportable";
+    data.reasonCode = "analytics_s3_data_export_required";
+
+    const plan = await buildRestorePlan(manifest, coverage, options);
+
+    expect(
+      plan.actions.find(
+        ({ component: id }) => id === "storage.analytics_catalog",
+      ),
+    ).toMatchObject({
+      status: "blocked_platform_limit",
+      reasonCode: "analytics_s3_data_export_required",
+    });
+    expect(
+      plan.actions.find(({ component: id }) => id === "storage.analytics_data"),
+    ).toMatchObject({ status: "blocked_platform_limit" });
+  });
+
   it("returns ready when all source state is either planned or safely skipped", async () => {
     const { manifest, coverage } = await source();
     const extensions = component(coverage, "database.extensions");

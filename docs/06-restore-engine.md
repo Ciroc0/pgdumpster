@@ -13,8 +13,10 @@ As of 2026-08-15:
 - restore checkpoints and a resumable executor exist in core modules;
 - database, control-plane, publication and Vault root-key handlers exist with semantic verification behavior;
 - conflict and billable-resource policy are represented in the plan;
-- the CLI exposes `--dry-run`;
-- CLI `--apply` is intentionally blocked with `RESTORE_APPLY_NOT_IMPLEMENTED` until target preflight, all required handlers/substitutions, final parity reporting and hosted source-to-target validation are complete.
+- the CLI exposes `--dry-run` and guarded `--apply`;
+- `--apply` executes only from a verified bundle root, rejects unsupported planned components and unsafe/missing planned artifacts before creating a checkpoint or mutating the target, and uses the checkpointed executor for supported actions.
+
+This is not a release-completeness claim. Final parity reporting and the required hosted source-to-target validation remain incomplete.
 
 The remaining sections describe the **binding target restore contract**. They are not a claim that `--apply` is currently usable.
 

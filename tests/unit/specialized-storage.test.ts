@@ -228,10 +228,15 @@ describe("specialized Storage capture", () => {
       protectedSink,
     );
     expect(result.coverage.slice(3)).toMatchObject([
-      { id: "storage.analytics_catalog", status: "backed_up" },
+      {
+        id: "storage.analytics_catalog",
+        status: "backed_up",
+        reasonCode: "analytics_s3_data_export_required",
+        sourceContract: { restoreFidelity: "not_identically_restorable" },
+      },
       {
         id: "storage.analytics_data",
-        status: "failed",
+        status: "not_exportable",
         reasonCode: "analytics_s3_data_export_required",
       },
     ]);

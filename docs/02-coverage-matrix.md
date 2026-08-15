@@ -72,17 +72,17 @@ pgDumpster must:
 
 ## Storage
 
-| ID                          | Surface                       | Source                                | Restore                       | Fidelity / rule                                |
-| --------------------------- | ----------------------------- | ------------------------------------- | ----------------------------- | ---------------------------------------------- |
-| `storage.service_config`    | Storage service config        | Management API                        | Management API                | Semantic                                       |
-| `storage.file_buckets`      | File bucket config            | Storage/Management API                | Storage API                   | Semantic                                       |
-| `storage.file_objects`      | actual object bytes           | Storage data plane/S3-compatible path | streaming upload              | Byte-exact SHA-256                             |
-| `storage.file_metadata`     | object metadata               | Storage API/read-only DB metadata     | upload + compare              | Semantic; platform IDs may change              |
-| `storage.vector_buckets`    | Vector buckets                | current Vector API/SDK                | current API                   | Capability detected                            |
-| `storage.vector_indexes`    | Vector index schema           | current Vector API/SDK                | current API                   | dimensions/distance/type                       |
-| `storage.vectors`           | vectors + metadata            | paginated current API                 | batched put                   | All records must be enumerated                 |
-| `storage.analytics_catalog` | Analytics/Iceberg catalog     | current Analytics API/catalog         | current API                   | Capability detected                            |
-| `storage.analytics_data`    | actual Analytics/Iceberg data | complete current export path          | complete current restore path | Metadata-only is never called full data backup |
+| ID                          | Surface                       | Source                                | Restore                        | Fidelity / rule                                                                    |
+| --------------------------- | ----------------------------- | ------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------- |
+| `storage.service_config`    | Storage service config        | Management API                        | Management API                 | Semantic                                                                           |
+| `storage.file_buckets`      | File bucket config            | Storage/Management API                | Storage API                    | Semantic                                                                           |
+| `storage.file_objects`      | actual object bytes           | Storage data plane/S3-compatible path | streaming upload               | Byte-exact SHA-256                                                                 |
+| `storage.file_metadata`     | object metadata               | Storage API/read-only DB metadata     | upload + compare               | Semantic; platform IDs may change                                                  |
+| `storage.vector_buckets`    | Vector buckets                | current Vector API/SDK                | current API                    | Capability detected                                                                |
+| `storage.vector_indexes`    | Vector index schema           | current Vector API/SDK                | current API                    | dimensions/distance/type                                                           |
+| `storage.vectors`           | vectors + metadata            | paginated current API                 | batched put                    | All records must be enumerated                                                     |
+| `storage.analytics_catalog` | Analytics/Iceberg catalog     | current Analytics API/catalog         | manual until data plane exists | Captured metadata is not semantically restorable without its referenced table data |
+| `storage.analytics_data`    | actual Analytics/Iceberg data | complete current export path          | complete current restore path  | Metadata-only is never called full data backup                                     |
 
 ## Service/control plane
 

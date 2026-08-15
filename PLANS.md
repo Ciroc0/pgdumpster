@@ -148,6 +148,12 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Verified-input checksum enforcement rejects a removed declared artifact even earlier as `BUNDLE_INCOMPLETE`; the executor is not invoked and diagnostics remain redacted.
 - Local result: **110 test files / 690 tests, PASS**. Global coverage: **94.67% statements / 90.01% branches / 92.45% functions / 95.73% lines**; all 90% global thresholds: **PASS**.
 
+### 2026-08-15 — Analytics restore-fidelity checkpoint
+
+- The current official Analytics/Iceberg surface is alpha and requires separate S3 credentials for table data. pgDumpster captures catalog metadata but cannot export the referenced data plane.
+- Metadata-only Analytics capture now yields explicit `not_exportable` data and `not_identically_restorable` catalog fidelity, so restore reports manual platform limits instead of failing with a missing handler.
+- `docs/06-restore-engine.md` was reconciled with the implemented guarded `restore --apply` behavior; it continues to state that final semantic parity and hosted E2E are pending.
+
 ### 2026-08-15 — Auth provider restore checkpoint
 
 - Refreshed the dated official Auth contract snapshot with the current SSO-provider and Third-party Auth mutation contracts.

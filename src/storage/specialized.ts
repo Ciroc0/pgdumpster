@@ -155,6 +155,10 @@ const ANALYTICS_SOURCE = {
     "https://supabase.com/docs/guides/storage/analytics/connecting-to-analytics-bucket",
   stability: "alpha",
 } as const;
+const ANALYTICS_RESTORE_LIMIT = {
+  ...ANALYTICS_SOURCE,
+  restoreFidelity: "not_identically_restorable",
+} as const;
 
 function stableId(...parts: string[]): string {
   return createHash("sha256").update(parts.join("\0")).digest("hex");
@@ -504,9 +508,17 @@ async function captureAnalytics(
     {
       id: "storage.analytics_catalog",
       status: buckets.length === 0 ? "not_configured" : "backed_up",
+      ...(buckets.length === 0
+        ? {}
+        : {
+            reasonCode: "analytics_s3_data_export_required",
+            message:
+              "Iceberg catalog metadata is captured, but its referenced table-data files are unavailable without separate S3 credentials; automatic semantic restore is therefore not possible.",
+          }),
       sensitivity: "sensitive",
       artifacts: catalogArtifacts,
-      sourceContract: ANALYTICS_SOURCE,
+      sourceContract:
+        buckets.length === 0 ? ANALYTICS_SOURCE : ANALYTICS_RESTORE_LIMIT,
     },
     buckets.length === 0
       ? {
@@ -518,7 +530,7 @@ async function captureAnalytics(
         }
       : {
           id: "storage.analytics_data",
-          status: "failed",
+          status: "not_exportable",
           reasonCode: "analytics_s3_data_export_required",
           sensitivity: "secret",
           artifacts: [],
