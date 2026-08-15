@@ -88,6 +88,11 @@ export interface BackupExecutionResult {
   coverage: CoverageDocument;
 }
 
+interface ExecutedStepResult {
+  result: BackupStepResult;
+  consistencyDriftDetected: boolean;
+}
+
 function failureCode(error: unknown, signal?: AbortSignal): string {
   if (signal?.aborted === true) return "OPERATION_CANCELLED";
   const code = (error as Partial<PgDumpsterError> | undefined)?.code;
@@ -108,8 +113,14 @@ function cancellationError(signal: AbortSignal): PgDumpsterError {
 
 function consistencyResult(
   consistency: ExecuteBackupOptions["consistency"],
+  checkpoint: BackupCheckpoint,
 ): Manifest["result"]["consistency"] {
-  return consistency === "best-effort" ? "best_effort" : consistency;
+  if (consistency !== "best-effort") return consistency;
+  return checkpoint.steps.some(({ consistencyDriftDetected }) =>
+    consistencyDriftDetected,
+  )
+    ? "drift_detected"
+    : "best_effort";
 }
 
 function assertUniqueStepIds(steps: readonly BackupStep[]): void {
@@ -179,12 +190,15 @@ async function executeStep(
   step: BackupStep,
   options: ExecuteBackupOptions,
   checkpointAttempt: number,
-): Promise<BackupStepResult> {
+): Promise<ExecutedStepResult> {
   const adapter = step.consistency;
   if (adapter === undefined) {
-    return step.run(
-      stepContext(options.workspaceRoot, checkpointAttempt, options.signal),
-    );
+    return {
+      result: await step.run(
+        stepContext(options.workspaceRoot, checkpointAttempt, options.signal),
+      ),
+      consistencyDriftDetected: false,
+    };
   }
 
   const run = await runConsistentCopy({
@@ -212,7 +226,10 @@ async function executeStep(
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   });
 
-  return run.result;
+  return {
+    result: run.result,
+    consistencyDriftDetected: run.driftDetected,
+  };
 }
 
 async function checkpointForRun(
@@ -289,12 +306,12 @@ export async function executeBackup(
     );
     const attempt = checkpoint.steps.find(({ id }) => id === step.id)!.attempts;
     try {
-      const result = await executeStep(step, options, attempt);
-      const coverage = result.coverage.map((entry) =>
+      const executed = await executeStep(step, options, attempt);
+      const coverage = executed.result.coverage.map((entry) =>
         coverageEntrySchema.parse(entry),
       );
       const artifacts = await Promise.all(
-        result.artifacts.map((artifact) =>
+        executed.result.artifacts.map((artifact) =>
           describeCheckpointArtifact(
             options.workspaceRoot,
             artifact,
@@ -308,6 +325,7 @@ export async function executeBackup(
         now: now(),
         artifacts,
         coverage,
+        consistencyDriftDetected: executed.consistencyDriftDetected,
       });
       await writeBackupCheckpoint(
         options.checkpointPath,
@@ -351,7 +369,7 @@ export async function executeBackup(
     source: { projectRef: options.projectRef },
     result: {
       status: deriveBackupResult(registry, coverage.components),
-      consistency: consistencyResult(options.consistency),
+      consistency: consistencyResult(options.consistency, checkpoint),
     },
     coverageFile: "coverage.json",
     checksumFile: "checksums.sha256",
