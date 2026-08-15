@@ -163,15 +163,17 @@ async function createOfflineRestoreBundle(): Promise<string> {
 }
 
 function cliArtifactPaths(id: string): {
+  plan: string;
   checkpoint: string;
   parity: string;
 } {
   const root = path.resolve(".pgdumpster-restore");
   const files = {
+    plan: path.join(root, `${id}.plan.json`),
     checkpoint: path.join(root, `${id}.checkpoint.json`),
     parity: path.join(root, `${id}.parity.json`),
   };
-  generatedRestoreFiles.push(files.checkpoint, files.parity);
+  generatedRestoreFiles.push(files.plan, files.checkpoint, files.parity);
   return files;
 }
 
@@ -391,7 +393,7 @@ describe("restore parity report", () => {
     const cliPlanId = "33333333-3333-4333-8333-333333333333";
     const files = cliArtifactPaths(cliPlanId);
     await removeGeneratedRestoreFiles();
-    generatedRestoreFiles.push(files.checkpoint, files.parity);
+    generatedRestoreFiles.push(files.plan, files.checkpoint, files.parity);
     const stdout: string[] = [];
     const stderr: string[] = [];
     const databaseSecret =
@@ -425,11 +427,24 @@ describe("restore parity report", () => {
     ).resolves.toBe(0);
 
     const output = stdout.join("");
-    const parsed = JSON.parse(output) as { parityReportPath?: string };
+    const parsed = JSON.parse(output) as {
+      planPath?: string;
+      parityReportPath?: string;
+    };
+    expect(parsed.planPath).toBe(files.plan);
     expect(parsed.parityReportPath).toBe(files.parity);
     expect(output).not.toContain(databaseSecret);
     expect(output).not.toContain(accessToken);
     expect(stderr).toEqual([]);
+    const planText = await readFile(files.plan, "utf8");
+    expect(planText).not.toContain(databaseSecret);
+    expect(planText).not.toContain(accessToken);
+    expect(restorePlanSchema.parse(JSON.parse(planText))).toMatchObject({
+      planId: cliPlanId,
+      source: { projectRef: sourceProjectRef, backupOperationId },
+      target: { projectRef: targetProjectRef },
+      status: "ready",
+    });
     const parityText = await readFile(files.parity, "utf8");
     expect(parityText).not.toContain(databaseSecret);
     expect(parityText).not.toContain(accessToken);
@@ -449,7 +464,7 @@ describe("restore parity report", () => {
     const cliPlanId = "44444444-4444-4444-8444-444444444444";
     const files = cliArtifactPaths(cliPlanId);
     await removeGeneratedRestoreFiles();
-    generatedRestoreFiles.push(files.checkpoint, files.parity);
+    generatedRestoreFiles.push(files.plan, files.checkpoint, files.parity);
     const stdout: string[] = [];
     const stderr: string[] = [];
 

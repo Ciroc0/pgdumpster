@@ -14,7 +14,11 @@ import type {
 } from "../core/bundle/encryption.js";
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
-import { buildRestorePlan, type RestorePlan } from "../core/restore/plan.js";
+import {
+  buildRestorePlan,
+  type RestorePlan,
+  writeRestorePlan,
+} from "../core/restore/plan.js";
 import {
   requiresDatabaseRestoreCredential,
   requiresManagementRestoreCredential,
@@ -873,6 +877,11 @@ export async function runCli(
               recursive: true,
               mode: 0o700,
             });
+          const planPath = path.join(
+            path.dirname(checkpointPath),
+            `${plan.planId}.plan.json`,
+          );
+          await writeRestorePlan(planPath, plan);
           const result = await (context.restoreExecutor ?? executeRestore)({
             plan,
             checkpointPath,
@@ -887,7 +896,7 @@ export async function runCli(
             parityReportPath,
             createRestoreParityReport(plan, result),
           );
-          return { plan, result, checkpointPath, parityReportPath };
+          return { plan, result, planPath, checkpointPath, parityReportPath };
         },
         {
           environment,
@@ -900,11 +909,11 @@ export async function runCli(
         },
       );
       if (outcome.result !== undefined) {
-        const { result, checkpointPath, parityReportPath } = outcome;
+        const { result, planPath, checkpointPath, parityReportPath } = outcome;
         io.stdout(
           json
-            ? `${JSON.stringify({ ...result, checkpointPath, parityReportPath })}\n`
-            : `RESTORE ${result.status.toUpperCase()}\n${result.completedActions} actions completed\n${checkpointPath}\n${parityReportPath}\n`,
+            ? `${JSON.stringify({ ...result, planPath, checkpointPath, parityReportPath })}\n`
+            : `RESTORE ${result.status.toUpperCase()}\n${result.completedActions} actions completed\n${planPath}\n${checkpointPath}\n${parityReportPath}\n`,
         );
         return 0;
       }

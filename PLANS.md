@@ -143,6 +143,11 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ## Validation log
 
+### 2026-08-16 — immutable restore-plan evidence
+
+- `restore --apply` now atomically writes the runtime-validated immutable plan as a `0600` record beside the checkpoint before executor mutation. Machine and human results return that path together with checkpoint and parity-report paths.
+- CLI regression validates the persisted plan identity and verifies that database and Management secrets are absent from both plan and parity records. Focused local validation: **2 test files / 13 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 710 tests, PASS**. Global coverage: **94.64% statements / 90.08% branches / 92.50% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
+
 ### 2026-08-16 — planned credential-minimization boundary
 
 - The restore capability registry now declares automatic components requiring target database and Management credentials, alongside the existing privileged Storage credential subset. The CLI derives all three requirements from planned actions and only constructs their corresponding handlers when the credential is necessary.

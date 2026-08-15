@@ -3,6 +3,8 @@ import { z } from "zod";
 import type { CoverageDocument, Manifest } from "../bundle/schemas.js";
 import { loadCoverageRegistry } from "../coverage/registry.js";
 import { PgDumpsterError } from "../errors/error.js";
+import { writeFileAtomic } from "../../utils/atomic-file.js";
+import { canonicalJson } from "../../utils/canonical-json.js";
 import { supportsAutomaticRestore } from "./capabilities.js";
 
 const projectRefSchema = z.string().regex(/^[a-z0-9]{20}$/u);
@@ -78,6 +80,21 @@ export const restorePlanSchema = z
 
 export type RestorePlan = z.infer<typeof restorePlanSchema>;
 export type RestoreAction = z.infer<typeof restoreActionSchema>;
+
+export async function writeRestorePlan(
+  filename: string,
+  plan: unknown,
+  signal?: AbortSignal,
+): Promise<void> {
+  await writeFileAtomic(
+    filename,
+    canonicalJson(restorePlanSchema.parse(plan)),
+    {
+      mode: 0o600,
+      ...(signal === undefined ? {} : { signal }),
+    },
+  );
+}
 
 export interface BuildRestorePlanOptions {
   planId: string;
