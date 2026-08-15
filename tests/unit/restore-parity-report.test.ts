@@ -280,7 +280,13 @@ describe("restore parity report", () => {
     value.status = "ready";
     value.source.backupResult = "complete";
     const filename = await checkpointPath("pgdumpster-parity-resume-");
-    const actionHandler = handler("a".repeat(64));
+    const apply = vi.fn(() =>
+      Promise.resolve({ fingerprint: "a".repeat(64) }),
+    );
+    const actionHandler: RestoreActionHandler = {
+      apply,
+      verify: vi.fn(() => Promise.resolve(true)),
+    };
 
     await executeRestore({
       plan: value,
@@ -296,7 +302,7 @@ describe("restore parity report", () => {
       now: () => "2026-08-15T21:05:00.000Z",
     });
 
-    expect(actionHandler.apply).toHaveBeenCalledOnce();
+    expect(apply).toHaveBeenCalledOnce();
     expect(resumed.actionEvidence).toEqual([
       expect.objectContaining({
         outcome: "verified",
