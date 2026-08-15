@@ -2,19 +2,19 @@
 
 This document is a **status snapshot**, not a replacement for the binding product requirements. When it conflicts with a higher-priority specification, the specification wins and the difference is a remaining implementation task.
 
-Snapshot date: **2026-08-15**.
+Snapshot date: **2026-08-16**.
 
 ## Validation summary
 
-Latest complete local validation after the consistency/resume, coverage-hardening and standard `age` encryption slices:
+Latest complete local validation after restore-control-plane, credential-minimization and immutable-plan evidence slices:
 
 - `pnpm check`: **PASS**;
-- test files: **92 passed**;
-- tests: **541 passed**;
-- statements: **94.45%**;
-- branches: **90.51%**;
-- functions: **91.89%**;
-- lines: **95.64%**.
+- test files: **113 passed**;
+- tests: **710 passed**;
+- statements: **94.66%**;
+- branches: **90.11%**;
+- functions: **92.50%**;
+- lines: **95.68%**.
 
 All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.
 
@@ -68,7 +68,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Secret protection**: standard `age` encryption is implemented for local backup publication. Non-encrypted secret-bearing backups still require explicit `--allow-plaintext-secrets`.
 - **Encrypted input**: `.tar.zst.age` is supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`. pgDumpster never needs the private key value as a CLI argument.
 - **Destination**: local and configured S3-compatible destinations are exposed. S3 uses resumable multipart publication, writes a completion marker last and independently verifies the referenced remote object; live provider interoperability remains unverified.
-- **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. The CLI executes only from a verified bundle root and validates all planned handlers and every planned artifact before creating a checkpoint or mutating the target. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It still fails closed for any unimplemented planned component; full final parity reporting remains pending.
+- **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. A blocked plan is rejected before target credential/resource discovery; executable plans derive database, Management and privileged Storage credential needs from planned automatic capabilities. The CLI validates all planned handlers and artifacts, then atomically persists the immutable plan, checkpoint and final parity report with restrictive permissions around mutation. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It fails closed for any unimplemented planned component.
 - **Hosted E2E**: partial live observations exist, but the dedicated source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure has not passed yet.
 - **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
 - **Release**: normal CI exists. Remaining live-E2E, SBOM, provenance, package-smoke and final release gates are still required.
@@ -132,9 +132,8 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. wire S3-compatible destination publication/recovery semantics;
-2. wire the existing restore executor/handlers through `restore --apply` and finish protected substitutions/parity reporting;
-3. seed/reset the dedicated hosted source/target fixtures and run the full live E2E;
+1. provision/reset dedicated hosted source/target fixtures and a configured S3-compatible provider, then run the full live E2E and provider-interoperability validation;
+2. resolve any live E2E gaps without weakening capability, integrity or coverage gates;
 4. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
 5. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
 
