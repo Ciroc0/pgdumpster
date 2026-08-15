@@ -148,10 +148,12 @@ describe("backup output publication", () => {
     await expect(access(`${workspaceRoot}.tar.zst`)).rejects.toThrow();
   });
 
-  it("reuses an existing remote transport during resume instead of re-encrypting", async () => {
+  it("reuses an existing remote transport during resume when multipart state binds it", async () => {
     const { workspaceRoot, checkpointPath } = await fixture();
     const transport = `${workspaceRoot}.tar.zst.age`;
+    const statePath = `${workspaceRoot}.s3-upload.json`;
     await writeFile(transport, "existing encrypted transport");
+    await writeFile(statePath, "resume state");
     const archivePacker = vi.fn<typeof packBundle>();
     const ageEncryptor = vi.fn<typeof encryptArchiveWithAge>();
     const s3Publisher = vi.fn<typeof publishS3Backup>(
@@ -159,6 +161,7 @@ describe("backup output publication", () => {
         expect(await readFile(localFile, "utf8")).toBe(
           "existing encrypted transport",
         );
+        expect(options.statePath).toBe(statePath);
         return {
           locator: `s3://bucket/${options.runId}/`,
           objectUri: `s3://bucket/${options.runId}/${path.basename(localFile)}`,
@@ -182,6 +185,50 @@ describe("backup output publication", () => {
 
     expect(archivePacker).not.toHaveBeenCalled();
     expect(ageEncryptor).not.toHaveBeenCalled();
+    expect(s3Publisher).toHaveBeenCalledOnce();
+  });
+
+  it("regenerates an orphaned transport during resume when multipart state is absent", async () => {
+    const { workspaceRoot, checkpointPath } = await fixture();
+    const transport = `${workspaceRoot}.tar.zst.age`;
+    await writeFile(transport, "orphaned transport");
+    const archivePacker = vi.fn<typeof packBundle>(async (_root, output) => {
+      await writeFile(output, "fresh archive");
+    });
+    const ageEncryptor = vi.fn<typeof encryptArchiveWithAge>(
+      async (input, output) => {
+        expect(await readFile(input, "utf8")).toBe("fresh archive");
+        await writeFile(output, "fresh encrypted transport");
+      },
+    );
+    const s3Publisher = vi.fn<typeof publishS3Backup>(
+      async (localFile, _config, options) => {
+        expect(await readFile(localFile, "utf8")).toBe(
+          "fresh encrypted transport",
+        );
+        return {
+          locator: `s3://bucket/${options.runId}/`,
+          objectUri: `s3://bucket/${options.runId}/${path.basename(localFile)}`,
+          markerUri: `s3://bucket/${options.runId}/COMPLETE.json`,
+          size: 25,
+          sha256: "3".repeat(64),
+          recovered: false,
+        };
+      },
+    );
+
+    await publishBackupOutput({
+      ...baseOptions(workspaceRoot, checkpointPath),
+      resume: true,
+      destination: { type: "s3", bucket: "bucket" },
+      encryption: { mode: "age", recipient },
+      archivePacker,
+      ageEncryptor,
+      s3Publisher,
+    });
+
+    expect(archivePacker).toHaveBeenCalledOnce();
+    expect(ageEncryptor).toHaveBeenCalledOnce();
     expect(s3Publisher).toHaveBeenCalledOnce();
   });
 

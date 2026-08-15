@@ -88,7 +88,10 @@ export async function publishBackupOutput(
   }
 
   const reuseRemoteTransport =
-    remote && options.resume && (await regularFileExists(transportPath));
+    remote &&
+    options.resume &&
+    (await regularFileExists(transportPath)) &&
+    (await regularFileExists(statePath));
   if (!reuseRemoteTransport) {
     if (remote && options.resume) {
       await rm(archivePath, { force: true });
