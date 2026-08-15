@@ -22,6 +22,13 @@ import type { publishS3Backup } from "../../src/destination/s3.js";
 
 const temporaryDirectories: string[] = [];
 const recipient = `age1${"q".repeat(58)}`;
+const s3Destination = {
+  type: "s3" as const,
+  bucket: "bucket",
+  forcePathStyle: false,
+  partSizeMiB: 64,
+  maxConcurrency: 4,
+};
 
 async function fixture(): Promise<{
   directory: string;
@@ -88,7 +95,7 @@ describe("backup output publication", () => {
 
     const result = await publishBackupOutput({
       ...baseOptions(workspaceRoot, checkpointPath),
-      destination: { type: "s3", bucket: "bucket" },
+      destination: s3Destination,
       encryption: { mode: "age", recipient },
       archivePacker,
       ageEncryptor,
@@ -132,7 +139,7 @@ describe("backup output publication", () => {
     await expect(
       publishBackupOutput({
         ...baseOptions(workspaceRoot, checkpointPath),
-        destination: { type: "s3", bucket: "bucket" },
+        destination: s3Destination,
         encryption: { mode: "age", recipient },
         archivePacker,
         ageEncryptor,
@@ -176,7 +183,7 @@ describe("backup output publication", () => {
     await publishBackupOutput({
       ...baseOptions(workspaceRoot, checkpointPath),
       resume: true,
-      destination: { type: "s3", bucket: "bucket" },
+      destination: s3Destination,
       encryption: { mode: "age", recipient },
       archivePacker,
       ageEncryptor,
@@ -220,7 +227,7 @@ describe("backup output publication", () => {
     await publishBackupOutput({
       ...baseOptions(workspaceRoot, checkpointPath),
       resume: true,
-      destination: { type: "s3", bucket: "bucket" },
+      destination: s3Destination,
       encryption: { mode: "age", recipient },
       archivePacker,
       ageEncryptor,
@@ -254,7 +261,7 @@ describe("backup output publication", () => {
 
     const result = await publishBackupOutput({
       ...baseOptions(workspaceRoot, checkpointPath),
-      destination: { type: "s3", bucket: "bucket" },
+      destination: s3Destination,
       encryption: { mode: "none" },
       archivePacker,
       s3Publisher,
