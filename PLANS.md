@@ -12,22 +12,26 @@ Build the production-ready pgDumpster CLI described by the binding repository sp
 
 **Release convergence — encrypted publication, restore apply/parity, hosted recovery proof and release hardening.**
 
-The broad capture/restore architecture and the cross-service consistency layer now exist. Remaining work is concentrated in standard `age` encryption, S3 publication, CLI restore-apply/parity wiring, full hosted E2E and release/security hardening.
+The broad capture/restore architecture, cross-service consistency layer and standard local `age` encryption path now exist. Remaining work is concentrated in S3 publication, CLI restore-apply/parity wiring, full hosted E2E and release/security hardening.
 
 ## Current evidence
 
-Latest complete local gate on 2026-08-15 after the consistency/resume and coverage-hardening slices:
+Latest complete local gate on 2026-08-15 after the consistency/resume, coverage-hardening and standard `age` encryption slices:
 
 - `pnpm check`: **PASS**;
-- **88 test files / 525 tests: PASS**;
-- global coverage: **94.47% statements / 90.74% branches / 92.05% functions / 95.64% lines**;
+- **92 test files / 541 tests: PASS**;
+- global coverage: **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**;
 - all independent 90% global thresholds: **PASS**;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
 - default `verified`, explicit `quiesced`, and `best-effort` consistency are accepted by the backup CLI;
 - best-effort drift is preserved as `drift_detected`, including across resume;
 - verified/quiesced drift handling is covered at pre-snapshot, copy and post-snapshot phases;
 - interrupted-step resume cleanup and symlink-safe cleanup are covered;
-- atomic writer `.partial-<uuid>` leftovers are fail-safe during finalization.
+- atomic writer `.partial-<uuid>` leftovers are fail-safe during finalization;
+- standard `age` encryption/decryption is implemented through a shell-free subprocess wrapper;
+- encrypted backup publication produces `.tar.zst.age` and cleans normal plaintext archive/workspace output;
+- inspect/coverage/verify and restore dry-run accept `.tar.zst.age` with a configured identity-file reference;
+- Windows encrypted-output publication behavior is covered by the local test suite.
 
 GitHub Actions quota is currently exhausted for this account, so remote CI cannot provide a meaningful new branch signal until the quota resets. Local `pnpm check` and `pnpm test:coverage` remain the active quality gates during that period. The earlier regular CI matrix passed on its validated checkpoint. CodeQL analysis previously reached SARIF generation, but result publication/status remained blocked by repository code-scanning configuration.
 
@@ -52,7 +56,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Run the regular GitHub quality/test/integration/security/OS-matrix workflow successfully on the earlier validated implementation checkpoint.
 - [x] Implement real `verified`, `best-effort` and `quiesced` cross-service consistency with concrete adapters for every product step, canonical source snapshots, copy-time drift detection, bounded verified retry, quiesced fail-fast semantics, safe provisional/partial cleanup, resume preservation and manifest drift reporting.
 - [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
-- [ ] Wire standard `age` encryption into backup publication and verification; keep plaintext secret output behind explicit opt-in.
+- [x] Wire standard `age` encryption into local backup publication and verified bundle input; keep plaintext secret output behind explicit opt-in.
 - [ ] Wire S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery.
 - [ ] Wire the existing restore executor/handlers through CLI `restore --apply`, protected replacement-key output, resume and final semantic parity report.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
@@ -66,9 +70,9 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 The CLI continues to fail closed for unfinished release behavior:
 
 - backup consistency defaults to `verified`; `verified`, `best-effort` and `quiesced` are all implemented through the product consistency layer;
+- standard local `age` encryption is implemented: `encryption.mode: age` requires `encryption.recipient`, outputs `.tar.zst.age`, and encrypted input uses configured `encryption.identityFile`;
+- non-encrypted secret-bearing backup still requires explicit `--allow-plaintext-secrets`;
 - S3 configuration → `DESTINATION_NOT_IMPLEMENTED`;
-- `age` configuration → `ENCRYPTION_NOT_IMPLEMENTED`;
-- secret-bearing plaintext backup still requires explicit `--allow-plaintext-secrets`;
 - `restore --apply` → `RESTORE_APPLY_NOT_IMPLEMENTED`.
 
 The remaining guards are release blockers, not placeholders to remove without their underlying implementations.
@@ -96,6 +100,17 @@ The goal remains active until every applicable acceptance criterion, required CI
 `verified` means every product backup step participates in the consistency contract. Mutable source state is observed before/after copy where supported, copy-time drift signals are promoted into the same policy, verified mode retries only after safe cleanup, quiesced mode fails on observable drift, and best-effort records detected drift without falsely reporting verification. Resume cleans interrupted step-owned partial artifacts before rerun and preserves earlier best-effort drift evidence.
 
 This is still an application-level cross-service stabilization contract, not a claim that Supabase exposes one atomic transaction spanning PostgreSQL, Management APIs, Storage, Edge and every managed service.
+
+### Encryption boundary
+
+Standard `age` is the implemented encrypted local transport/storage wrapper.
+
+- The canonical working form remains the directory bundle.
+- Encrypted publication first creates the deterministic `.tar.zst` form and wraps it as `.tar.zst.age`.
+- Normal successful encrypted publication removes the plaintext archive and directory workspace.
+- Missing `age` tooling is represented as a dependency failure; `doctor` also probes `age --version`.
+- Decryption accepts an identity-file path reference, not private-key contents through normal CLI arguments.
+- A hard process kill may leave the protected resumable workspace/checkpoint; crash recovery is not falsely represented as an always-zero-plaintext-at-rest guarantee during execution.
 
 ### Database excluded state
 
@@ -153,15 +168,25 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Repository 90% global thresholds: **PASS**.
 - Coverage thresholds were not lowered and production files were not excluded to recover the gate.
 
+### 2026-08-15 — standard age encryption checkpoint
+
+- Added shell-free `age` encrypt/decrypt subprocess wrapper with bounded diagnostics, cancellation, atomic publication and restrictive output permissions.
+- Windows durability handling uses a writable file descriptor before `fsync`, covered by the local Windows test run.
+- Backup config `encryption.mode: age` now requires a recipient and no longer needs the plaintext opt-in.
+- Encrypted backup publication produces `.tar.zst.age` and removes normal plaintext archive/workspace output on success.
+- `.tar.zst.age` is accepted by inspect/coverage/verify and restore dry-run with configured `encryption.identityFile`.
+- Latest local suite: **92 test files / 541 tests, PASS**.
+- Global coverage: **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**.
+- Repository 90% global thresholds: **PASS**.
+
 ### GitHub CI / CodeQL note
 
 The earlier regular CI matrix passed on its validated checkpoint. Current Actions quota is exhausted, so newly pushed commits are expected to be blocked by quota until reset and should not be interpreted as code-quality failures. CodeQL publication remains a separate repository-configuration gate.
 
 ## Next implementation order
 
-1. `age` encryption;
-2. S3 destination;
-3. restore `--apply` + parity wiring;
-4. hosted E2E;
-5. CodeQL/release/SBOM/provenance;
-6. final acceptance audit.
+1. S3-compatible destination;
+2. restore `--apply` + parity wiring;
+3. hosted E2E;
+4. CodeQL/release/SBOM/provenance;
+5. final acceptance audit.
