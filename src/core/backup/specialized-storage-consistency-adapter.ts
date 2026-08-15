@@ -255,8 +255,9 @@ function createSpecializedSnapshotSinks(): {
     async writeStream(
       relativePath: string,
       stream: ReadableStream<Uint8Array>,
-      _options: StreamArtifactOptions,
+      options: StreamArtifactOptions,
     ): Promise<ArtifactWriteResult> {
+      options.signal?.throwIfAborted();
       await stream.cancel().catch(() => undefined);
       throw snapshotError(
         "CONSISTENCY_SNAPSHOT_ARTIFACT_INVALID",
