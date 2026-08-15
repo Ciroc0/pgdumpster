@@ -22,7 +22,11 @@ The repository currently contains:
 - `test-security` — archive/secret guards plus production dependency audit;
 - `test-os` — Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
 
-The regular CI workflow is green on implementation checkpoint `be4df4e`.
+The earlier validated implementation checkpoint passed the regular CI workflow, including the OS/Node matrix.
+
+The account's GitHub Actions quota is currently exhausted. Newly pushed workflow runs may therefore be blocked before meaningful execution until the quota resets. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. During this period, local `pnpm check` is the active development quality gate; the latest local result is **85 test files / 500 tests passing**.
+
+Once quota is available again, the current branch must be rerun through the normal CI matrix before release evidence is considered current.
 
 ### Contract drift
 
@@ -30,7 +34,7 @@ A dedicated contract-drift workflow exists and remains part of the platform sour
 
 ### CodeQL
 
-The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. On the current repository it reaches analysis/SARIF generation but fails during result publication/status because GitHub code scanning is not enabled/accessible to the integration (`Resource not accessible by integration`).
+The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. On the earlier attempted repository run it reached analysis/SARIF generation but failed during result publication/status because GitHub code scanning was not enabled/accessible to the integration (`Resource not accessible by integration`).
 
 This is a **configuration gate**. It must not be documented as a clean static-analysis result, and it also must not be misreported as a discovered code vulnerability.
 
@@ -38,6 +42,8 @@ This is a **configuration gate**. It must not be documented as a clean static-an
 
 The repository does not yet have a completed release-grade live-E2E/publish pipeline. Remaining work includes:
 
+- current post-consistency coverage refresh;
+- current branch CI rerun once Actions quota permits meaningful execution;
 - protected hosted source/target E2E workflow;
 - release workflow tied to an exact candidate commit/tag;
 - SBOM generation;
@@ -70,7 +76,7 @@ Do not upload decrypted bundles, rotation maps or live secret material as CI art
 The eventual release workflow must:
 
 - run from a protected tag/release/candidate commit;
-- require all ordinary CI and security gates green;
+- require all ordinary CI and security gates green on the same candidate;
 - require the live E2E green for the same candidate;
 - validate version/changelog consistency;
 - perform a clean build/package/install smoke;
@@ -89,3 +95,5 @@ Safe artifacts include sanitized test summaries, fake-fixture coverage reports, 
 ## Failure policy
 
 Required jobs must not use blanket `continue-on-error`. Security, integrity, restore and live-E2E gates cannot be bypassed as “flaky” release exceptions.
+
+Quota/billing blockage is tracked separately from job execution status. Once quota is restored, required workflows must actually run and pass; a previously quota-blocked run is not release evidence.
