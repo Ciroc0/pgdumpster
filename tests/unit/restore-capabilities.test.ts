@@ -239,7 +239,7 @@ describe("restore capability boundary", () => {
   });
 
   it("has a constructed handler for every automatic restore capability", () => {
-    const handlers = constructedHandlers();
+    const handlers: Readonly<Record<string, unknown>> = constructedHandlers();
     const missing = AUTOMATIC_RESTORE_COMPONENTS.filter(
       (component) => handlers[component] === undefined,
     );
