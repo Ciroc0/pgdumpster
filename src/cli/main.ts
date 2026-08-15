@@ -259,6 +259,17 @@ function errorExitCode(error: unknown): number {
   if (category === "config") return 2;
   if (category === "auth") return 3;
   if (category === "dependency") return 4;
+  if (
+    category === "network" ||
+    category === "rate_limit" ||
+    category === "database" ||
+    category === "storage" ||
+    category === "edge" ||
+    category === "control_plane"
+  )
+    return 5;
+  if (category === "consistency") return 6;
+  if (category === "destination" || category === "io") return 8;
   if (category === "platform_contract") return 9;
   if (category === "cancelled") return 10;
   return 7;
@@ -435,15 +446,6 @@ export async function runCli(
         args.consistency ??
         loadedConfig?.config.backup.consistency ??
         "verified";
-      if (consistency !== "best-effort") {
-        throw new DomainError({
-          code: "CONSISTENCY_MODE_NOT_IMPLEMENTED",
-          category: "consistency",
-          message:
-            "This build only permits explicit --consistency best-effort until cross-service stabilization is implemented.",
-          retryable: false,
-        });
-      }
       const maxStorageConcurrency =
         args.maxStorageConcurrency ??
         loadedConfig?.config.backup.maxStorageConcurrency ??
