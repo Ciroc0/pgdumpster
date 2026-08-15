@@ -40,6 +40,34 @@ describe("explicit configuration file", () => {
     expect(loaded.config.encryption.mode).toBe("none");
   });
 
+  it("resolves an age identity path relative to config and permits decrypt-only age config", async () => {
+    const filePath = await config(
+      "encryption:\n  mode: age\n  identityFile: ./keys/backup-identity.txt\n",
+    );
+    const loaded = await loadConfigFile(filePath);
+    expect(loaded.config.encryption).toEqual({
+      mode: "age",
+      identityFile: path.join(
+        path.dirname(filePath),
+        "keys",
+        "backup-identity.txt",
+      ),
+    });
+  });
+
+  it("preserves an age recipient alongside the resolved identity reference", async () => {
+    const recipient = `age1${"q".repeat(58)}`;
+    const filePath = await config(
+      `encryption:\n  mode: age\n  recipient: ${recipient}\n  identityFile: ./identity.txt\n`,
+    );
+    const loaded = await loadConfigFile(filePath);
+    expect(loaded.config.encryption).toEqual({
+      mode: "age",
+      recipient,
+      identityFile: path.join(path.dirname(filePath), "identity.txt"),
+    });
+  });
+
   it("rejects secret fields, duplicate keys, aliases, and insecure endpoints", async () => {
     const invalid = [
       "projectRef: abcdefghijklmnopqrst\naccessToken: secret\n",
