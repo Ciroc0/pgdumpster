@@ -65,6 +65,9 @@ describe("backup coordinator", () => {
       consistency: {
         snapshot: () => Promise.resolve({ revision: 1 }),
         cleanup: () => Promise.resolve(),
+        cleanupPartial: async ({ workspaceRoot: root }) => {
+          await rm(path.join(root, filename), { force: true });
+        },
       },
       async run({ workspaceRoot: root }) {
         runCounter();
