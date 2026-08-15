@@ -48,6 +48,7 @@ import type { CoverageDocument } from "../bundle/schemas.js";
 import { PgDumpsterError } from "../errors/error.js";
 import { createPlaintextProtectedArtifactSink } from "../../security/protected-artifact.js";
 import { createDatabaseConsistencyAdapter } from "./database-consistency-adapter.js";
+import { createEdgeConsistencyAdapter } from "./edge-consistency-adapter.js";
 import { createFileStorageConsistencyAdapter } from "./file-storage-consistency-adapter.js";
 import {
   createApiKeysConsistencyAdapter,
@@ -56,6 +57,8 @@ import {
   createPlatformV2ConsistencyAdapter,
   createProjectStateConsistencyAdapter,
 } from "./management-consistency-adapters.js";
+import { createSpecializedStorageConsistencyAdapter } from "./specialized-storage-consistency-adapter.js";
+import { createVaultRootKeyConsistencyAdapter } from "./vault-root-key-consistency-adapter.js";
 import {
   executeBackup,
   type BackupStep,
@@ -517,6 +520,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
         );
         return result(captured.coverage);
       },
+      consistency: createEdgeConsistencyAdapter(options),
     },
     {
       id: "vault-root-key",
@@ -530,6 +534,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
         );
         return result([captured.coverage]);
       },
+      consistency: createVaultRootKeyConsistencyAdapter(options),
     },
     {
       id: "file-storage",
@@ -548,6 +553,7 @@ export async function executeProductBackup(options: ProductBackupOptions) {
         );
         return result(captured.coverage);
       },
+      consistency: createSpecializedStorageConsistencyAdapter({ storage }),
     },
   ];
   return executeBackup({
