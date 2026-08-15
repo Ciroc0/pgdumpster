@@ -103,7 +103,10 @@ async function publishTemporary(
 ): Promise<void> {
   await assertRegularFile(temporary, code, "age output");
   await chmod(temporary, 0o600);
-  const handle = await open(temporary, "r");
+  // Windows requires a writable file descriptor for fsync/FileHandle.sync().
+  // The file is already complete at this point, so r+ is used only to make the
+  // durability flush portable; no bytes are modified through this handle.
+  const handle = await open(temporary, "r+");
   try {
     await handle.sync();
   } finally {
