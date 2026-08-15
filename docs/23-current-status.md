@@ -134,8 +134,8 @@ The shortest safe path to the release gate is:
 
 1. provision/reset dedicated hosted source/target fixtures and a configured S3-compatible provider, then run the full live E2E and provider-interoperability validation;
 2. resolve any live E2E gaps without weakening capability, integrity or coverage gates;
-4. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
-5. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
+3. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
+4. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
 
 ## Definition of done
 
