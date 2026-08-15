@@ -28,7 +28,6 @@ import {
   type VaultRootKeyConsistencySnapshot,
 } from "../../src/core/backup/vault-root-key-consistency-adapter.js";
 import type { CoverageDocument } from "../../src/core/bundle/schemas.js";
-import { Redactor } from "../../src/security/redactor.js";
 import { SecretValue } from "../../src/security/secret-value.js";
 import type { SpecializedStorageClient } from "../../src/storage/specialized.js";
 import { captureSpecializedStorage } from "../../src/storage/specialized.js";
