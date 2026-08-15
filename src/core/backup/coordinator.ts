@@ -217,6 +217,38 @@ function consistencyContext(
   };
 }
 
+async function cleanupInterruptedStepBeforeResume(
+  step: BackupStep,
+  options: ExecuteBackupOptions,
+  savedStatus: BackupCheckpoint["steps"][number]["status"],
+): Promise<void> {
+  if (
+    options.resume !== true ||
+    savedStatus === "pending" ||
+    savedStatus === "completed"
+  ) {
+    return;
+  }
+  const cleanupPartial = step.consistency?.cleanupPartial;
+  if (cleanupPartial === undefined) return;
+
+  try {
+    await cleanupPartial(
+      consistencyContext(options.workspaceRoot, options.signal),
+    );
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    throw new PgDumpsterError({
+      code: "CONSISTENCY_PARTIAL_CLEANUP_FAILED",
+      category: "consistency",
+      message: `Failed to clean interrupted artifacts before resuming backup step ${step.id}.`,
+      retryable: false,
+      component: step.id,
+      cause: error,
+    });
+  }
+}
+
 async function executeStep(
   step: BackupStep,
   options: ExecuteBackupOptions,
@@ -232,6 +264,7 @@ async function executeStep(
     };
   }
 
+  const cleanupPartial = adapter.cleanupPartial;
   const run = await runConsistentCopy({
     mode: options.consistency,
     maxRetries:
@@ -253,13 +286,11 @@ async function executeStep(
         result,
         consistencyContext(options.workspaceRoot, signal),
       ),
-    ...(adapter.cleanupPartial === undefined
+    ...(cleanupPartial === undefined
       ? {}
       : {
           cleanupPartial: (signal?: AbortSignal) =>
-            adapter.cleanupPartial!(
-              consistencyContext(options.workspaceRoot, signal),
-            ),
+            cleanupPartial(consistencyContext(options.workspaceRoot, signal)),
         }),
     isDriftError: copyErrorIsDrift,
     ...(adapter.equals === undefined ? {} : { equals: adapter.equals }),
@@ -334,6 +365,7 @@ export async function executeBackup(
   for (const step of options.steps) {
     const saved = checkpoint.steps.find(({ id }) => id === step.id)!;
     if (saved.status === "completed") continue;
+    await cleanupInterruptedStepBeforeResume(step, options, saved.status);
     checkpoint = transitionCheckpointStep(checkpoint, {
       id: step.id,
       status: "in_progress",
