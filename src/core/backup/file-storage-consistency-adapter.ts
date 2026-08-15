@@ -1,6 +1,3 @@
-import { rm } from "node:fs/promises";
-import path from "node:path";
-
 import {
   collectFileStorageConsistencySnapshot,
   collectLinkedFileStorageConsistencySnapshot,
@@ -8,6 +5,7 @@ import {
   type FileStorageConsistencySnapshot,
 } from "../../storage/consistency.js";
 import { assertSafeBundlePath } from "../../security/bundle-path.js";
+import { removeSafeBundlePath } from "../../security/safe-remove.js";
 import type { SecretValue } from "../../security/secret-value.js";
 import { PgDumpsterError } from "../errors/error.js";
 import type {
@@ -40,18 +38,10 @@ function assertStorageSource(
   }
 }
 
-function storageArtifactTarget(
-  workspaceRoot: string,
-  artifact: string,
-): string | undefined {
+function assertStorageArtifact(artifact: string): boolean {
   assertSafeBundlePath(artifact);
 
-  if (artifact === SHARED_DATABASE_ARTIFACT) {
-    // This dump is produced by the database step and merely referenced by the
-    // File Storage coverage record. Deleting it here would corrupt a completed
-    // database checkpoint during a Storage consistency retry.
-    return undefined;
-  }
+  if (artifact === SHARED_DATABASE_ARTIFACT) return false;
 
   if (
     artifact !== FILE_CATALOG_ARTIFACT &&
@@ -69,7 +59,7 @@ function storageArtifactTarget(
     });
   }
 
-  return path.join(workspaceRoot, ...artifact.split("/"));
+  return true;
 }
 
 async function cleanupFileStorageArtifacts(
@@ -77,19 +67,12 @@ async function cleanupFileStorageArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
   context.signal?.throwIfAborted();
-  const targets = [
-    ...new Set(
-      result.artifacts
-        .map((artifact) =>
-          storageArtifactTarget(context.workspaceRoot, artifact),
-        )
-        .filter((target): target is string => target !== undefined),
-    ),
-  ];
-
-  for (const target of targets) {
-    context.signal?.throwIfAborted();
-    await rm(target, { force: true });
+  const artifacts = [...new Set(result.artifacts)];
+  const owned = artifacts.filter(assertStorageArtifact);
+  for (const artifact of owned) {
+    await removeSafeBundlePath(context.workspaceRoot, artifact, {
+      signal: context.signal,
+    });
   }
   context.signal?.throwIfAborted();
 }
@@ -97,20 +80,15 @@ async function cleanupFileStorageArtifacts(
 async function cleanupPartialFileStorageArtifacts(
   context: BackupStepConsistencyContext,
 ): Promise<void> {
-  context.signal?.throwIfAborted();
-  const targets = [
-    path.join(context.workspaceRoot, ...FILE_CATALOG_ARTIFACT.split("/")),
-    path.join(context.workspaceRoot, ...FILE_OBJECT_INDEX_ARTIFACT.split("/")),
-    path.join(context.workspaceRoot, ...FILE_OBJECT_DIRECTORY.split("/")),
-  ];
-  for (const [index, target] of targets.entries()) {
-    context.signal?.throwIfAborted();
-    await rm(target, {
-      force: true,
-      ...(index === targets.length - 1 ? { recursive: true } : {}),
+  for (const artifact of [FILE_CATALOG_ARTIFACT, FILE_OBJECT_INDEX_ARTIFACT]) {
+    await removeSafeBundlePath(context.workspaceRoot, artifact, {
+      signal: context.signal,
     });
   }
-  context.signal?.throwIfAborted();
+  await removeSafeBundlePath(context.workspaceRoot, FILE_OBJECT_DIRECTORY, {
+    recursive: true,
+    signal: context.signal,
+  });
 }
 
 function snapshotsEqual(before: unknown, after: unknown): boolean {
