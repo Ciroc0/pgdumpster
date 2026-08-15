@@ -9,6 +9,10 @@ import {
 } from "../coverage/result.js";
 import { loadCoverageRegistry } from "../coverage/registry.js";
 import { assertSafeBundlePath } from "../../security/bundle-path.js";
+import {
+  isBundleWriterPartialName,
+  removeSafeBundlePath,
+} from "../../security/safe-remove.js";
 import { canonicalJson } from "../../utils/canonical-json.js";
 import { writeFileAtomic } from "../../utils/atomic-file.js";
 import {
@@ -40,6 +44,10 @@ async function regularFiles(root: string, directory = ""): Promise<string[]> {
     if (entry.isDirectory()) {
       files.push(...(await regularFiles(root, relative)));
     } else if (entry.isFile()) {
+      if (isBundleWriterPartialName(entry.name)) {
+        await removeSafeBundlePath(root, relative);
+        continue;
+      }
       files.push(relative);
     } else {
       throw new Error(`Special files are forbidden: ${relative}`);
