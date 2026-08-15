@@ -19,9 +19,10 @@ pgDumpster targets one **hosted Supabase Platform project** at a time and accoun
 - Supabase Management API access token;
 - linked Supabase workspace **or** an explicit database URL for backup;
 - privileged Storage credential or a Management-API-revealed key that the backup can prove suitable;
-- local disk capacity for the bundle.
+- local disk capacity for the working bundle;
+- `age` executable on `PATH` when encrypted output/input is used.
 
-`age` may be detected by `doctor`, but the current backup encryption path is not wired. S3 publication is also not wired.
+S3 publication is not wired yet.
 
 ## Source development install
 
@@ -65,15 +66,67 @@ Then use `--linked`. The alternative is `--db-url-env PGDUMPSTER_DB_URL`.
 
 `doctor` presently proves database and Storage access from `PGDUMPSTER_DB_URL` and `PGDUMPSTER_STORAGE_KEY`; linked backup mode does not remove those current doctor checks.
 
+It also probes `age --version`. Missing `age` is reported as an encryption warning by `doctor`; attempting an encrypted operation without the executable fails through the dependency error domain.
+
 ```bash
 pgdumpster doctor --project-ref "$PGDUMPSTER_PROJECT_REF"
 ```
 
-## Create a backup with the current build
+## Configure standard `age` encryption
 
-Consistency is implemented; encryption is not yet wired. A current development backup therefore defaults to `verified` consistency but still requires explicit plaintext-secret opt-in.
+The current local encrypted-publication path uses a standard `age` recipient and an optional identity-file reference for later reads.
 
-Linked example:
+Example YAML:
+
+```yaml
+projectRef: abcdefghijklmnopqrst
+
+backup:
+  output: ./backups
+  consistency: verified
+
+encryption:
+  mode: age
+  recipient: age1replace_with_real_recipient
+  identityFile: ./age-identity.txt
+
+destination:
+  type: local
+```
+
+`recipient` is required for encrypted backup. `identityFile` is required only when the same config is used to open a `.tar.zst.age` bundle. A relative identity-file path is resolved relative to the config file.
+
+The identity file contains private key material. Keep it outside source control and restrict filesystem access. pgDumpster passes the path to `age`; it does not require the private key contents as a normal CLI argument.
+
+## Create an encrypted backup with the current build
+
+Encrypted backup does **not** require `--allow-plaintext-secrets`:
+
+```bash
+pgdumpster backup \
+  --config ./pgdumpster.yaml \
+  --project-ref "$PGDUMPSTER_PROJECT_REF" \
+  --linked \
+  --output ./backups
+```
+
+The final output is `.tar.zst.age`. pgDumpster creates the deterministic `.tar.zst` transport archive internally before encryption, so `--archive` is not required separately.
+
+On normal successful encrypted publication, the plaintext archive and directory workspace are removed. Encryption failure also attempts to remove those plaintext outputs before returning the error. A hard process termination can still leave the protected working directory/checkpoint so the interrupted backup can be diagnosed/resumed; do not treat the active working directory as encrypted-at-rest staging.
+
+Direct database URL mode works the same way:
+
+```bash
+pgdumpster backup \
+  --config ./pgdumpster.yaml \
+  --project-ref "$PGDUMPSTER_PROJECT_REF" \
+  --db-url-env PGDUMPSTER_DB_URL \
+  --output ./backups
+```
+
+## Create a plaintext development backup
+
+When `encryption.mode` is `none` or no encryption config is supplied, a secret-bearing backup requires explicit acknowledgement:
 
 ```bash
 pgdumpster backup \
@@ -84,15 +137,9 @@ pgdumpster backup \
   --archive
 ```
 
-Direct database URL example:
+A plaintext development bundle can contain database/Auth data, API/project keys, Edge secret material and Vault key material. Treat it as a production secret.
 
-```bash
-pgdumpster backup \
-  --project-ref "$PGDUMPSTER_PROJECT_REF" \
-  --db-url-env PGDUMPSTER_DB_URL \
-  --output ./backups \
-  --allow-plaintext-secrets
-```
+## Consistency modes
 
 Omitting `--consistency` selects `verified`. Explicit alternatives are:
 
@@ -104,20 +151,6 @@ Omitting `--consistency` selects `verified`. Explicit alternatives are:
 
 Use `quiesced` when writes have deliberately been stopped and any observable source change should fail the run. Use `best-effort` only when you accept a non-verified cross-service point in time; if drift is observed, the final manifest reports `drift_detected`.
 
-A plaintext development bundle can contain database/Auth data, API/project keys, Edge secret material and Vault key material. Treat it as a production secret.
-
-### Not currently available
-
-The following target workflows intentionally fail closed in the current CLI:
-
-- config `encryption.mode: age`;
-- config `destination.type: s3`;
-- restore `--apply`.
-
-Do not work around those guards by relabeling a plaintext/local/dry-run workflow as the final release workflow.
-
-## Consistency behavior
-
 All 10 product backup steps participate in the consistency layer. Verified runs compare the strongest available source evidence before and after step copy, promote copy-time drift signals into the same policy, and retry only after step-owned provisional/partial output is removed safely.
 
 Interrupted non-completed steps are cleaned before resume. Cleanup validates bundle-relative ownership and refuses symlinked parent paths. Best-effort drift evidence is persisted in the checkpoint so a resumed run cannot silently lose the fact that drift was already observed.
@@ -126,13 +159,23 @@ This is not an atomic platform-wide snapshot primitive. It is pgDumpster's appli
 
 ## Inspect, coverage and verify
 
+Directory and plaintext archive forms:
+
 ```bash
 pgdumpster inspect ./backups/<bundle>
 pgdumpster coverage ./backups/<bundle>
-pgdumpster verify ./backups/<bundle>
+pgdumpster verify ./backups/<bundle>.tar.zst
 ```
 
-The same commands accept the deterministic `.tar.zst` archive form where applicable.
+Encrypted archive form requires config containing `encryption.identityFile`:
+
+```bash
+pgdumpster inspect ./backups/<bundle>.tar.zst.age --config ./pgdumpster.yaml
+pgdumpster coverage ./backups/<bundle>.tar.zst.age --config ./pgdumpster.yaml
+pgdumpster verify ./backups/<bundle>.tar.zst.age --config ./pgdumpster.yaml
+```
+
+Encrypted input is decrypted into a restricted temporary area, then processed through the same archive extraction and bundle verification path. Temporary decrypted material is removed after the operation completes or fails normally.
 
 ## Resume an interrupted backup
 
@@ -144,6 +187,8 @@ pgdumpster backup ... --resume <workspace-or-checkpoint-path>
 
 Resume is bound to the original run/project/configuration and revalidates completed artifact integrity before trusting checkpoint state. Non-completed interrupted steps are cleaned within their own artifact scope before rerun.
 
+For an encrypted backup, the working directory remains the resumable plaintext/protected workspace until final archive encryption succeeds. Keep the output volume protected accordingly.
+
 ## Restore: current dry-run path
 
 Set target credentials through environment variables:
@@ -153,7 +198,7 @@ PGDUMPSTER_TARGET_PROJECT_REF=zyxwvutsrqponmlkjihg
 PGDUMPSTER_TARGET_DB_URL='postgresql://...'
 ```
 
-Generate the integrity-first plan:
+Generate the integrity-first plan from a directory or plaintext archive:
 
 ```bash
 pgdumpster restore ./backups/<bundle> \
@@ -162,26 +207,45 @@ pgdumpster restore ./backups/<bundle> \
   --dry-run
 ```
 
+For encrypted input:
+
+```bash
+pgdumpster restore ./backups/<bundle>.tar.zst.age \
+  --config ./pgdumpster.yaml \
+  --target-project-ref "$PGDUMPSTER_TARGET_PROJECT_REF" \
+  --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
+  --dry-run
+```
+
 The repository contains restore executor/handler primitives, but the CLI does **not** currently perform target mutation. `--apply` fails closed until the complete apply/substitution/parity workflow is wired and live-tested.
 
-## Target release workflow (not yet available end-to-end)
+## Not currently available
+
+The following target workflows intentionally fail closed in the current CLI:
+
+- config `destination.type: s3`;
+- restore `--apply`.
+
+Do not work around those guards by relabeling a local/dry-run workflow as the final release workflow.
+
+## Target release workflow
 
 The final supported recovery procedure is:
 
 1. run `doctor`;
 2. create an encrypted `verified` backup;
-3. offline `verify`;
+3. run offline `verify` on the encrypted backup;
 4. inspect complete terminal coverage;
 5. dry-run restore to a fresh target;
 6. apply restore;
 7. perform required protected key substitutions;
 8. run semantic parity and application smoke checks.
 
-That procedure is the mandatory hosted E2E release gate. It must not be represented as complete until it passes on the dedicated test projects.
+Steps 1–5 have substantial current implementation support, including encrypted backup/input. `restore --apply`, final parity and the full hosted proof remain release blockers. The complete procedure must not be represented as passed until the dedicated hosted E2E succeeds.
 
 ## Scheduling and retention
 
-pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Do not schedule the current development build as though the pending encryption/destination/restore-apply release gates had already passed.
+pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. S3 publication and the complete recovery E2E are still pending, so do not treat the current development build as release-complete automation.
 
 ## Updating the development checkout
 
