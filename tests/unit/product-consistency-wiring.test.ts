@@ -61,11 +61,20 @@ function common(root: string, redactor: Redactor) {
   };
 }
 
+function execution(): ExecuteBackupOptions {
+  if (captured === undefined) throw new Error("executeBackup was not called");
+  return captured;
+}
+
 function wiredStepIds(): string[] {
-  const execution = captured;
-  if (execution === undefined) throw new Error("executeBackup was not called");
-  return execution.steps
+  return execution().steps
     .filter(({ consistency }) => consistency !== undefined)
+    .map(({ id }) => id);
+}
+
+function partialCleanupStepIds(): string[] {
+  return execution().steps
+    .filter(({ consistency }) => consistency?.cleanupPartial !== undefined)
     .map(({ id }) => id);
 }
 
@@ -99,6 +108,7 @@ describe("product consistency wiring", () => {
     ).rejects.toThrow(STOP);
 
     expect(wiredStepIds()).toEqual(EXPECTED_WIRED_STEPS);
+    expect(partialCleanupStepIds()).toEqual(EXPECTED_WIRED_STEPS);
   });
 
   it("wires the same complete consistency surface in linked mode", async () => {
@@ -114,5 +124,6 @@ describe("product consistency wiring", () => {
     ).rejects.toThrow(STOP);
 
     expect(wiredStepIds()).toEqual(EXPECTED_WIRED_STEPS);
+    expect(partialCleanupStepIds()).toEqual(EXPECTED_WIRED_STEPS);
   });
 });
