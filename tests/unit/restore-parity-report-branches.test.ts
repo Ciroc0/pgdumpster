@@ -147,9 +147,7 @@ describe("restore parity report branch hardening", () => {
         index === 0 ? { ...action, declaredFidelity: "manual" } : action,
       ),
       report.actions.map((action, index) =>
-        index === 1
-          ? { ...action, verification: "resume_reverified" }
-          : action,
+        index === 1 ? { ...action, verification: "resume_reverified" } : action,
       ),
       report.actions.map((action, index) =>
         index === 1 ? { ...action, outcome: "verified" } : action,
