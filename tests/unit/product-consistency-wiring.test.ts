@@ -69,8 +69,18 @@ function wiredStepIds(): string[] {
     .map(({ id }) => id);
 }
 
+const EXPECTED_WIRED_STEPS = [
+  "database",
+  "project-state",
+  "control-plane",
+  "platform-v2",
+  "auth",
+  "api-keys",
+  "file-storage",
+];
+
 describe("product consistency wiring", () => {
-  it("wires Database and File Storage adapters in direct mode only", async () => {
+  it("wires Database, Management and File Storage adapters in direct mode", async () => {
     const root = await workspace();
     const redactor = new Redactor();
 
@@ -85,7 +95,7 @@ describe("product consistency wiring", () => {
       }),
     ).rejects.toThrow(STOP);
 
-    expect(wiredStepIds()).toEqual(["database", "file-storage"]);
+    expect(wiredStepIds()).toEqual(EXPECTED_WIRED_STEPS);
   });
 
   it("wires the same fail-closed surfaces in linked mode", async () => {
@@ -100,6 +110,6 @@ describe("product consistency wiring", () => {
       }),
     ).rejects.toThrow(STOP);
 
-    expect(wiredStepIds()).toEqual(["database", "file-storage"]);
+    expect(wiredStepIds()).toEqual(EXPECTED_WIRED_STEPS);
   });
 });
