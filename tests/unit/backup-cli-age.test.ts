@@ -124,10 +124,14 @@ describe("age-encrypted backup CLI", () => {
     const result = JSON.parse(stdout.join("")) as { output: string };
     expect(result.output).toMatch(/\.tar\.zst\.age$/u);
     expect(await readFile(result.output, "utf8")).toBe("encrypted archive");
-    await expect(access(result.output.slice(0, -".age".length))).rejects.toThrow();
+    await expect(
+      access(result.output.slice(0, -".age".length)),
+    ).rejects.toThrow();
     const workspace = result.output.slice(0, -".tar.zst.age".length);
     await expect(access(workspace)).rejects.toThrow();
-    expect(result.output.startsWith(path.join(directory, "backups"))).toBe(true);
+    expect(result.output.startsWith(path.join(directory, "backups"))).toBe(
+      true,
+    );
   });
 
   it("requires a recipient before starting an encrypted backup", async () => {

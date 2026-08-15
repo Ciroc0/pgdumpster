@@ -1,10 +1,4 @@
-import {
-  copyFile,
-  mkdtemp,
-  mkdir,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { copyFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -63,7 +57,9 @@ async function encryptedFixture(): Promise<{
   configPath: string;
   identity: string;
 }> {
-  const parent = await mkdtemp(path.join(tmpdir(), "pgdumpster-cli-age-input-"));
+  const parent = await mkdtemp(
+    path.join(tmpdir(), "pgdumpster-cli-age-input-"),
+  );
   temporaryDirectories.push(parent);
   const root = await finalizedBundle(parent);
   const archive = path.join(parent, "pgdumpster-test.tar.zst");
