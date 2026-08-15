@@ -68,12 +68,33 @@ describe("explicit configuration file", () => {
     });
   });
 
-  it("rejects secret fields, duplicate keys, aliases, and insecure endpoints", async () => {
+  it("applies provider-neutral S3 multipart defaults", async () => {
+    const filePath = await config(
+      "destination:\n  type: s3\n  endpoint: https://s3.example.test\n  region: eu-test-1\n  bucket: backups\n  prefix: production/pgdumpster\n",
+    );
+    const loaded = await loadConfigFile(filePath);
+    expect(loaded.config.destination).toEqual({
+      type: "s3",
+      endpoint: "https://s3.example.test",
+      region: "eu-test-1",
+      bucket: "backups",
+      prefix: "production/pgdumpster",
+      forcePathStyle: false,
+      partSizeMiB: 64,
+      maxConcurrency: 4,
+    });
+  });
+
+  it("rejects secret fields, duplicate keys, aliases, and unsafe destination settings", async () => {
     const invalid = [
       "projectRef: abcdefghijklmnopqrst\naccessToken: secret\n",
       "projectRef: abcdefghijklmnopqrst\nprojectRef: abcdefghijklmnopqrst\n",
       "projectRef: &ref abcdefghijklmnopqrst\nbackup:\n  output: *ref\n",
       "destination:\n  type: s3\n  endpoint: http://insecure.example\n  bucket: backup\n",
+      "destination:\n  type: s3\n  bucket: backup\n  prefix: ../escape\n",
+      "destination:\n  type: s3\n  bucket: backup\n  partSizeMiB: 4\n",
+      "destination:\n  type: s3\n  bucket: backup\n  maxConcurrency: 17\n",
+      "destination:\n  type: s3\n  bucket: backup\n  accessKeyId: secret\n",
     ];
     for (const contents of invalid) {
       const filePath = await config(contents);

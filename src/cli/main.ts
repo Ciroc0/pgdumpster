@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, readFile, rm } from "node:fs/promises";
+import { lstat, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -12,11 +12,16 @@ import type { decryptArchiveWithAge } from "../core/bundle/encryption.js";
 import { encryptArchiveWithAge } from "../core/bundle/encryption.js";
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
-import { withVerifiedBundle } from "../core/bundle/input.js";
 import { buildRestorePlan } from "../core/restore/plan.js";
 import type { PgDumpsterError } from "../core/errors/error.js";
 import { PgDumpsterError as DomainError } from "../core/errors/error.js";
 import { serializeError } from "../core/errors/serialize.js";
+import { publishBackupOutput } from "../destination/backup-output.js";
+import { withConfiguredBundleInput } from "../destination/bundle-input.js";
+import type {
+  materializeS3Backup,
+  publishS3Backup,
+} from "../destination/s3.js";
 import {
   runDoctor,
   type DoctorDependencies,
@@ -39,6 +44,8 @@ export interface CliContext {
   archivePacker?: typeof packBundle;
   ageEncryptor?: typeof encryptArchiveWithAge;
   ageDecryptor?: typeof decryptArchiveWithAge;
+  s3Publisher?: typeof publishS3Backup;
+  s3Materializer?: typeof materializeS3Backup;
   now?: () => Date;
   randomUUID?: () => string;
 }
@@ -48,10 +55,10 @@ const HELP = `pgDumpster
 Usage:
   pgdumpster doctor [--project-ref <ref>] [--json]
   pgdumpster backup --project-ref <ref> (--linked|--db-url-env <name>) [options]
-  pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
-  pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
-  pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
-  pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
+  pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+  pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+  pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+  pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
   pgdumpster --version
   pgdumpster --help
 `;
@@ -356,14 +363,8 @@ export async function runCli(
         globals.configPath === undefined
           ? undefined
           : await loadConfigFile(globals.configPath);
-      if (loadedConfig?.config.destination.type === "s3") {
-        throw new DomainError({
-          code: "DESTINATION_NOT_IMPLEMENTED",
-          category: "destination",
-          message: "S3 destination publication is not available in this build.",
-          retryable: false,
-        });
-      }
+      const destination =
+        loadedConfig?.config.destination ?? ({ type: "local" } as const);
       const encryption =
         loadedConfig?.config.encryption ?? ({ mode: "none" } as const);
       if (encryption.mode === "age" && encryption.recipient === undefined) {
@@ -476,6 +477,7 @@ export async function runCli(
         encryptionMode: encryption.mode,
         encryptionRecipient:
           encryption.mode === "age" ? encryption.recipient : undefined,
+        destination,
       });
       const runId = checkpoint?.runId ?? (context.randomUUID ?? randomUUID)();
       const startedAt =
@@ -506,48 +508,26 @@ export async function runCli(
         maxApiConcurrency,
         ...(checkpoint === undefined ? {} : { resume: true }),
       });
-      await rm(checkpointPath, { force: true });
-      let outputPath = workspaceRoot;
-      if (encryptedOutput) {
-        const archivePath = `${workspaceRoot}.tar.zst`;
-        const encryptedPath = `${archivePath}.age`;
-        try {
-          await (context.archivePacker ?? packBundle)(
-            workspaceRoot,
-            archivePath,
-          );
-          await (context.ageEncryptor ?? encryptArchiveWithAge)(
-            archivePath,
-            encryptedPath,
-            encryption.recipient!,
-            { environment },
-          );
-        } catch (error) {
-          await rm(archivePath, { force: true }).catch(() => undefined);
-          await rm(workspaceRoot, { recursive: true, force: true }).catch(
-            () => undefined,
-          );
-          throw error;
-        }
-        const cleanupResults = await Promise.allSettled([
-          rm(archivePath, { force: true }),
-          rm(workspaceRoot, { recursive: true, force: true }),
-        ]);
-        if (cleanupResults.some(({ status }) => status === "rejected")) {
-          throw new DomainError({
-            code: "ENCRYPTION_FAILED",
-            category: "encryption",
-            message:
-              "Encrypted backup was created but plaintext staging cleanup failed.",
-            retryable: false,
-            details: { encryptedOutput: encryptedPath },
-          });
-        }
-        outputPath = encryptedPath;
-      } else if (args.archive) {
-        outputPath = `${workspaceRoot}.tar.zst`;
-        await (context.archivePacker ?? packBundle)(workspaceRoot, outputPath);
-      }
+      const publication = await publishBackupOutput({
+        workspaceRoot,
+        checkpointPath,
+        runId,
+        destination,
+        encryption,
+        archiveRequested: args.archive,
+        resume: checkpoint !== undefined,
+        environment,
+        ...(context.archivePacker === undefined
+          ? {}
+          : { archivePacker: context.archivePacker }),
+        ...(context.ageEncryptor === undefined
+          ? {}
+          : { ageEncryptor: context.ageEncryptor }),
+        ...(context.s3Publisher === undefined
+          ? {}
+          : { s3Publisher: context.s3Publisher }),
+      });
+      const outputPath = publication.output;
       const final = {
         schemaVersion: 1,
         type: "backup.result",
@@ -556,6 +536,17 @@ export async function runCli(
         consistency: completed.manifest.result.consistency,
         output: outputPath,
         coverageCount: completed.coverage.components.length,
+        ...(publication.remote === undefined
+          ? {}
+          : {
+              remote: {
+                object: publication.remote.objectUri,
+                marker: publication.remote.markerUri,
+                size: publication.remote.size,
+                sha256: publication.remote.sha256,
+                recovered: publication.remote.recovered,
+              },
+            }),
       };
       io.stdout(
         json
@@ -583,10 +574,6 @@ export async function runCli(
         globals.configPath === undefined
           ? undefined
           : await loadConfigFile(globals.configPath);
-      const ageIdentityFile =
-        loadedConfig?.config.encryption.mode === "age"
-          ? loadedConfig.config.encryption.identityFile
-          : undefined;
       const targetProjectRef = args.targetProjectRef!;
       const targetDbUrlEnvironment = args.targetDbUrlEnvironment!;
       const environment = context.environment ?? process.env;
@@ -601,8 +588,9 @@ export async function runCli(
         });
       }
       new SecretValue(targetDatabaseUrl, redactor);
-      const plan = await withVerifiedBundle(
+      const plan = await withConfiguredBundleInput(
         bundlePath,
+        loadedConfig,
         (bundle) =>
           buildRestorePlan(bundle.manifest, bundle.coverage, {
             planId: (context.randomUUID ?? randomUUID)(),
@@ -612,10 +600,13 @@ export async function runCli(
             allowBillableResources: args.allowBillableResources,
           }),
         {
-          ...(ageIdentityFile === undefined ? {} : { ageIdentityFile }),
+          environment,
           ...(context.ageDecryptor === undefined
             ? {}
             : { ageDecryptor: context.ageDecryptor }),
+          ...(context.s3Materializer === undefined
+            ? {}
+            : { s3Materializer: context.s3Materializer }),
         },
       );
       if (args.mode === "apply") {
@@ -659,12 +650,9 @@ export async function runCli(
       globals.configPath === undefined
         ? undefined
         : await loadConfigFile(globals.configPath);
-    const ageIdentityFile =
-      loadedConfig?.config.encryption.mode === "age"
-        ? loadedConfig.config.encryption.identityFile
-        : undefined;
-    await withVerifiedBundle(
+    await withConfiguredBundleInput(
       bundlePath,
+      loadedConfig,
       (bundle) => {
         if (command === "verify") {
           const result = { status: "verified", files: bundle.checksums.size };
@@ -689,10 +677,13 @@ export async function runCli(
         }
       },
       {
-        ...(ageIdentityFile === undefined ? {} : { ageIdentityFile }),
+        environment: context.environment ?? process.env,
         ...(context.ageDecryptor === undefined
           ? {}
           : { ageDecryptor: context.ageDecryptor }),
+        ...(context.s3Materializer === undefined
+          ? {}
+          : { s3Materializer: context.s3Materializer }),
       },
     );
     return 0;

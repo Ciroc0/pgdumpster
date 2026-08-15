@@ -8,6 +8,17 @@ import { PgDumpsterError } from "../core/errors/error.js";
 
 const MAX_CONFIG_BYTES = 1_048_576;
 
+const s3PrefixSchema = z
+  .string()
+  .max(1024)
+  .refine(
+    (value) =>
+      !value.includes("\\") &&
+      !value
+        .split("/")
+        .some((segment) => segment === "." || segment === ".."),
+  );
+
 const configSchema = z
   .object({
     projectRef: z
@@ -51,8 +62,12 @@ const configSchema = z
           .object({
             type: z.literal("s3"),
             endpoint: z.string().url().startsWith("https://").optional(),
-            bucket: z.string().min(1),
-            prefix: z.string().optional(),
+            region: z.string().min(1).max(128).optional(),
+            bucket: z.string().min(1).max(255),
+            prefix: s3PrefixSchema.optional(),
+            forcePathStyle: z.boolean().default(false),
+            partSizeMiB: z.number().int().min(5).max(5120).default(64),
+            maxConcurrency: z.number().int().min(1).max(16).default(4),
           })
           .strict(),
       ])
