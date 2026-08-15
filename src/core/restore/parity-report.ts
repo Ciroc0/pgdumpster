@@ -49,7 +49,8 @@ const parityActionSchema = z
       if (action.outcome !== "verified" || action.verification === undefined) {
         context.addIssue({
           code: "custom",
-          message: "Planned parity actions require verified execution evidence.",
+          message:
+            "Planned parity actions require verified execution evidence.",
         });
       }
       if (
@@ -66,7 +67,8 @@ const parityActionSchema = z
     if (action.verification !== undefined) {
       context.addIssue({
         code: "custom",
-        message: "Non-executed parity actions cannot carry verification evidence.",
+        message:
+          "Non-executed parity actions cannot carry verification evidence.",
       });
     }
     if (action.planStatus === "skipped" && action.outcome !== "skipped") {
@@ -120,13 +122,16 @@ function evidenceError(component?: string): never {
   throw new PgDumpsterError({
     code: "RESTORE_PARITY_EVIDENCE_INVALID",
     category: "consistency",
-    message: "Restore parity evidence does not match the immutable restore plan.",
+    message:
+      "Restore parity evidence does not match the immutable restore plan.",
     retryable: false,
     ...(component === undefined ? {} : { component }),
   });
 }
 
-function successfulOutcome(action: RestoreAction): RestoreActionEvidence["outcome"] {
+function successfulOutcome(
+  action: RestoreAction,
+): RestoreActionEvidence["outcome"] {
   if (action.status === "planned") return "verified";
   if (action.status === "skipped") return "skipped";
   if (action.status === "blocked_platform_limit") return "platform_limit";
