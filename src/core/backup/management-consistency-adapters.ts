@@ -180,9 +180,11 @@ function createSnapshotCollector(): SnapshotCollector {
   }
 
   const ordinary: BundleArtifactSink = {
-    async writeJson(relativePath, value, signal) {
+    writeJson(relativePath, value, signal) {
       signal?.throwIfAborted();
-      return registerBytes(relativePath, "ordinary", artifactBytes(value));
+      return Promise.resolve(
+        registerBytes(relativePath, "ordinary", artifactBytes(value)),
+      );
     },
     async writeStream(
       relativePath: string,
@@ -232,9 +234,10 @@ function createSnapshotCollector(): SnapshotCollector {
   };
 
   const protectedSink: ProtectedArtifactSink = {
-    async writeJson(relativePath, value, signal) {
+    writeJson(relativePath, value, signal) {
       signal?.throwIfAborted();
       registerBytes(relativePath, "protected", artifactBytes(value));
+      return Promise.resolve();
     },
   };
 
@@ -243,7 +246,9 @@ function createSnapshotCollector(): SnapshotCollector {
     protectedSink,
     finalize(coverage, includeCoverage = () => true) {
       const selected = coverage.filter(includeCoverage);
-      const referenced = new Set(selected.flatMap(({ artifacts }) => artifacts));
+      const referenced = new Set(
+        selected.flatMap(({ artifacts }) => artifacts),
+      );
       for (const artifact of referenced) {
         if (!digests.has(artifact)) {
           throw new PgDumpsterError({
@@ -279,7 +284,6 @@ function createSnapshotCollector(): SnapshotCollector {
 
 async function collectManagementSnapshot(
   stepId: string,
-  source: ManagementConsistencyAdapterSource,
   capture: Capture,
   signal?: AbortSignal,
   includeCoverage?: CoverageFilter,
@@ -352,20 +356,13 @@ function cleanupArtifacts(
 
 function adapter(
   stepId: string,
-  source: ManagementConsistencyAdapterSource,
   allowedArtifacts: ReadonlySet<string>,
   capture: Capture,
   includeCoverage?: CoverageFilter,
 ): BackupStepConsistencyAdapter {
   return {
     snapshot: ({ signal }) =>
-      collectManagementSnapshot(
-        stepId,
-        source,
-        capture,
-        signal,
-        includeCoverage,
-      ),
+      collectManagementSnapshot(stepId, capture, signal, includeCoverage),
     cleanup: cleanupArtifacts(stepId, allowedArtifacts),
   };
 }
@@ -375,7 +372,6 @@ export function createProjectStateConsistencyAdapter(
 ): BackupStepConsistencyAdapter {
   return adapter(
     "project-state",
-    source,
     PROJECT_STATE_ARTIFACTS,
     async ({ ordinary, signal }) =>
       (
@@ -395,7 +391,6 @@ export function createControlPlaneConsistencyAdapter(
 ): BackupStepConsistencyAdapter {
   return adapter(
     "control-plane",
-    source,
     CONTROL_PLANE_ARTIFACTS,
     async ({ ordinary, protectedSink, redactor, signal }) =>
       (
@@ -416,7 +411,6 @@ export function createPlatformV2ConsistencyAdapter(
 ): BackupStepConsistencyAdapter {
   return adapter(
     "platform-v2",
-    source,
     PLATFORM_V2_ARTIFACTS,
     async ({ ordinary, protectedSink, redactor, signal }) =>
       (
@@ -437,7 +431,6 @@ export function createAuthConsistencyAdapter(
 ): BackupStepConsistencyAdapter {
   return adapter(
     "auth",
-    source,
     AUTH_ARTIFACTS,
     async ({ protectedSink, redactor, signal }) =>
       (
@@ -457,7 +450,6 @@ export function createApiKeysConsistencyAdapter(
 ): BackupStepConsistencyAdapter {
   return adapter(
     "api-keys",
-    source,
     API_KEY_ARTIFACTS,
     async ({ protectedSink, redactor, signal }) =>
       (

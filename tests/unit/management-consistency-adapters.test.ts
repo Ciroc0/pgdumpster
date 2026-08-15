@@ -121,14 +121,12 @@ describe("Management consistency adapters", () => {
     );
 
     expect(captured.coverage.map(({ id }) => id)).toEqual(["project.metadata"]);
-    expect(captured.artifacts).toEqual([
-      expect.objectContaining({
-        path: "control-plane/project.json",
-        protection: "ordinary",
-        bytes: expect.any(Number),
-        sha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
-      }),
-    ]);
+    expect(captured.artifacts).toHaveLength(1);
+    const projectArtifact = captured.artifacts[0];
+    expect(projectArtifact?.path).toBe("control-plane/project.json");
+    expect(projectArtifact?.protection).toBe("ordinary");
+    expect(typeof projectArtifact?.bytes).toBe("number");
+    expect(projectArtifact?.sha256).toMatch(/^[0-9a-f]{64}$/u);
     expect(JSON.stringify(captured)).not.toContain("stable-project");
     expect(JSON.stringify(captured)).not.toContain("volatile");
   });
@@ -205,9 +203,7 @@ describe("Management consistency adapters", () => {
           signal,
         );
         return {
-          coverage: [
-            coverage("auth.config", ["secrets/auth-config.json"]),
-          ],
+          coverage: [coverage("auth.config", ["secrets/auth-config.json"])],
         };
       },
     );
@@ -218,11 +214,10 @@ describe("Management consistency adapters", () => {
       }),
     );
 
-    expect(captured.artifacts[0]).toMatchObject({
-      path: "secrets/auth-config.json",
-      protection: "protected",
-      sha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
-    });
+    const authArtifact = captured.artifacts[0];
+    expect(authArtifact?.path).toBe("secrets/auth-config.json");
+    expect(authArtifact?.protection).toBe("protected");
+    expect(authArtifact?.sha256).toMatch(/^[0-9a-f]{64}$/u);
     expect(JSON.stringify(captured)).not.toContain("super-secret-value");
   });
 
@@ -327,10 +322,9 @@ describe("Management consistency adapters", () => {
       async (client, projectRef, ordinary) => {
         expect(client).toBe(management);
         expect(projectRef).toBe(source.projectRef);
-        await ordinary.writeJson(
-          "secrets/control-plane/postgrest.json",
-          { data: { jwt_secret: "secret-value" } },
-        );
+        await ordinary.writeJson("secrets/control-plane/postgrest.json", {
+          data: { jwt_secret: "secret-value" },
+        });
         return {
           coverage: [
             coverage("rest.postgrest_config", [
@@ -374,9 +368,13 @@ describe("Management consistency adapters", () => {
       code: "CONSISTENCY_SNAPSHOT_DUPLICATE_ARTIFACT",
     });
 
-    vi.mocked(captureProjectState).mockImplementationOnce(async () => ({
-      coverage: [coverage("project.metadata", ["control-plane/project.json"])],
-    }));
+    vi.mocked(captureProjectState).mockImplementationOnce(() =>
+      Promise.resolve({
+        coverage: [
+          coverage("project.metadata", ["control-plane/project.json"]),
+        ],
+      }),
+    );
 
     await expect(
       createProjectStateConsistencyAdapter(source).snapshot({
