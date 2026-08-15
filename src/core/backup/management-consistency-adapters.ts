@@ -1,6 +1,4 @@
 import { createHash } from "node:crypto";
-import { rm } from "node:fs/promises";
-import path from "node:path";
 
 import type {
   ArtifactWriteResult,
@@ -12,6 +10,7 @@ import { PgDumpsterError } from "../errors/error.js";
 import { assertSafeBundlePath } from "../../security/bundle-path.js";
 import type { ProtectedArtifactSink } from "../../security/protected-artifact.js";
 import { Redactor } from "../../security/redactor.js";
+import { removeSafeBundlePath } from "../../security/safe-remove.js";
 import { canonicalJson } from "../../utils/canonical-json.js";
 import { captureApiKeys } from "../../supabase/management/api-keys.js";
 import { captureAuthControlPlane } from "../../supabase/management/auth.js";
@@ -330,7 +329,7 @@ function cleanupArtifacts(
   ): Promise<void> => {
     context.signal?.throwIfAborted();
     const artifacts = [...new Set(result.artifacts)];
-    const targets = artifacts.map((artifact) => {
+    for (const artifact of artifacts) {
       assertSafeBundlePath(artifact);
       if (!allowedArtifacts.has(artifact)) {
         throw new PgDumpsterError({
@@ -343,12 +342,12 @@ function cleanupArtifacts(
           details: { stepId, artifact },
         });
       }
-      return path.join(context.workspaceRoot, ...artifact.split("/"));
-    });
+    }
 
-    for (const target of targets) {
-      context.signal?.throwIfAborted();
-      await rm(target, { force: true });
+    for (const artifact of artifacts) {
+      await removeSafeBundlePath(context.workspaceRoot, artifact, {
+        signal: context.signal,
+      });
     }
     context.signal?.throwIfAborted();
   };
@@ -358,14 +357,10 @@ function cleanupPartialArtifacts(
   allowedArtifacts: ReadonlySet<string>,
 ): NonNullable<BackupStepConsistencyAdapter["cleanupPartial"]> {
   return async (context: BackupStepConsistencyContext): Promise<void> => {
-    context.signal?.throwIfAborted();
-    const targets = [...allowedArtifacts].map((artifact) => {
-      assertSafeBundlePath(artifact);
-      return path.join(context.workspaceRoot, ...artifact.split("/"));
-    });
-    for (const target of targets) {
-      context.signal?.throwIfAborted();
-      await rm(target, { force: true });
+    for (const artifact of allowedArtifacts) {
+      await removeSafeBundlePath(context.workspaceRoot, artifact, {
+        signal: context.signal,
+      });
     }
     context.signal?.throwIfAborted();
   };
