@@ -18,6 +18,7 @@ import { SecretValue } from "../../src/security/secret-value.js";
 const temporaryDirectories: string[] = [];
 
 interface FunctionMetadata {
+  [key: string]: unknown;
   id: string;
   slug: string;
   name: string;
@@ -29,7 +30,7 @@ interface FunctionMetadata {
   import_map?: boolean;
   entrypoint_path?: string;
   import_map_path?: string;
-  ezbr_sha256?: string;
+  ezbr_sha256?: string | undefined;
 }
 
 interface FunctionFixture {
@@ -62,7 +63,7 @@ async function fixture(
   const bodyPath = `functions/${slug}/source.multipart`;
   const contentType = "multipart/form-data; boundary=pgdumpster-source";
   const body = Buffer.from(
-    "--pgdumpster-source\r\nContent-Disposition: form-data; name=\"metadata\"\r\n\r\n{}\r\n--pgdumpster-source--\r\n",
+    '--pgdumpster-source\r\nContent-Disposition: form-data; name="metadata"\r\n\r\n{}\r\n--pgdumpster-source--\r\n',
     "utf8",
   );
   const metadata: FunctionMetadata = {
@@ -132,25 +133,27 @@ class FakeEdgeClient implements EdgeFunctionRestoreClient {
   readonly mutations: string[] = [];
   readonly desired = new Map<string, FunctionMetadata>();
 
-  async list(): Promise<FunctionMetadata[]> {
-    return [...this.values.values()]
-      .map(({ metadata }) => cloneMetadata(metadata))
-      .sort((left, right) => left.slug.localeCompare(right.slug, "en"));
+  list(): Promise<FunctionMetadata[]> {
+    return Promise.resolve(
+      [...this.values.values()]
+        .map(({ metadata }) => cloneMetadata(metadata))
+        .sort((left, right) => left.slug.localeCompare(right.slug, "en")),
+    );
   }
 
-  async get(slug: string): Promise<FunctionMetadata> {
+  get(slug: string): Promise<FunctionMetadata> {
     const value = this.values.get(slug);
     if (value === undefined) throw new Error(`missing function ${slug}`);
-    return cloneMetadata(value.metadata);
+    return Promise.resolve(cloneMetadata(value.metadata));
   }
 
-  async body(slug: string) {
+  body(slug: string) {
     const value = this.values.get(slug);
     if (value === undefined) throw new Error(`missing function ${slug}`);
-    return {
+    return Promise.resolve({
       body: new Response(value.body).body!,
       contentType: value.contentType,
-    };
+    });
   }
 
   async deploy(input: {
@@ -177,9 +180,10 @@ class FakeEdgeClient implements EdgeFunctionRestoreClient {
     return cloneMetadata(target.metadata);
   }
 
-  async delete(slug: string): Promise<void> {
+  delete(slug: string): Promise<void> {
     this.mutations.push(`delete:${slug}`);
     this.values.delete(slug);
+    return Promise.resolve();
   }
 
   set(
@@ -222,7 +226,9 @@ describe("Edge Function restore handler", () => {
         created_at: 999,
         updated_at: 1000,
       },
-      Buffer.from("different multipart bytes are unnecessary when ezbr matches"),
+      Buffer.from(
+        "different multipart bytes are unnecessary when ezbr matches",
+      ),
     );
     const handler = createEdgeFunctionRestoreHandler(
       options(source, client, "fail"),
@@ -318,17 +324,17 @@ describe("Edge Function restore handler", () => {
       options(source, client, "fail"),
     );
 
-    await expect(
-      handler.verify({ action: action(source) }),
-    ).resolves.toBe(true);
+    await expect(handler.verify({ action: action(source) })).resolves.toBe(
+      true,
+    );
     client.set(
       source.metadata,
       Buffer.from("different multipart body"),
       source.contentType,
     );
-    await expect(
-      handler.verify({ action: action(source) }),
-    ).resolves.toBe(false);
+    await expect(handler.verify({ action: action(source) })).resolves.toBe(
+      false,
+    );
   });
 
   it("validates every source multipart body before target mutation", async () => {
@@ -381,8 +387,14 @@ describe("fetch Edge Function restore client", () => {
   it("uses authenticated management endpoints and streams the captured multipart body", async () => {
     const source = await fixture();
     const calls: { url: string; method: string; headers: Headers }[] = [];
-    const fetchImpl: typeof fetch = vi.fn(async (input, init) => {
-      const url = String(input);
+    const fetchImpl: typeof fetch = vi.fn<typeof fetch>(async (input, init) => {
+      await Promise.resolve();
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
       const method = init?.method ?? "GET";
       calls.push({ url, method, headers: new Headers(init?.headers) });
       if (url.endsWith("/body")) {
@@ -435,8 +447,8 @@ describe("fetch Edge Function restore client", () => {
   });
 
   it("normalizes authorization and contract failures without response body leakage", async () => {
-    const unauthorized: typeof fetch = vi.fn(async () =>
-      new Response("sensitive provider body", { status: 403 }),
+    const unauthorized: typeof fetch = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response("sensitive provider body", { status: 403 })),
     );
     const authClient = createFetchEdgeFunctionRestoreClient({
       targetProjectRef: "zyxwvutsrqponmlkjihg",
@@ -448,8 +460,8 @@ describe("fetch Edge Function restore client", () => {
       category: "auth",
     });
 
-    const invalidJson: typeof fetch = vi.fn(async () =>
-      new Response("not-json", { status: 200 }),
+    const invalidJson: typeof fetch = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response("not-json", { status: 200 })),
     );
     const contractClient = createFetchEdgeFunctionRestoreClient({
       targetProjectRef: "zyxwvutsrqponmlkjihg",

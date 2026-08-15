@@ -52,16 +52,13 @@ export interface DatabaseSupplementRestoreDependencies {
   restoreSqlArtifact?: typeof restoreSqlArtifact | undefined;
   dumpMigrationHistory?: typeof dumpMigrationHistory | undefined;
   dumpManagedSchemaCustomizations?:
-    | typeof dumpManagedSchemaCustomizations
-    | undefined;
+    typeof dumpManagedSchemaCustomizations | undefined;
   dumpExcludedDatabaseComponent?:
-    | typeof dumpExcludedDatabaseComponent
-    | undefined;
+    typeof dumpExcludedDatabaseComponent | undefined;
   collectDatabaseInventory?: typeof collectDatabaseInventory | undefined;
   collectDatabaseCatalogState?: typeof collectDatabaseCatalogState | undefined;
   createWebhookClient?:
-    | ((connectionString: string) => WebhookMutationClient)
-    | undefined;
+    ((connectionString: string) => WebhookMutationClient) | undefined;
 }
 
 export interface DatabaseSupplementRestoreOptions {
@@ -167,7 +164,7 @@ function assertArtifactSet(
 
 async function sourceHashes(
   options: DatabaseSupplementRestoreOptions,
-  component: DatabaseSupplementRestoreComponent,
+  _component: DatabaseSupplementRestoreComponent,
   artifacts: readonly string[],
 ): Promise<string[]> {
   const hashes: string[] = [];
@@ -231,15 +228,16 @@ function artifactById(
 function createMigrationHandler(
   options: DatabaseSupplementRestoreOptions,
 ): RestoreActionHandler {
-  const restore = options.dependencies?.restoreSqlArtifact ?? restoreSqlArtifact;
-  const dump = options.dependencies?.dumpMigrationHistory ?? dumpMigrationHistory;
+  const restore =
+    options.dependencies?.restoreSqlArtifact ?? restoreSqlArtifact;
+  const dump =
+    options.dependencies?.dumpMigrationHistory ?? dumpMigrationHistory;
 
   const source = async (artifacts: readonly string[]) => {
-    assertArtifactSet(
-      "database.migrations",
-      artifacts,
-      [MIGRATION_SCHEMA, MIGRATION_DATA],
-    );
+    assertArtifactSet("database.migrations", artifacts, [
+      MIGRATION_SCHEMA,
+      MIGRATION_DATA,
+    ]);
     const hashes = await sourceHashes(options, "database.migrations", [
       MIGRATION_SCHEMA,
       MIGRATION_DATA,
@@ -252,29 +250,36 @@ function createMigrationHandler(
   };
 
   const target = (signal?: AbortSignal) =>
-    withTargetEvidence(options, signal, async ({ outputDirectory, inventory }) => {
-      const artifacts = await dump(
-        dumpOptions(options, outputDirectory, signal),
-        inventory,
-      );
-      if (artifacts.length === 0) return undefined;
-      const schema = artifactById(artifacts, "database.migrations_schema");
-      const data = artifactById(artifacts, "database.migrations_data");
-      if (schema === undefined || data === undefined || artifacts.length !== 2) {
-        throw restoreError(
-          "RESTORE_TARGET_EVIDENCE_INVALID",
-          "Target migration-history evidence is incomplete.",
-          "database.migrations",
-          "integrity",
+    withTargetEvidence(
+      options,
+      signal,
+      async ({ outputDirectory, inventory }) => {
+        const artifacts = await dump(
+          dumpOptions(options, outputDirectory, signal),
+          inventory,
         );
-      }
-      return {
-        schemaPath: schema.path,
-        dataPath: data.path,
-        schemaHash: await normalizedSqlSha256(schema.path),
-        dataHash: await normalizedSqlSha256(data.path),
-      };
-    });
+        if (artifacts.length === 0) return undefined;
+        const schema = artifactById(artifacts, "database.migrations_schema");
+        const data = artifactById(artifacts, "database.migrations_data");
+        if (
+          schema === undefined ||
+          data === undefined ||
+          artifacts.length !== 2
+        ) {
+          throw restoreError(
+            "RESTORE_TARGET_EVIDENCE_INVALID",
+            "Target migration-history evidence is incomplete.",
+            "database.migrations",
+            "integrity",
+          );
+        }
+        return {
+          schemaHash: await normalizedSqlSha256(schema.path),
+          dataHash: await normalizedSqlSha256(data.path),
+          dataHasRows: await sqlDumpContainsRows(data.path),
+        };
+      },
+    );
 
   return {
     async apply(context): Promise<RestoreActionResult> {
@@ -304,7 +309,7 @@ function createMigrationHandler(
       if (observed.dataHash === desired.dataHash) {
         return { fingerprint: desired.fingerprint };
       }
-      if (await sqlDumpContainsRows(observed.dataPath)) {
+      if (observed.dataHasRows) {
         throw conflict(
           "database.migrations",
           "Target migration history contains different existing rows.",
@@ -329,8 +334,7 @@ function createMigrationHandler(
       }
       const observed = await target(context.signal);
       return (
-        observed !== undefined &&
-        observed.schemaHash === desired.schemaHash &&
+        observed?.schemaHash === desired.schemaHash &&
         observed.dataHash === desired.dataHash
       );
     },
@@ -340,17 +344,16 @@ function createMigrationHandler(
 function createCustomizationHandler(
   options: DatabaseSupplementRestoreOptions,
 ): RestoreActionHandler {
-  const restore = options.dependencies?.restoreSqlArtifact ?? restoreSqlArtifact;
+  const restore =
+    options.dependencies?.restoreSqlArtifact ?? restoreSqlArtifact;
   const dump =
     options.dependencies?.dumpManagedSchemaCustomizations ??
     dumpManagedSchemaCustomizations;
 
   const desiredHash = async (artifacts: readonly string[]) => {
-    assertArtifactSet(
-      "database.auth_storage_customizations",
-      artifacts,
-      [CUSTOMIZATION],
-    );
+    assertArtifactSet("database.auth_storage_customizations", artifacts, [
+      CUSTOMIZATION,
+    ]);
     return (
       await sourceHashes(options, "database.auth_storage_customizations", [
         CUSTOMIZATION,
@@ -359,22 +362,26 @@ function createCustomizationHandler(
   };
 
   const targetHash = (signal?: AbortSignal) =>
-    withTargetEvidence(options, signal, async ({ outputDirectory, inventory }) => {
-      const artifacts = await dump(
-        dumpOptions(options, outputDirectory, signal),
-        inventory,
-      );
-      if (artifacts.length === 0) return undefined;
-      if (artifacts.length !== 1) {
-        throw restoreError(
-          "RESTORE_TARGET_EVIDENCE_INVALID",
-          "Target managed-schema customization evidence is ambiguous.",
-          "database.auth_storage_customizations",
-          "integrity",
+    withTargetEvidence(
+      options,
+      signal,
+      async ({ outputDirectory, inventory }) => {
+        const artifacts = await dump(
+          dumpOptions(options, outputDirectory, signal),
+          inventory,
         );
-      }
-      return normalizedSqlSha256(artifacts[0]!.path);
-    });
+        if (artifacts.length === 0) return undefined;
+        if (artifacts.length !== 1) {
+          throw restoreError(
+            "RESTORE_TARGET_EVIDENCE_INVALID",
+            "Target managed-schema customization evidence is ambiguous.",
+            "database.auth_storage_customizations",
+            "integrity",
+          );
+        }
+        return normalizedSqlSha256(artifacts[0]!.path);
+      },
+    );
 
   return {
     async apply(context): Promise<RestoreActionResult> {
@@ -412,7 +419,8 @@ function createDedicatedHandler(
   options: DatabaseSupplementRestoreOptions,
   component: DedicatedComponent,
 ): RestoreActionHandler {
-  const restore = options.dependencies?.restoreSqlArtifact ?? restoreSqlArtifact;
+  const restore =
+    options.dependencies?.restoreSqlArtifact ?? restoreSqlArtifact;
   const dump =
     options.dependencies?.dumpExcludedDatabaseComponent ??
     dumpExcludedDatabaseComponent;
@@ -424,24 +432,28 @@ function createDedicatedHandler(
   };
 
   const target = (signal?: AbortSignal) =>
-    withTargetEvidence(options, signal, async ({ outputDirectory, inventory }) => {
-      const result = await dump(
-        dumpOptions(options, outputDirectory, signal),
-        inventory,
-        component,
-      );
-      return {
-        path: result.path,
-        hash: await normalizedSqlSha256(result.path),
-      };
-    });
+    withTargetEvidence(
+      options,
+      signal,
+      async ({ outputDirectory, inventory }) => {
+        const result = await dump(
+          dumpOptions(options, outputDirectory, signal),
+          inventory,
+          component,
+        );
+        return {
+          hash: await normalizedSqlSha256(result.path),
+          hasRows: await sqlDumpContainsRows(result.path),
+        };
+      },
+    );
 
   return {
     async apply(context): Promise<RestoreActionResult> {
       const expected = await desiredHash(context.action.artifacts);
       const observed = await target(context.signal);
       if (observed.hash === expected) return { fingerprint: expected };
-      if (await sqlDumpContainsRows(observed.path)) {
+      if (observed.hasRows) {
         throw conflict(
           component,
           "Target dedicated database state contains different existing rows.",
@@ -591,11 +603,9 @@ async function readSourceCatalog(
   options: DatabaseSupplementRestoreOptions,
   artifacts: readonly string[],
 ): Promise<DatabaseCatalogState> {
-  assertArtifactSet(
-    "database.webhooks",
-    artifacts,
-    ["database/catalog-state.json"],
-  );
+  assertArtifactSet("database.webhooks", artifacts, [
+    "database/catalog-state.json",
+  ]);
   const filename = await resolveBundleArtifact(
     options.bundleRoot,
     "database/catalog-state.json",
@@ -649,7 +659,8 @@ function createWebhookHandler(
       const source = await readSourceCatalog(options, context.action.artifacts);
       const expected = webhookFingerprint(source);
       const target = await collectTargetCatalog(options, context.signal);
-      if (webhookFingerprint(target) === expected) return { fingerprint: expected };
+      if (webhookFingerprint(target) === expected)
+        return { fingerprint: expected };
       const statements = webhookStatements(
         source,
         target,
@@ -699,8 +710,9 @@ function createWebhookHandler(
         return false;
       }
       return (
-        webhookFingerprint(await collectTargetCatalog(options, context.signal)) ===
-        expected
+        webhookFingerprint(
+          await collectTargetCatalog(options, context.signal),
+        ) === expected
       );
     },
   };

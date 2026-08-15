@@ -1,11 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -115,7 +109,9 @@ function object(
 async function createBundle(
   payload = Buffer.from("hello storage", "utf8"),
 ): Promise<BundleFixture> {
-  const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-storage-restore-"));
+  const root = await mkdtemp(
+    path.join(tmpdir(), "pgdumpster-storage-restore-"),
+  );
   temporaryDirectories.push(root);
   await mkdir(path.join(root, "storage"), { recursive: true });
   await mkdir(path.join(root, "database"), { recursive: true });
@@ -176,9 +172,7 @@ async function createBundle(
 
 function action(
   component:
-    | "storage.file_buckets"
-    | "storage.file_objects"
-    | "storage.file_metadata",
+    "storage.file_buckets" | "storage.file_objects" | "storage.file_metadata",
   artifacts: string[],
 ): RestoreAction {
   const phase = component === "storage.file_buckets" ? 10 : 11;
@@ -215,8 +209,8 @@ function mutationClient(
   target: FileStorageCatalog,
   evidence = new Map<string, StorageObjectEvidence>(),
 ): StorageMutationClient {
-  return {
-    createBucket: vi.fn(async (id, options) => {
+  const createBucket = vi.fn<StorageMutationClient["createBucket"]>(
+    (id, options) => {
       target.buckets.push(
         bucket(id, {
           public: options.public,
@@ -224,39 +218,44 @@ function mutationClient(
           allowedMimeTypes: options.allowedMimeTypes,
         }),
       );
-      return success();
-    }),
-    updateBucket: vi.fn(async (id, options) => {
+      return Promise.resolve(success());
+    },
+  );
+  const updateBucket = vi.fn<StorageMutationClient["updateBucket"]>(
+    (id, options) => {
       const current = target.buckets.find((entry) => entry.id === id);
       if (current !== undefined) {
         current.public = options.public;
         current.fileSizeLimit = options.fileSizeLimit;
         current.allowedMimeTypes = options.allowedMimeTypes;
       }
-      return success();
-    }),
-    emptyBucket: vi.fn(async (id) => {
-      target.objects = target.objects.filter((entry) => entry.bucket !== id);
-      for (const key of [...evidence.keys()]) {
-        if (key.startsWith(`${id}\0`)) evidence.delete(key);
-      }
-      return success();
-    }),
-    deleteBucket: vi.fn(async (id) => {
-      target.buckets = target.buckets.filter((entry) => entry.id !== id);
-      return success();
-    }),
-    from: (id) => ({
-      remove: vi.fn(async (names) => {
-        const remove = new Set(names);
+      return Promise.resolve(success());
+    },
+  );
+  const emptyBucket = vi.fn<StorageMutationClient["emptyBucket"]>((id) => {
+    target.objects = target.objects.filter((entry) => entry.bucket !== id);
+    for (const key of [...evidence.keys()]) {
+      if (key.startsWith(`${id}\0`)) evidence.delete(key);
+    }
+    return Promise.resolve(success());
+  });
+  const deleteBucket = vi.fn<StorageMutationClient["deleteBucket"]>((id) => {
+    target.buckets = target.buckets.filter((entry) => entry.id !== id);
+    return Promise.resolve(success());
+  });
+  const from: StorageMutationClient["from"] = (id) => ({
+    remove: vi.fn<ReturnType<StorageMutationClient["from"]>["remove"]>(
+      (names) => {
+        const namesToRemove = new Set(names);
         target.objects = target.objects.filter(
-          (entry) => entry.bucket !== id || !remove.has(entry.name),
+          (entry) => entry.bucket !== id || !namesToRemove.has(entry.name),
         );
         for (const name of names) evidence.delete(objectIdentity(id, name));
-        return success();
-      }),
-    }),
-  };
+        return Promise.resolve(success());
+      },
+    ),
+  });
+  return { createBucket, updateBucket, emptyBucket, deleteBucket, from };
 }
 
 function restoreOptions(
@@ -288,9 +287,9 @@ function objectDependencies(
   const client = mutationClient(target, evidence);
   return {
     storageClient: client,
-    collectTarget: async () => target,
-    readTargetObject: async (bucketId, name) =>
-      evidence.get(objectIdentity(bucketId, name)),
+    collectTarget: () => Promise.resolve(target),
+    readTargetObject: (bucketId, name) =>
+      Promise.resolve(evidence.get(objectIdentity(bucketId, name))),
     uploadObject: vi.fn(async (input: UploadStorageObjectInput) => {
       const payload = await readFile(input.sourcePath);
       const key = objectIdentity(input.bucket, input.name);
@@ -339,17 +338,14 @@ describe("File Storage bucket restore", () => {
     const fixture = await createBundle();
     const target: FileStorageCatalog = {
       schemaVersion: 1,
-      buckets: [
-        bucket("assets", { public: true }),
-        bucket("target-only"),
-      ],
+      buckets: [bucket("assets", { public: true }), bucket("target-only")],
       objects: [],
     };
     const client = mutationClient(target);
     const handler = createFileBucketRestoreHandler(
       restoreOptions(fixture, "fail", {
         storageClient: client,
-        collectTarget: async () => target,
+        collectTarget: () => Promise.resolve(target),
       }),
     );
 
@@ -376,7 +372,7 @@ describe("File Storage bucket restore", () => {
     const handler = createFileBucketRestoreHandler(
       restoreOptions(fixture, "replace", {
         storageClient: client,
-        collectTarget: async () => target,
+        collectTarget: () => Promise.resolve(target),
       }),
     );
 
@@ -392,7 +388,10 @@ describe("File Storage bucket restore", () => {
       }),
     ).resolves.toBe(true);
     await expect(
-      handler.verify({ action: bucketAction(), expectedFingerprint: "0".repeat(64) }),
+      handler.verify({
+        action: bucketAction(),
+        expectedFingerprint: "0".repeat(64),
+      }),
     ).resolves.toBe(false);
   });
 
@@ -412,13 +411,15 @@ describe("File Storage bucket restore", () => {
     const handler = createFileBucketRestoreHandler(
       restoreOptions(fixture, "fail", {
         storageClient: client,
-        collectTarget: async () => target,
+        collectTarget: () => Promise.resolve(target),
       }),
     );
 
     await handler.apply({ action: bucketAction(), attempt: 1 });
     expect(client.createBucket).toHaveBeenCalledOnce();
-    await expect(handler.verify({ action: bucketAction() })).resolves.toBe(true);
+    await expect(handler.verify({ action: bucketAction() })).resolves.toBe(
+      true,
+    );
   });
 
   it("normalizes Storage API failures without exposing credentials", async () => {
@@ -429,14 +430,16 @@ describe("File Storage bucket restore", () => {
       objects: [],
     };
     const client = mutationClient(target);
-    client.createBucket = vi.fn(async () => ({
-      data: null,
-      error: { message: "do not surface provider detail", statusCode: "500" },
-    }));
+    client.createBucket = vi.fn<StorageMutationClient["createBucket"]>(() =>
+      Promise.resolve({
+        data: null,
+        error: { message: "do not surface provider detail", statusCode: "500" },
+      }),
+    );
     const handler = createFileBucketRestoreHandler(
       restoreOptions(fixture, "fail", {
         storageClient: client,
-        collectTarget: async () => target,
+        collectTarget: () => Promise.resolve(target),
       }),
     );
 
@@ -463,7 +466,7 @@ describe("File Storage bucket restore", () => {
     const handler = createFileBucketRestoreHandler(
       restoreOptions(fixture, "fail", {
         storageClient: mutationClient(target),
-        collectTarget: async () => target,
+        collectTarget: () => Promise.resolve(target),
       }),
     );
 
@@ -530,7 +533,10 @@ describe("File Storage object restore", () => {
       objects: [object("extra", "assets", "extra.txt", 1)],
     };
     const evidence = new Map<string, StorageObjectEvidence>([
-      [objectIdentity("assets", "extra.txt"), { sha256: "1".repeat(64), bytes: 1 }],
+      [
+        objectIdentity("assets", "extra.txt"),
+        { sha256: "1".repeat(64), bytes: 1 },
+      ],
     ]);
     const dependencies = objectDependencies(target, evidence);
     const handler = createFileObjectRestoreHandler(
@@ -637,9 +643,9 @@ describe("File Storage object restore", () => {
     );
     expect(target.objects).toHaveLength(1);
     expect(target.objects[0]?.name).toBe("folder/example.txt");
-    await expect(handler.verify({ action: objectAction(fixture) })).resolves.toBe(
-      true,
-    );
+    await expect(
+      handler.verify({ action: objectAction(fixture) }),
+    ).resolves.toBe(true);
   });
 
   it("uses the default streaming data-plane path without materializing object bytes in memory", async () => {
@@ -651,21 +657,27 @@ describe("File Storage object restore", () => {
       objects: [],
     };
     const client = mutationClient(emptyTarget);
-    const seen: { method?: string; headers?: HeadersInit }[] = [];
-    const fetchImpl: typeof fetch = vi.fn(async (_input, init) => {
-      seen.push({ method: init?.method, headers: init?.headers });
-      if (init?.method === "POST") {
-        uploaded = true;
-        return new Response("{}", { status: 200 });
-      }
-      return uploaded
-        ? new Response(fixture.payload, { status: 200 })
-        : new Response(null, { status: 404 });
-    });
+    const seen: { method: string | undefined; headers: Headers }[] = [];
+    const fetchImpl: typeof fetch = vi.fn<typeof fetch>(
+      async (_input, init) => {
+        await Promise.resolve();
+        seen.push({
+          method: init?.method,
+          headers: new Headers(init?.headers),
+        });
+        if (init?.method === "POST") {
+          uploaded = true;
+          return new Response("{}", { status: 200 });
+        }
+        return uploaded
+          ? new Response(fixture.payload, { status: 200 })
+          : new Response(null, { status: 404 });
+      },
+    );
     const dependencies: FileStorageRestoreDependencies = {
       storageClient: client,
-      collectTarget: async () =>
-        uploaded ? cloneCatalog(fixture.catalog) : emptyTarget,
+      collectTarget: () =>
+        Promise.resolve(uploaded ? cloneCatalog(fixture.catalog) : emptyTarget),
     };
     const handler = createFileObjectRestoreHandler(
       restoreOptions(fixture, "fail", dependencies, fetchImpl),
@@ -683,7 +695,7 @@ describe("File Storage object restore", () => {
     ).resolves.toBe(true);
     const upload = seen.find(({ method }) => method === "POST");
     expect(upload).toBeDefined();
-    const headers = new Headers(upload?.headers);
+    const headers = upload?.headers ?? new Headers();
     expect(headers.get("x-upsert")).toBe("false");
     expect(headers.get("content-type")).toBe("text/plain");
     expect(headers.get("cache-control")).toBe("max-age=3600");
@@ -697,8 +709,8 @@ describe("File Storage object restore", () => {
       buckets: cloneCatalog(fixture.catalog).buckets,
       objects: [],
     };
-    const uploadFailure: typeof fetch = vi.fn(async () =>
-      new Response("failure", { status: 503 }),
+    const uploadFailure: typeof fetch = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response("failure", { status: 503 })),
     );
     const handler = createFileObjectRestoreHandler(
       restoreOptions(
@@ -706,7 +718,7 @@ describe("File Storage object restore", () => {
         "fail",
         {
           storageClient: mutationClient(emptyTarget),
-          collectTarget: async () => emptyTarget,
+          collectTarget: () => Promise.resolve(emptyTarget),
         },
         uploadFailure,
       ),
@@ -716,8 +728,8 @@ describe("File Storage object restore", () => {
     ).rejects.toMatchObject({ code: "STORAGE_OBJECT_RESTORE_FAILED" });
 
     const existing = cloneCatalog(fixture.catalog);
-    const verifyFailure: typeof fetch = vi.fn(async () =>
-      new Response("failure", { status: 500 }),
+    const verifyFailure: typeof fetch = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response("failure", { status: 500 })),
     );
     const verifyHandler = createFileObjectRestoreHandler(
       restoreOptions(
@@ -725,7 +737,7 @@ describe("File Storage object restore", () => {
         "fail",
         {
           storageClient: mutationClient(existing),
-          collectTarget: async () => existing,
+          collectTarget: () => Promise.resolve(existing),
         },
         verifyFailure,
       ),
@@ -747,7 +759,7 @@ describe("File Storage metadata restore", () => {
     const handler = createFileMetadataRestoreHandler(
       restoreOptions(fixture, "fail", {
         storageClient: mutationClient(target),
-        collectTarget: async () => target,
+        collectTarget: () => Promise.resolve(target),
       }),
     );
 
@@ -774,7 +786,7 @@ describe("File Storage metadata restore", () => {
     const handler = createFileMetadataRestoreHandler(
       restoreOptions(fixture, "fail", {
         storageClient: mutationClient(target),
-        collectTarget: async () => target,
+        collectTarget: () => Promise.resolve(target),
       }),
     );
 

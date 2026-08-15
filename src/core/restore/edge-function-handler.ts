@@ -42,7 +42,11 @@ const functionIndexSchema = z
           body: z
             .object({
               path: z.string().min(1),
-              bytes: z.number().int().nonnegative().refine(Number.isSafeInteger),
+              bytes: z
+                .number()
+                .int()
+                .nonnegative()
+                .refine(Number.isSafeInteger),
               sha256: z.string().regex(/^[a-f0-9]{64}$/u),
               contentType: z.string().min(1),
             })
@@ -262,10 +266,7 @@ export function createFetchEdgeFunctionRestoreClient(
     async body(slug, signal) {
       const response = await transport(
         request,
-        apiUrl(
-          options.targetProjectRef,
-          `/${encodeURIComponent(slug)}/body`,
-        ),
+        apiUrl(options.targetProjectRef, `/${encodeURIComponent(slug)}/body`),
         {
           method: "GET",
           headers: { authorization, accept: "multipart/form-data" },
@@ -295,7 +296,7 @@ export function createFetchEdgeFunctionRestoreClient(
             accept: "application/json",
             "content-type": input.contentType,
           },
-          body: source as unknown as BodyInit,
+          body: source,
           duplex: "half",
           ...(signal === undefined ? {} : { signal }),
         };
@@ -396,9 +397,7 @@ async function readSource(
     "functions/index.json",
     ...document.functions.map(({ body }) => body.path),
   ].sort();
-  if (
-    canonicalJson([...artifacts].sort()) !== canonicalJson(expectedArtifacts)
-  )
+  if (canonicalJson([...artifacts].sort()) !== canonicalJson(expectedArtifacts))
     throw edgeError(
       "RESTORE_ARTIFACT_INVALID",
       "restore_policy",
@@ -420,10 +419,7 @@ async function readSource(
         "Edge Function index contains duplicate slugs.",
       );
     slugs.add(entry.metadata.slug);
-    if (
-      entry.body.bytes > MAX_BODY_BYTES ||
-      !multipart(entry.body.contentType)
-    )
+    if (entry.body.bytes > MAX_BODY_BYTES || !multipart(entry.body.contentType))
       throw edgeError(
         "RESTORE_ARTIFACT_INVALID",
         "integrity",
@@ -438,7 +434,10 @@ async function validateSourceBody(
   options: EdgeFunctionRestoreOptions,
   source: SourceFunction,
 ): Promise<string> {
-  const filename = await resolveBundleArtifact(options.bundleRoot, source.body.path);
+  const filename = await resolveBundleArtifact(
+    options.bundleRoot,
+    source.body.path,
+  );
   const stat = await lstat(filename);
   if (
     !stat.isFile() ||
@@ -464,7 +463,10 @@ async function validateSourceBody(
   } finally {
     stream.destroy();
   }
-  if (bytes !== source.body.bytes || digest.digest("hex") !== source.body.sha256)
+  if (
+    bytes !== source.body.bytes ||
+    digest.digest("hex") !== source.body.sha256
+  )
     throw edgeError(
       "RESTORE_ARTIFACT_INVALID",
       "integrity",
@@ -516,7 +518,8 @@ async function matches(
 export function createEdgeFunctionRestoreHandler(
   options: EdgeFunctionRestoreOptions,
 ): RestoreActionHandler {
-  const client = options.client ?? createFetchEdgeFunctionRestoreClient(options);
+  const client =
+    options.client ?? createFetchEdgeFunctionRestoreClient(options);
   return {
     async apply(context): Promise<RestoreActionResult> {
       const source = await readSource(options, context.action.artifacts);
@@ -550,10 +553,14 @@ export function createEdgeFunctionRestoreHandler(
           "RESTORE_TARGET_CONFLICT",
           "restore_policy",
           "Target Edge Function state differs from the source backup.",
-          { extraFunctions: extra.length, conflictingFunctions: conflicts.length },
+          {
+            extraFunctions: extra.length,
+            conflictingFunctions: conflicts.length,
+          },
         );
       if (options.conflictPolicy === "replace")
-        for (const entry of extra) await client.delete(entry.slug, context.signal);
+        for (const entry of extra)
+          await client.delete(entry.slug, context.signal);
 
       const conflictSlugs = new Set(
         conflicts.map(({ metadata }) => metadata.slug),

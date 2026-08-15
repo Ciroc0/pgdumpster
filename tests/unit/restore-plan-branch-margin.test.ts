@@ -56,7 +56,9 @@ describe("restore plan branch margin", () => {
   it("refuses a failed source backup before planning", async () => {
     const { manifest, coverage } = await source();
     manifest.result.status = "failed";
-    await expect(buildRestorePlan(manifest, coverage, options)).rejects.toMatchObject({
+    await expect(
+      buildRestorePlan(manifest, coverage, options),
+    ).rejects.toMatchObject({
       code: "RESTORE_SOURCE_BACKUP_FAILED",
     });
   });
@@ -64,7 +66,9 @@ describe("restore plan branch margin", () => {
   it("fails closed when the source coverage omits a registry component", async () => {
     const { manifest, coverage } = await source();
     coverage.components.pop();
-    await expect(buildRestorePlan(manifest, coverage, options)).rejects.toMatchObject({
+    await expect(
+      buildRestorePlan(manifest, coverage, options),
+    ).rejects.toMatchObject({
       code: "RESTORE_COVERAGE_INCOMPLETE",
     });
   });
@@ -126,7 +130,8 @@ describe("restore plan branch margin", () => {
       reasonCode: "external_resource_manual",
     });
     expect(
-      plan.manualActions.find(({ component: id }) => id === "external.dns")?.message,
+      plan.manualActions.find(({ component: id }) => id === "external.dns")
+        ?.message,
     ).toContain("outside Supabase");
   });
 
@@ -138,7 +143,8 @@ describe("restore plan branch margin", () => {
     keys.artifacts = ["secrets/api-keys.json"];
     const plan = await buildRestorePlan(manifest, coverage, options);
     expect(
-      plan.manualActions.find(({ component: id }) => id === "api.modern_keys")?.message,
+      plan.manualActions.find(({ component: id }) => id === "api.modern_keys")
+        ?.message,
     ).toContain("protected rotation mapping");
   });
 

@@ -192,8 +192,7 @@ describe("restore runtime margin: database webhooks", () => {
     await handler.apply({ action: webhookAction(), attempt: 1 });
     expect(
       queries.some(
-        (sql) =>
-          sql.includes("ENABLE TRIGGER") && sql.includes('quoted""hook'),
+        (sql) => sql.includes("ENABLE TRIGGER") && sql.includes('quoted""hook'),
       ),
     ).toBe(true);
   });
@@ -371,12 +370,9 @@ function fileOptions(
 }
 
 function bucketAction(): RestoreAction {
-  return action(
-    "storage.file_buckets",
-    10,
-    "create_or_update_file_buckets",
-    ["storage/file-catalog.json"],
-  );
+  return action("storage.file_buckets", 10, "create_or_update_file_buckets", [
+    "storage/file-catalog.json",
+  ]);
 }
 
 function objectAction(fixture: FileFixture): RestoreAction {
@@ -393,7 +389,10 @@ describe("restore runtime margin: File Storage", () => {
       fileOptions(createFixture, {
         storageClient: storageClient({
           createBucket: () =>
-            Promise.resolve({ data: null, error: { message: "create", status: 500 } }),
+            Promise.resolve({
+              data: null,
+              error: { message: "create", status: 500 },
+            }),
         }),
         collectTarget: () =>
           Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
@@ -419,7 +418,10 @@ describe("restore runtime margin: File Storage", () => {
           collectTarget: () =>
             Promise.resolve({
               schemaVersion: 1,
-              buckets: [structuredClone(deleteFixture.catalog.buckets[0]!), extra],
+              buckets: [
+                structuredClone(deleteFixture.catalog.buckets[0]!),
+                extra,
+              ],
               objects: [],
             }),
         },
@@ -441,7 +443,11 @@ describe("restore runtime margin: File Storage", () => {
               Promise.resolve({ data: null, error: { message: "update" } }),
           }),
           collectTarget: () =>
-            Promise.resolve({ schemaVersion: 1, buckets: [drifted], objects: [] }),
+            Promise.resolve({
+              schemaVersion: 1,
+              buckets: [drifted],
+              objects: [],
+            }),
         },
         "replace",
       ),
@@ -453,7 +459,7 @@ describe("restore runtime margin: File Storage", () => {
 
   it("uses default upload with optional metadata headers omitted", async () => {
     const fixture = await fileFixture();
-    const requests: { method?: string; headers: Headers }[] = [];
+    const requests: { method: string | undefined; headers: Headers }[] = [];
     const fetchImpl = vi.fn<typeof fetch>((_input, init) => {
       requests.push({
         method: init?.method,
@@ -499,25 +505,30 @@ describe("restore runtime margin: File Storage", () => {
         collectTarget: () => Promise.resolve(extraTarget),
         readTargetObject: () =>
           Promise.resolve({
-            sha256: createHash("sha256").update(extraFixture.payload).digest("hex"),
+            sha256: createHash("sha256")
+              .update(extraFixture.payload)
+              .digest("hex"),
             bytes: extraFixture.payload.length,
           }),
       }),
     );
-    await expect(extraHandler.verify({ action: objectAction(extraFixture) })).resolves.toBe(
-      false,
-    );
+    await expect(
+      extraHandler.verify({ action: objectAction(extraFixture) }),
+    ).resolves.toBe(false);
 
     const metadataFixture = await fileFixture();
     const metadataTarget = structuredClone(metadataFixture.catalog);
-    metadataTarget.objects[0]!.expectedBytes = metadataFixture.payload.length + 1;
+    metadataTarget.objects[0]!.expectedBytes =
+      metadataFixture.payload.length + 1;
     const metadataHandler = createFileObjectRestoreHandler(
       fileOptions(metadataFixture, {
         storageClient: storageClient(),
         collectTarget: () => Promise.resolve(metadataTarget),
         readTargetObject: () =>
           Promise.resolve({
-            sha256: createHash("sha256").update(metadataFixture.payload).digest("hex"),
+            sha256: createHash("sha256")
+              .update(metadataFixture.payload)
+              .digest("hex"),
             bytes: metadataFixture.payload.length,
           }),
       }),
@@ -530,9 +541,13 @@ describe("restore runtime margin: File Storage", () => {
     const evidenceHandler = createFileObjectRestoreHandler(
       fileOptions(evidenceFixture, {
         storageClient: storageClient(),
-        collectTarget: () => Promise.resolve(structuredClone(evidenceFixture.catalog)),
+        collectTarget: () =>
+          Promise.resolve(structuredClone(evidenceFixture.catalog)),
         readTargetObject: () =>
-          Promise.resolve({ sha256: "f".repeat(64), bytes: evidenceFixture.payload.length + 1 }),
+          Promise.resolve({
+            sha256: "f".repeat(64),
+            bytes: evidenceFixture.payload.length + 1,
+          }),
       }),
     );
     await expect(
@@ -612,7 +627,8 @@ async function vectorFixture(): Promise<VectorFixture> {
 }
 
 function vectorAction(
-  component: "storage.vector_buckets" | "storage.vector_indexes" | "storage.vectors",
+  component:
+    "storage.vector_buckets" | "storage.vector_indexes" | "storage.vectors",
   fixture: VectorFixture,
 ): RestoreAction {
   const artifacts =
@@ -651,10 +667,15 @@ function client(
   overrides: Partial<VectorMutationClient> = {},
   bucketFactory: () => VectorBucketMutationClient = bucketClient,
 ): VectorMutationClient {
+  void fixture;
   return {
-    listBuckets: () => Promise.resolve({ data: { vectorBuckets: [] }, error: null }),
+    listBuckets: () =>
+      Promise.resolve({ data: { vectorBuckets: [] }, error: null }),
     getBucket: (name) =>
-      Promise.resolve({ data: { vectorBucket: { vectorBucketName: name } }, error: null }),
+      Promise.resolve({
+        data: { vectorBucket: { vectorBucketName: name } },
+        error: null,
+      }),
     createBucket: () => Promise.resolve({ data: {}, error: null }),
     deleteBucket: () => Promise.resolve({ data: {}, error: null }),
     from: () => bucketFactory(),
@@ -721,7 +742,8 @@ describe("restore runtime margin: Vector Storage", () => {
   it("normalizes vector put and delete failures", async () => {
     const putFixture = await vectorFixture();
     const putIndex = (): VectorIndexMutationClient => ({
-      listVectors: () => Promise.resolve({ data: { vectors: [] }, error: null }),
+      listVectors: () =>
+        Promise.resolve({ data: { vectors: [] }, error: null }),
       putVectors: () =>
         Promise.resolve({ data: null, error: { statusCode: "500" } }),
       deleteVectors: () => Promise.resolve({ data: {}, error: null }),
@@ -812,13 +834,18 @@ describe("restore runtime margin: Vector Storage", () => {
       ),
     );
     await expect(
-      keyHandler.verify({ action: vectorAction("storage.vectors", keyFixture) }),
+      keyHandler.verify({
+        action: vectorAction("storage.vectors", keyFixture),
+      }),
     ).resolves.toBe(false);
 
     const valueFixture = await vectorFixture();
     const valueIndex = (): VectorIndexMutationClient => ({
       listVectors: () =>
-        Promise.resolve({ data: { vectors: [vector("one", 99)] }, error: null }),
+        Promise.resolve({
+          data: { vectors: [vector("one", 99)] },
+          error: null,
+        }),
       putVectors: () => Promise.resolve({ data: {}, error: null }),
       deleteVectors: () => Promise.resolve({ data: {}, error: null }),
     });
@@ -829,7 +856,9 @@ describe("restore runtime margin: Vector Storage", () => {
       ),
     );
     await expect(
-      valueHandler.verify({ action: vectorAction("storage.vectors", valueFixture) }),
+      valueHandler.verify({
+        action: vectorAction("storage.vectors", valueFixture),
+      }),
     ).resolves.toBe(false);
   });
 
@@ -847,7 +876,9 @@ describe("restore runtime margin: Vector Storage", () => {
       vectorOptions(fixture, client(fixture, {}, cyclingBucket)),
     );
     await expect(
-      handler.verify({ action: vectorAction("storage.vector_indexes", fixture) }),
+      handler.verify({
+        action: vectorAction("storage.vector_indexes", fixture),
+      }),
     ).rejects.toMatchObject({ code: "STORAGE_PAGINATION_CYCLE" });
   });
 });

@@ -11,9 +11,7 @@ import { resolveBundleArtifact } from "./database-handlers.js";
 import type { RestoreActionHandler, RestoreActionResult } from "./executor.js";
 
 type VectorRestoreComponent =
-  | "storage.vector_buckets"
-  | "storage.vector_indexes"
-  | "storage.vectors";
+  "storage.vector_buckets" | "storage.vector_indexes" | "storage.vectors";
 
 interface ApiResult<T = unknown> {
   data: T | null;
@@ -91,8 +89,9 @@ const bucketDocumentSchema = z
   .strict();
 const bucketListSchema = z
   .object({
-    vectorBuckets: z
-      .array(z.object({ vectorBucketName: z.string().min(1) }).passthrough()),
+    vectorBuckets: z.array(
+      z.object({ vectorBucketName: z.string().min(1) }).passthrough(),
+    ),
     nextToken: z.string().min(1).optional(),
   })
   .passthrough();
@@ -244,7 +243,9 @@ function requireSuccess(
   }
 }
 
-function defaultClient(options: VectorStorageRestoreOptions): VectorMutationClient {
+function defaultClient(
+  options: VectorStorageRestoreOptions,
+): VectorMutationClient {
   const key = options.storageKey.expose();
   const storage = new StorageClient(
     `https://${options.targetProjectRef}.supabase.co/storage/v1`,
@@ -346,7 +347,8 @@ function indexIdentity(index: VectorIndex): string {
 
 function indexEqual(left: VectorIndex, right: VectorIndex): boolean {
   return (
-    canonicalJson(normalizedIndex(left)) === canonicalJson(normalizedIndex(right))
+    canonicalJson(normalizedIndex(left)) ===
+    canonicalJson(normalizedIndex(right))
   );
 }
 
@@ -364,7 +366,8 @@ function vectorIdentity(vector: IndexedVector): string {
 
 function vectorEqual(left: VectorValue, right: VectorValue): boolean {
   return (
-    canonicalJson(normalizedVector(left)) === canonicalJson(normalizedVector(right))
+    canonicalJson(normalizedVector(left)) ===
+    canonicalJson(normalizedVector(right))
   );
 }
 
@@ -547,7 +550,10 @@ async function deleteBucketRecursively(
       await bucket.deleteIndex(index.indexName),
       "storage.vector_indexes",
     );
-  requireSuccess(await client.deleteBucket(bucketName), "storage.vector_buckets");
+  requireSuccess(
+    await client.deleteBucket(bucketName),
+    "storage.vector_buckets",
+  );
 }
 
 function bucketFingerprint(buckets: readonly VectorBucket[]): string {
@@ -646,10 +652,12 @@ export function createVectorBucketRestoreHandler(
       const sourceIndexes = await readIndexDocument(options);
       if (sourceIndexes.length > 0) return true;
       return (
-        (await listTargetIndexes(
-          client,
-          source.map(({ vectorBucketName }) => vectorBucketName),
-        )).length === 0
+        (
+          await listTargetIndexes(
+            client,
+            source.map(({ vectorBucketName }) => vectorBucketName),
+          )
+        ).length === 0
       );
     },
   };
@@ -919,7 +927,8 @@ export function createVectorRestoreHandler(
       const source = await readSourceVectors(options, context.action.artifacts);
       const conflicts: IndexedVector[] = [];
       const missing: IndexedVector[] = [];
-      const extra: { bucketName: string; indexName: string; key: string }[] = [];
+      const extra: { bucketName: string; indexName: string; key: string }[] =
+        [];
 
       for (const [groupId, sourceVectors] of groupedVectors(source)) {
         const [bucketName, indexName] = groupId.split("\0") as [string, string];
@@ -964,7 +973,10 @@ export function createVectorRestoreHandler(
           deletions.set(id, keys);
         }
         for (const [groupId, keys] of deletions) {
-          const [bucketName, indexName] = groupId.split("\0") as [string, string];
+          const [bucketName, indexName] = groupId.split("\0") as [
+            string,
+            string,
+          ];
           const index = client.from(bucketName).index(indexName);
           for (const batch of chunks(keys, MUTATION_BATCH_SIZE))
             requireSuccess(

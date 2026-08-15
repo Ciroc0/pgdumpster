@@ -130,9 +130,7 @@ async function sourceFixture(
 
 function action(
   component:
-    | "storage.vector_buckets"
-    | "storage.vector_indexes"
-    | "storage.vectors",
+    "storage.vector_buckets" | "storage.vector_indexes" | "storage.vectors",
   artifacts: string[],
 ): RestoreAction {
   return {
@@ -193,156 +191,170 @@ class FakeVectorClient implements VectorMutationClient {
   readonly mutations: string[] = [];
   cycleVectorsFor?: string;
 
-  listBuckets = vi.fn(async () => ({
-    data: {
-      vectorBuckets: [...this.buckets.keys()]
-        .sort((left, right) => left.localeCompare(right, "en"))
-        .map((vectorBucketName) => ({ vectorBucketName })),
-    },
-    error: null,
-  }));
+  listBuckets() {
+    return Promise.resolve({
+      data: {
+        vectorBuckets: [...this.buckets.keys()]
+          .sort((left, right) => left.localeCompare(right, "en"))
+          .map((vectorBucketName) => ({ vectorBucketName })),
+      },
+      error: null,
+    });
+  }
 
-  getBucket = vi.fn(async (bucketName: string) => {
+  getBucket(bucketName: string) {
     const bucket = this.buckets.get(bucketName);
-    return bucket === undefined
-      ? { data: null, error: { status: 404 } }
-      : {
-          data: {
-            vectorBucket: {
-              vectorBucketName: bucket.vectorBucketName,
-              creationTime: bucket.creationTime ?? 999,
+    return Promise.resolve(
+      bucket === undefined
+        ? { data: null, error: { status: 404 } }
+        : {
+            data: {
+              vectorBucket: {
+                vectorBucketName: bucket.vectorBucketName,
+                creationTime: bucket.creationTime ?? 999,
+              },
             },
+            error: null,
           },
-          error: null,
-        };
-  });
+    );
+  }
 
-  createBucket = vi.fn(async (bucketName: string) => {
+  createBucket(
+    bucketName: string,
+  ): ReturnType<VectorMutationClient["createBucket"]> {
     this.mutations.push(`create-bucket:${bucketName}`);
     this.buckets.set(bucketName, {
       vectorBucketName: bucketName,
       indexes: new Map(),
     });
-    return { data: {}, error: null };
-  });
+    return Promise.resolve({ data: {}, error: null });
+  }
 
-  deleteBucket = vi.fn(async (bucketName: string) => {
+  deleteBucket(bucketName: string) {
     const bucket = this.buckets.get(bucketName);
-    if ((bucket?.indexes.size ?? 0) > 0)
-      return { data: null, error: { statusCode: "409" } };
+    if ((bucket?.indexes.size ?? 0) > 0) {
+      return Promise.resolve({ data: null, error: { statusCode: "409" } });
+    }
     this.mutations.push(`delete-bucket:${bucketName}`);
     this.buckets.delete(bucketName);
-    return { data: {}, error: null };
-  });
+    return Promise.resolve({ data: {}, error: null });
+  }
 
-  from = (bucketName: string): VectorBucketMutationClient => {
+  from(bucketName: string): VectorBucketMutationClient {
     const currentBucket = (): FakeBucketState => {
       const value = this.buckets.get(bucketName);
       if (value === undefined) throw new Error(`missing bucket ${bucketName}`);
       return value;
     };
     return {
-      listIndexes: vi.fn(async () => ({
-        data: {
-          indexes: [...currentBucket().indexes.keys()]
-            .sort((left, right) => left.localeCompare(right, "en"))
-            .map((indexName) => ({ indexName })),
-        },
-        error: null,
-      })),
-      getIndex: vi.fn(async (indexName: string) => {
+      listIndexes: () =>
+        Promise.resolve({
+          data: {
+            indexes: [...currentBucket().indexes.keys()]
+              .sort((left, right) => left.localeCompare(right, "en"))
+              .map((indexName) => ({ indexName })),
+          },
+          error: null,
+        }),
+      getIndex: (indexName) => {
         const index = currentBucket().indexes.get(indexName);
-        return index === undefined
-          ? { data: null, error: { status: 404 } }
-          : {
-              data: {
-                index: {
-                  indexName: index.indexName,
-                  vectorBucketName: index.vectorBucketName,
-                  dataType: index.dataType,
-                  dimension: index.dimension,
-                  distanceMetric: index.distanceMetric,
-                  ...(index.metadataConfiguration === undefined
-                    ? {}
-                    : {
-                        metadataConfiguration: index.metadataConfiguration,
-                      }),
-                  creationTime: index.creationTime ?? 999,
+        return Promise.resolve(
+          index === undefined
+            ? { data: null, error: { status: 404 } }
+            : {
+                data: {
+                  index: {
+                    indexName: index.indexName,
+                    vectorBucketName: index.vectorBucketName,
+                    dataType: index.dataType,
+                    dimension: index.dimension,
+                    distanceMetric: index.distanceMetric,
+                    ...(index.metadataConfiguration === undefined
+                      ? {}
+                      : { metadataConfiguration: index.metadataConfiguration }),
+                    creationTime: index.creationTime ?? 999,
+                  },
                 },
+                error: null,
               },
-              error: null,
-            };
-      }),
-      createIndex: vi.fn(async (input) => {
-        this.mutations.push(`create-index:${bucketName}/${input.indexName}`);
-        currentBucket().indexes.set(input.indexName, {
+        );
+      },
+      createIndex: (indexInput) => {
+        this.mutations.push(
+          `create-index:${bucketName}/${indexInput.indexName}`,
+        );
+        currentBucket().indexes.set(indexInput.indexName, {
           vectorBucketName: bucketName,
-          indexName: input.indexName,
-          dataType: input.dataType,
-          dimension: input.dimension,
-          distanceMetric: input.distanceMetric,
-          ...(input.metadataConfiguration === undefined
+          indexName: indexInput.indexName,
+          dataType: indexInput.dataType,
+          dimension: indexInput.dimension,
+          distanceMetric: indexInput.distanceMetric,
+          ...(indexInput.metadataConfiguration === undefined
             ? {}
-            : { metadataConfiguration: input.metadataConfiguration }),
+            : { metadataConfiguration: indexInput.metadataConfiguration }),
           vectors: new Map(),
         });
-        return { data: {}, error: null };
-      }),
-      deleteIndex: vi.fn(async (indexName: string) => {
+        return Promise.resolve({ data: {}, error: null });
+      },
+      deleteIndex: (indexName) => {
         this.mutations.push(`delete-index:${bucketName}/${indexName}`);
         currentBucket().indexes.delete(indexName);
-        return { data: {}, error: null };
-      }),
-      index: (indexName: string): VectorIndexMutationClient => {
+        return Promise.resolve({ data: {}, error: null });
+      },
+      index: (indexName): VectorIndexMutationClient => {
         const currentIndex = (): FakeIndexState => {
           const value = currentBucket().indexes.get(indexName);
-          if (value === undefined)
+          if (value === undefined) {
             throw new Error(`missing index ${bucketName}/${indexName}`);
+          }
           return value;
         };
         return {
-          listVectors: vi.fn(async (options) => {
-            const identity = `${bucketName}\0${indexName}`;
-            if (this.cycleVectorsFor === identity) {
-              return {
+          listVectors: (listOptions) => {
+            const vectorIdentity = `${bucketName}\0${indexName}`;
+            if (this.cycleVectorsFor === vectorIdentity) {
+              return Promise.resolve({
                 data: { vectors: [], nextToken: "repeat-token" },
                 error: null,
-              };
+              });
             }
-            const values = [...currentIndex().vectors.values()].sort((left, right) =>
-              left.key.localeCompare(right.key, "en"),
+            const values = [...currentIndex().vectors.values()].sort(
+              (left, right) => left.key.localeCompare(right.key, "en"),
             );
             const offset =
-              options.nextToken === undefined ? 0 : Number(options.nextToken);
-            const page = values.slice(offset, offset + options.maxResults);
+              listOptions.nextToken === undefined
+                ? 0
+                : Number(listOptions.nextToken);
+            const page = values.slice(offset, offset + listOptions.maxResults);
             const next = offset + page.length;
-            return {
+            return Promise.resolve({
               data: {
                 vectors: page,
                 ...(next < values.length ? { nextToken: String(next) } : {}),
               },
               error: null,
-            };
-          }),
-          putVectors: vi.fn(async ({ vectors }) => {
+            });
+          },
+          putVectors: ({ vectors }) => {
             this.mutations.push(
               `put:${bucketName}/${indexName}:${vectors.length}`,
             );
-            for (const value of vectors)
+            for (const value of vectors) {
               currentIndex().vectors.set(value.key, structuredClone(value));
-            return { data: {}, error: null };
-          }),
-          deleteVectors: vi.fn(async ({ keys }) => {
+            }
+            return Promise.resolve({ data: {}, error: null });
+          },
+          deleteVectors: ({ keys }) => {
             this.mutations.push(
               `delete-vectors:${bucketName}/${indexName}:${keys.length}`,
             );
             for (const key of keys) currentIndex().vectors.delete(key);
-            return { data: {}, error: null };
-          }),
+            return Promise.resolve({ data: {}, error: null });
+          },
         };
       },
     };
-  };
+  }
 
   addBucket(name: string): FakeBucketState {
     const value: FakeBucketState = {
@@ -461,10 +473,12 @@ describe("Vector bucket restore", () => {
   it("normalizes Vector API mutation failures", async () => {
     const fixture = await sourceFixture();
     const client = new FakeVectorClient();
-    client.createBucket = vi.fn(async () => ({
-      data: null,
-      error: { statusCode: "503", message: "provider detail" },
-    }));
+    client.createBucket = vi.fn<VectorMutationClient["createBucket"]>(() =>
+      Promise.resolve({
+        data: null,
+        error: { statusCode: "503", message: "provider detail" },
+      }),
+    );
     const handler = createVectorBucketRestoreHandler(
       options(fixture, client, "fail"),
     );
@@ -533,7 +547,9 @@ describe("Vector data restore", () => {
     const index = client.addIndex(fixture.bucketName);
     index.vectors.set("one", vector("one", 99));
     index.vectors.set("extra", vector("extra", 7));
-    const handler = createVectorRestoreHandler(options(fixture, client, "fail"));
+    const handler = createVectorRestoreHandler(
+      options(fixture, client, "fail"),
+    );
 
     await expect(
       handler.apply({ action: vectorsAction(fixture), attempt: 1 }),
@@ -578,7 +594,9 @@ describe("Vector data restore", () => {
     client.addBucket(fixture.bucketName);
     const index = client.addIndex(fixture.bucketName);
     index.vectors.set("unexpected", vector("unexpected", 1));
-    const handler = createVectorRestoreHandler(options(fixture, client, "fail"));
+    const handler = createVectorRestoreHandler(
+      options(fixture, client, "fail"),
+    );
 
     await expect(
       handler.apply({ action: vectorsAction(fixture), attempt: 1 }),
@@ -601,7 +619,9 @@ describe("Vector data restore", () => {
     const client = new FakeVectorClient();
     client.addBucket(fixture.bucketName);
     client.addIndex(fixture.bucketName);
-    const handler = createVectorRestoreHandler(options(fixture, client, "fail"));
+    const handler = createVectorRestoreHandler(
+      options(fixture, client, "fail"),
+    );
 
     await expect(
       handler.apply({ action: vectorsAction(fixture), attempt: 1 }),
@@ -615,7 +635,9 @@ describe("Vector data restore", () => {
     client.addBucket(fixture.bucketName);
     client.addIndex(fixture.bucketName);
     client.cycleVectorsFor = `${fixture.bucketName}\0${fixture.indexName}`;
-    const handler = createVectorRestoreHandler(options(fixture, client, "fail"));
+    const handler = createVectorRestoreHandler(
+      options(fixture, client, "fail"),
+    );
 
     await expect(
       handler.apply({ action: vectorsAction(fixture), attempt: 1 }),
@@ -627,7 +649,9 @@ describe("Vector data restore", () => {
     const client = new FakeVectorClient();
     client.addBucket(fixture.bucketName);
     client.addIndex(fixture.bucketName);
-    const handler = createVectorRestoreHandler(options(fixture, client, "fail"));
+    const handler = createVectorRestoreHandler(
+      options(fixture, client, "fail"),
+    );
 
     await expect(
       handler.apply({

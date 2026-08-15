@@ -144,10 +144,14 @@ describe("restore planning", () => {
     });
 
     expect(
-      plan.actions.find(({ component }) => component === "storage.file_objects"),
+      plan.actions.find(
+        ({ component }) => component === "storage.file_objects",
+      ),
     ).toMatchObject({ risk: "destructive" });
     expect(
-      plan.actions.find(({ component }) => component === "storage.file_metadata"),
+      plan.actions.find(
+        ({ component }) => component === "storage.file_metadata",
+      ),
     ).toMatchObject({ risk: "inspection" });
   });
 

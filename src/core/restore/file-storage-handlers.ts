@@ -22,9 +22,7 @@ import { resolveBundleArtifact } from "./database-handlers.js";
 import type { RestoreActionHandler, RestoreActionResult } from "./executor.js";
 
 type FileStorageRestoreComponent =
-  | "storage.file_buckets"
-  | "storage.file_objects"
-  | "storage.file_metadata";
+  "storage.file_buckets" | "storage.file_objects" | "storage.file_metadata";
 
 export interface StorageErrorLike {
   message: string;
@@ -44,18 +42,18 @@ export interface StorageBucketMutationOptions {
 }
 
 export interface StorageMutationClient {
-  createBucket(
+  createBucket: (
     id: string,
     options: StorageBucketMutationOptions,
-  ): Promise<StorageResult>;
-  updateBucket(
+  ) => Promise<StorageResult>;
+  updateBucket: (
     id: string,
     options: StorageBucketMutationOptions,
-  ): Promise<StorageResult>;
-  emptyBucket(id: string): Promise<StorageResult>;
-  deleteBucket(id: string): Promise<StorageResult>;
-  from(id: string): {
-    remove(paths: string[]): Promise<StorageResult>;
+  ) => Promise<StorageResult>;
+  emptyBucket: (id: string) => Promise<StorageResult>;
+  deleteBucket: (id: string) => Promise<StorageResult>;
+  from: (id: string) => {
+    remove: (paths: string[]) => Promise<StorageResult>;
   };
 }
 
@@ -124,7 +122,10 @@ const catalogSchema = z
           name: z.string().min(1),
           public: z.boolean(),
           type: z.literal("STANDARD"),
-          fileSizeLimit: z.string().regex(/^(0|[1-9][0-9]*)$/u).nullable(),
+          fileSizeLimit: z
+            .string()
+            .regex(/^(0|[1-9][0-9]*)$/u)
+            .nullable(),
           allowedMimeTypes: z.array(z.string()).nullable(),
           createdAt: z.string().nullable(),
           updatedAt: z.string().nullable(),
@@ -384,7 +385,10 @@ async function readSourceIndex(
   validateIndexAgainstCatalog(catalog, index, component);
   assertArtifacts(
     actionArtifacts,
-    [INDEX_ARTIFACT, ...index.objects.map(({ path: objectPath }) => objectPath)],
+    [
+      INDEX_ARTIFACT,
+      ...index.objects.map(({ path: objectPath }) => objectPath),
+    ],
     component,
   );
   return { catalog, index };
@@ -493,11 +497,17 @@ function metadataFingerprint(
   index: SourceIndex,
 ): string {
   const byId = new Map(
-    catalog.objects.map((object) => [identity(object.bucket, object.name), object]),
+    catalog.objects.map((object) => [
+      identity(object.bucket, object.name),
+      object,
+    ]),
   );
   const values = index.objects
     .map((entry) =>
-      objectMetadata(byId.get(identity(entry.bucket, entry.name))!, entry.bytes),
+      objectMetadata(
+        byId.get(identity(entry.bucket, entry.name))!,
+        entry.bytes,
+      ),
     )
     .sort((left, right) =>
       identity(left.bucket, left.name).localeCompare(
@@ -599,7 +609,7 @@ function defaultStorageClient(
   return new StorageClient(
     `https://${options.targetProjectRef}.supabase.co/storage/v1`,
     { apikey: key, authorization: `Bearer ${key}` },
-  ) as unknown as StorageMutationClient;
+  );
 }
 
 async function defaultCollectTarget(
@@ -697,7 +707,7 @@ async function defaultUploadObject(
     const request: RequestInit & { duplex: "half" } = {
       method: "POST",
       headers,
-      body: body as unknown as BodyInit,
+      body,
       duplex: "half",
       ...(signal === undefined ? {} : { signal }),
     };
@@ -754,7 +764,7 @@ function dependencies(options: FileStorageRestoreOptions) {
         for (let offset = 0; offset < names.length; offset += 1000) {
           const result = await client
             .from(bucket)
-            .remove(names.slice(offset, offset + 1000) as string[]);
+            .remove(names.slice(offset, offset + 1000));
           requireStorageSuccess(
             result,
             "STORAGE_OBJECT_RESTORE_FAILED",
@@ -768,7 +778,10 @@ function dependencies(options: FileStorageRestoreOptions) {
 
 function targetByIdentity(catalog: FileStorageCatalog) {
   return new Map(
-    catalog.objects.map((object) => [identity(object.bucket, object.name), object]),
+    catalog.objects.map((object) => [
+      identity(object.bucket, object.name),
+      object,
+    ]),
   );
 }
 
@@ -791,7 +804,9 @@ export function createFileBucketRestoreHandler(
       const targetById = new Map(
         target.buckets.map((bucket) => [bucket.id, bucket]),
       );
-      const extra = target.buckets.filter((bucket) => !sourceById.has(bucket.id));
+      const extra = target.buckets.filter(
+        (bucket) => !sourceById.has(bucket.id),
+      );
       const conflicts = source.buckets.filter((bucket) => {
         const current = targetById.get(bucket.id);
         return current !== undefined && !bucketEqual(bucket, current);
@@ -902,7 +917,10 @@ async function verifyObjectSet(
       )!;
       if (
         targetObject === undefined ||
-        !metadataMatches(objectMetadata(sourceObject, entry.bytes), targetObject)
+        !metadataMatches(
+          objectMetadata(sourceObject, entry.bytes),
+          targetObject,
+        )
       )
         return false;
       const evidence = await runtime.readTargetObject(
@@ -910,7 +928,9 @@ async function verifyObjectSet(
         entry.name,
         workerSignal,
       );
-      return evidence?.sha256 === entry.sha256 && evidence.bytes === entry.bytes;
+      return (
+        evidence?.sha256 === entry.sha256 && evidence.bytes === entry.bytes
+      );
     },
     signal,
   );
@@ -972,8 +992,7 @@ export function createFileObjectRestoreHandler(
               workerSignal,
             );
             return (
-              evidence === undefined ||
-              evidence.sha256 !== entry.sha256 ||
+              evidence?.sha256 !== entry.sha256 ||
               evidence.bytes !== entry.bytes ||
               !metadataMatches(
                 objectMetadata(sourceObject, entry.bytes),

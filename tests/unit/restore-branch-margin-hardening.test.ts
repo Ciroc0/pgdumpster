@@ -110,7 +110,7 @@ async function edgeFixture(): Promise<EdgeFixture> {
   const root = await tempRoot("pgdumpster-edge-margin-");
   const bodyPath = "functions/demo/source.multipart";
   const body = Buffer.from(
-    "--fixture\r\nContent-Disposition: form-data; name=\"metadata\"\r\n\r\n{}\r\n--fixture--\r\n",
+    '--fixture\r\nContent-Disposition: form-data; name="metadata"\r\n\r\n{}\r\n--fixture--\r\n',
     "utf8",
   );
   const contentType = "multipart/form-data; boundary=fixture";
@@ -301,7 +301,10 @@ describe("restore branch margin: Edge Functions", () => {
       client,
     });
 
-    await writeFile(path.join(fixture.root, "functions", "index.json"), "not-json");
+    await writeFile(
+      path.join(fixture.root, "functions", "index.json"),
+      "not-json",
+    );
     await expect(
       handler.apply({ action: edgeAction(fixture), attempt: 1 }),
     ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
@@ -332,7 +335,11 @@ describe("restore branch margin: Edge Functions", () => {
     ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
 
     const invalidMultipart = await edgeFixture();
-    const invalidIndex = path.join(invalidMultipart.root, "functions", "index.json");
+    const invalidIndex = path.join(
+      invalidMultipart.root,
+      "functions",
+      "index.json",
+    );
     const invalidParsed = JSON.parse(await readFile(invalidIndex, "utf8")) as {
       functions: { body: { contentType: string } }[];
     };
@@ -346,7 +353,10 @@ describe("restore branch margin: Edge Functions", () => {
       client,
     });
     await expect(
-      multipartHandler.apply({ action: edgeAction(invalidMultipart), attempt: 1 }),
+      multipartHandler.apply({
+        action: edgeAction(invalidMultipart),
+        attempt: 1,
+      }),
     ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
   });
 
@@ -390,9 +400,9 @@ describe("restore branch margin: Edge Functions", () => {
       conflictPolicy: "fail",
       client: new StaticEdgeClient(),
     });
-    await expect(emptyHandler.verify({ action: edgeAction(fixture) })).resolves.toBe(
-      false,
-    );
+    await expect(
+      emptyHandler.verify({ action: edgeAction(fixture) }),
+    ).resolves.toBe(false);
 
     const wrongSlug = { ...fixture.metadata, slug: "other" };
     const wrongSlugHandler = createEdgeFunctionRestoreHandler({
@@ -555,7 +565,9 @@ function fileOptions(
   return {
     bundleRoot: fixture.root,
     targetProjectRef: projectRef,
-    targetDatabaseUrl: secret("postgresql://postgres:secret@example.invalid/postgres"),
+    targetDatabaseUrl: secret(
+      "postgresql://postgres:secret@example.invalid/postgres",
+    ),
     storageKey: secret("storage-key"),
     conflictPolicy: "fail",
     dependencies,
@@ -590,7 +602,9 @@ describe("restore branch margin: File Storage", () => {
   it("rejects duplicate buckets and unsupported bucket identity", async () => {
     const duplicate = await fileFixture();
     const duplicateCatalog = structuredClone(duplicate.catalog);
-    duplicateCatalog.buckets.push(structuredClone(duplicateCatalog.buckets[0]!));
+    duplicateCatalog.buckets.push(
+      structuredClone(duplicateCatalog.buckets[0]!),
+    );
     await writeFile(
       path.join(duplicate.root, "storage", "file-catalog.json"),
       JSON.stringify(duplicateCatalog),
@@ -598,7 +612,8 @@ describe("restore branch margin: File Storage", () => {
     const duplicateHandler = createFileBucketRestoreHandler(
       fileOptions(duplicate, {
         storageClient: inertStorageClient(),
-        collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
+        collectTarget: () =>
+          Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
       }),
     );
     await expect(
@@ -615,7 +630,8 @@ describe("restore branch margin: File Storage", () => {
     const identityHandler = createFileBucketRestoreHandler(
       fileOptions(identity, {
         storageClient: inertStorageClient(),
-        collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
+        collectTarget: () =>
+          Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
       }),
     );
     await expect(
@@ -638,7 +654,8 @@ describe("restore branch margin: File Storage", () => {
       const handler = createFileBucketRestoreHandler(
         fileOptions(fixture, {
           storageClient: inertStorageClient(),
-          collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
+          collectTarget: () =>
+            Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
         }),
       );
       await expect(
@@ -663,7 +680,8 @@ describe("restore branch margin: File Storage", () => {
     const invalidHandler = createFileObjectRestoreHandler(
       fileOptions(invalidId, {
         storageClient: inertStorageClient(),
-        collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
+        collectTarget: () =>
+          Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
       }),
     );
     await expect(
@@ -678,14 +696,18 @@ describe("restore branch margin: File Storage", () => {
     const missingHandler = createFileObjectRestoreHandler(
       fileOptions(missing, {
         storageClient: inertStorageClient(),
-        collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
+        collectTarget: () =>
+          Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
       }),
     );
     await expect(
       missingHandler.apply({
-        action: restoreAction("storage.file_objects", 11, "stream_file_objects", [
-          "secrets/storage/file-object-index.json",
-        ]),
+        action: restoreAction(
+          "storage.file_objects",
+          11,
+          "stream_file_objects",
+          ["secrets/storage/file-object-index.json"],
+        ),
         attempt: 1,
       }),
     ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
@@ -700,7 +722,8 @@ describe("restore branch margin: File Storage", () => {
     const sizeHandler = createFileObjectRestoreHandler(
       fileOptions(size, {
         storageClient: inertStorageClient(),
-        collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
+        collectTarget: () =>
+          Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
       }),
     );
     await expect(
@@ -715,7 +738,8 @@ describe("restore branch margin: File Storage", () => {
     const checksumHandler = createFileObjectRestoreHandler(
       fileOptions(checksum, {
         storageClient: inertStorageClient(),
-        collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
+        collectTarget: () =>
+          Promise.resolve({ schemaVersion: 1, buckets: [], objects: [] }),
       }),
     );
     await expect(
@@ -735,7 +759,9 @@ describe("restore branch margin: File Storage", () => {
           uploadObject: () => Promise.resolve(),
         },
         {
-          fetch: vi.fn<typeof fetch>(() => Promise.resolve(new Response(null, { status: 404 }))),
+          fetch: vi.fn<typeof fetch>(() =>
+            Promise.resolve(new Response(null, { status: 404 })),
+          ),
         },
       ),
     );
@@ -749,16 +775,22 @@ describe("restore branch margin: File Storage", () => {
         transport,
         {
           storageClient: inertStorageClient(),
-          collectTarget: () => Promise.resolve(structuredClone(transport.catalog)),
+          collectTarget: () =>
+            Promise.resolve(structuredClone(transport.catalog)),
           uploadObject: () => Promise.resolve(),
         },
         {
-          fetch: vi.fn<typeof fetch>(() => Promise.reject(new Error("offline"))),
+          fetch: vi.fn<typeof fetch>(() =>
+            Promise.reject(new Error("offline")),
+          ),
         },
       ),
     );
     await expect(
-      transportHandler.apply({ action: fileObjectAction(transport), attempt: 1 }),
+      transportHandler.apply({
+        action: fileObjectAction(transport),
+        attempt: 1,
+      }),
     ).rejects.toMatchObject({ code: "STORAGE_OBJECT_VERIFY_FAILED" });
   });
 
@@ -767,7 +799,12 @@ describe("restore branch margin: File Storage", () => {
     const emptyHandler = createFileMetadataRestoreHandler(
       fileOptions(fixture, {
         storageClient: inertStorageClient(),
-        collectTarget: () => Promise.resolve({ schemaVersion: 1, buckets: fixture.catalog.buckets, objects: [] }),
+        collectTarget: () =>
+          Promise.resolve({
+            schemaVersion: 1,
+            buckets: fixture.catalog.buckets,
+            objects: [],
+          }),
       }),
     );
     await expect(
@@ -896,7 +933,8 @@ function vectorClient(
   bucketFactory: () => VectorBucketMutationClient = emptyVectorBucketClient,
 ): VectorMutationClient {
   return {
-    listBuckets: () => Promise.resolve({ data: { vectorBuckets: [] }, error: null }),
+    listBuckets: () =>
+      Promise.resolve({ data: { vectorBuckets: [] }, error: null }),
     getBucket: (bucketName) =>
       Promise.resolve({
         data: { vectorBucket: { vectorBucketName: bucketName } },
@@ -910,24 +948,21 @@ function vectorClient(
 }
 
 function vectorBucketAction(): RestoreAction {
-  return restoreAction(
-    "storage.vector_buckets",
-    12,
-    "create_vector_buckets",
-    ["storage/vector-buckets.json"],
-  );
+  return restoreAction("storage.vector_buckets", 12, "create_vector_buckets", [
+    "storage/vector-buckets.json",
+  ]);
 }
 
 function vectorIndexAction(): RestoreAction {
-  return restoreAction(
-    "storage.vector_indexes",
-    12,
-    "create_vector_indexes",
-    ["storage/vector-indexes.json"],
-  );
+  return restoreAction("storage.vector_indexes", 12, "create_vector_indexes", [
+    "storage/vector-indexes.json",
+  ]);
 }
 
-function vectorsAction(fixture: VectorFixture, artifacts?: string[]): RestoreAction {
+function vectorsAction(
+  fixture: VectorFixture,
+  artifacts?: string[],
+): RestoreAction {
   return restoreAction(
     "storage.vectors",
     12,
@@ -999,7 +1034,10 @@ describe("restore branch margin: Vector Storage", () => {
     ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
 
     const identity = await vectorFixture();
-    const identityPage = path.join(identity.root, ...identity.pageArtifact.split("/"));
+    const identityPage = path.join(
+      identity.root,
+      ...identity.pageArtifact.split("/"),
+    );
     const pageDocument = JSON.parse(await readFile(identityPage, "utf8")) as {
       bucketName: string;
     };
@@ -1017,16 +1055,23 @@ describe("restore branch margin: Vector Storage", () => {
       duplicateKey.root,
       ...duplicateKey.pageArtifact.split("/"),
     );
-    const duplicateDocument = JSON.parse(await readFile(duplicatePage, "utf8")) as {
+    const duplicateDocument = JSON.parse(
+      await readFile(duplicatePage, "utf8"),
+    ) as {
       vectors: VectorValue[];
     };
-    duplicateDocument.vectors.push(structuredClone(duplicateDocument.vectors[0]!));
+    duplicateDocument.vectors.push(
+      structuredClone(duplicateDocument.vectors[0]!),
+    );
     await writeFile(duplicatePage, JSON.stringify(duplicateDocument));
     const duplicateKeyHandler = createVectorRestoreHandler(
       vectorOptions(duplicateKey, vectorClient()),
     );
     await expect(
-      duplicateKeyHandler.apply({ action: vectorsAction(duplicateKey), attempt: 1 }),
+      duplicateKeyHandler.apply({
+        action: vectorsAction(duplicateKey),
+        attempt: 1,
+      }),
     ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
 
     const count = await vectorFixture();
@@ -1036,7 +1081,9 @@ describe("restore branch margin: Vector Storage", () => {
       "storage",
       "vector-summary.json",
     );
-    const countSummary = JSON.parse(await readFile(countSummaryPath, "utf8")) as {
+    const countSummary = JSON.parse(
+      await readFile(countSummaryPath, "utf8"),
+    ) as {
       indexes: { vectorCount: number }[];
     };
     countSummary.indexes[0]!.vectorCount = 2;
@@ -1072,7 +1119,8 @@ describe("restore branch margin: Vector Storage", () => {
       vectorOptions(
         invalid,
         vectorClient({
-          listBuckets: () => Promise.resolve({ data: { wrong: [] }, error: null }),
+          listBuckets: () =>
+            Promise.resolve({ data: { wrong: [] }, error: null }),
         }),
       ),
     );

@@ -169,7 +169,11 @@ afterEach(async () => {
 describe("database supplement restore handlers", () => {
   it("restores migration schema and data when the target has no migration history", async () => {
     const root = await bundle();
-    const restore = vi.fn().mockResolvedValue(undefined);
+    const restore = vi
+      .fn<
+        NonNullable<DatabaseSupplementRestoreDependencies["restoreSqlArtifact"]>
+      >()
+      .mockResolvedValue(undefined);
     let observed = false;
     const dumpMigrationHistory = vi.fn<
       NonNullable<DatabaseSupplementRestoreDependencies["dumpMigrationHistory"]>
@@ -222,7 +226,11 @@ describe("database supplement restore handlers", () => {
 
   it("restores only empty migration data when the schema already matches", async () => {
     const root = await bundle();
-    const restore = vi.fn().mockResolvedValue(undefined);
+    const restore = vi
+      .fn<
+        NonNullable<DatabaseSupplementRestoreDependencies["restoreSqlArtifact"]>
+      >()
+      .mockResolvedValue(undefined);
     let applied = false;
     restore.mockImplementation(() => {
       applied = true;
@@ -350,7 +358,11 @@ describe("database supplement restore handlers", () => {
 
   it("applies a managed-schema customization only to a clean target", async () => {
     const root = await bundle();
-    const restore = vi.fn().mockResolvedValue(undefined);
+    const restore = vi
+      .fn<
+        NonNullable<DatabaseSupplementRestoreDependencies["restoreSqlArtifact"]>
+      >()
+      .mockResolvedValue(undefined);
     let applied = false;
     restore.mockImplementation(() => {
       applied = true;
@@ -432,7 +444,11 @@ describe("database supplement restore handlers", () => {
 
   it("restores empty Cron state and skips an already matching Queue dump", async () => {
     const root = await bundle();
-    const restore = vi.fn().mockResolvedValue(undefined);
+    const restore = vi
+      .fn<
+        NonNullable<DatabaseSupplementRestoreDependencies["restoreSqlArtifact"]>
+      >()
+      .mockResolvedValue(undefined);
     let cronApplied = false;
     restore.mockImplementation((options) => {
       if (options.artifact === "database/cron-data.sql") cronApplied = true;
@@ -525,9 +541,9 @@ describe("database supplement restore handlers", () => {
     const invalid = action("database.cron");
     invalid.artifacts = ["database/queues-data.sql"];
 
-    await expect(handler.apply({ action: invalid, attempt: 1 })).rejects.toMatchObject(
-      { code: "RESTORE_ARTIFACT_INVALID" },
-    );
+    await expect(
+      handler.apply({ action: invalid, attempt: 1 }),
+    ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
   });
 
   it("refuses extra or changed Database Webhooks under fail policy", async () => {
@@ -571,7 +587,9 @@ describe("database supplement restore handlers", () => {
     ).rejects.toMatchObject({ code: "RESTORE_TARGET_CONFLICT" });
 
     collectDatabaseCatalogState.mockResolvedValue(
-      catalog([{ ...sourceWebhook, definition: `${sourceWebhook.definition} changed` }]),
+      catalog([
+        { ...sourceWebhook, definition: `${sourceWebhook.definition} changed` },
+      ]),
     );
     await expect(
       handler.apply({ action: action("database.webhooks"), attempt: 2 }),
@@ -613,7 +631,10 @@ describe("database supplement restore handlers", () => {
     const changedA = {
       ...hookA,
       enabled: "R" as const,
-      definition: hookA.definition.replace("https://a.invalid", "https://old.invalid"),
+      definition: hookA.definition.replace(
+        "https://a.invalid",
+        "https://old.invalid",
+      ),
     };
     const collectDatabaseCatalogState = vi
       .fn<
@@ -720,7 +741,8 @@ describe("database supplement restore handlers", () => {
       enabled: "A",
       functionSchema: "public",
       functionName: "evil",
-      definition: "CREATE TRIGGER orders_hook AFTER INSERT ON public.orders EXECUTE FUNCTION public.evil()",
+      definition:
+        "CREATE TRIGGER orders_hook AFTER INSERT ON public.orders EXECUTE FUNCTION public.evil()",
     };
     await writeFile(
       path.join(root, "database", "catalog-state.json"),
