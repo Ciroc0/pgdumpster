@@ -15,7 +15,11 @@ import type {
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import { buildRestorePlan, type RestorePlan } from "../core/restore/plan.js";
-import { requiresStorageRestoreCredential } from "../core/restore/capabilities.js";
+import {
+  requiresDatabaseRestoreCredential,
+  requiresManagementRestoreCredential,
+  requiresStorageRestoreCredential,
+} from "../core/restore/capabilities.js";
 import {
   assertRestorePlanExecutable,
   executeRestore,
@@ -690,27 +694,46 @@ export async function runCli(
           );
           if (args.mode !== "apply") return { plan };
           assertRestorePlanExecutable(plan);
-          const targetDatabaseUrl = environment[targetDbUrlEnvironment];
-          if (
-            targetDatabaseUrl === undefined ||
-            targetDatabaseUrl.length === 0
-          ) {
-            throw new DomainError({
-              code: "CONFIG_MISSING_REQUIRED",
-              category: "config",
-              message: `Required target database URL environment variable ${targetDbUrlEnvironment} is not set.`,
-              retryable: false,
-              details: { variable: targetDbUrlEnvironment },
-            });
-          }
-          const targetDatabase = new SecretValue(targetDatabaseUrl, redactor);
-          const target = loadSourceEnvironment(environment, redactor, {
-            projectRef: targetProjectRef,
-          });
-          const management = new ManagementClient({
-            accessToken: target.accessToken,
-            ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
-          });
+          const planned = (predicate: (component: string) => boolean) =>
+            plan.actions.some(
+              (action) =>
+                action.status === "planned" && predicate(action.component),
+            );
+          const databaseRequired = planned(requiresDatabaseRestoreCredential);
+          const managementRequired = planned(
+            requiresManagementRestoreCredential,
+          );
+          const targetDatabase = (() => {
+            if (!databaseRequired) return undefined;
+            const targetDatabaseUrl = environment[targetDbUrlEnvironment];
+            if (
+              targetDatabaseUrl === undefined ||
+              targetDatabaseUrl.length === 0
+            ) {
+              throw new DomainError({
+                code: "CONFIG_MISSING_REQUIRED",
+                category: "config",
+                message: `Required target database URL environment variable ${targetDbUrlEnvironment} is not set.`,
+                retryable: false,
+                details: { variable: targetDbUrlEnvironment },
+              });
+            }
+            return new SecretValue(targetDatabaseUrl, redactor);
+          })();
+          const target = managementRequired
+            ? loadSourceEnvironment(environment, redactor, {
+                projectRef: targetProjectRef,
+              })
+            : undefined;
+          const management =
+            target === undefined
+              ? undefined
+              : new ManagementClient({
+                  accessToken: target.accessToken,
+                  ...(context.fetch === undefined
+                    ? {}
+                    : { fetch: context.fetch }),
+                });
           const storageRequired = plan.actions.some(
             (action) =>
               action.status === "planned" &&
@@ -718,7 +741,7 @@ export async function runCli(
           );
           const storageKey = storageRequired
             ? await discoverPrivilegedStorageKey(
-                management,
+                management!,
                 targetProjectRef,
                 redactor,
               )
@@ -733,34 +756,93 @@ export async function runCli(
             });
           }
           const handlers = {
-            ...createDatabaseRestoreHandlers({
-              bundleRoot: bundle.root,
-              targetDatabaseUrl: targetDatabase,
-            }),
-            ...createDatabaseSupplementRestoreHandlers({
-              bundleRoot: bundle.root,
-              targetDatabaseUrl: targetDatabase,
-              conflictPolicy: args.conflictPolicy,
-            }),
-            "database.publications": createPublicationRestoreHandler({
-              bundleRoot: bundle.root,
-              targetDatabaseUrl: targetDatabase,
-              conflictPolicy: args.conflictPolicy,
-            }),
-            "database.vault_root_key": createVaultRootKeyRestoreHandler({
-              bundleRoot: bundle.root,
-              targetProjectRef,
-              targetDatabaseUrl: targetDatabase,
-              client: management,
-              redactor,
-            }),
-            ...createControlPlaneRestoreHandlers({
-              bundleRoot: bundle.root,
-              targetProjectRef,
-              conflictPolicy: args.conflictPolicy,
-              client: management,
-            }),
-            ...(storageKey === undefined
+            ...(targetDatabase === undefined
+              ? {}
+              : {
+                  ...createDatabaseRestoreHandlers({
+                    bundleRoot: bundle.root,
+                    targetDatabaseUrl: targetDatabase,
+                  }),
+                  ...createDatabaseSupplementRestoreHandlers({
+                    bundleRoot: bundle.root,
+                    targetDatabaseUrl: targetDatabase,
+                    conflictPolicy: args.conflictPolicy,
+                  }),
+                  "database.publications": createPublicationRestoreHandler({
+                    bundleRoot: bundle.root,
+                    targetDatabaseUrl: targetDatabase,
+                    conflictPolicy: args.conflictPolicy,
+                  }),
+                }),
+            ...(targetDatabase === undefined || management === undefined
+              ? {}
+              : {
+                  "database.vault_root_key": createVaultRootKeyRestoreHandler({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    targetDatabaseUrl: targetDatabase,
+                    client: management,
+                    redactor,
+                  }),
+                }),
+            ...(management === undefined
+              ? {}
+              : {
+                  ...createControlPlaneRestoreHandlers({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    conflictPolicy: args.conflictPolicy,
+                    client: management,
+                  }),
+                  "edge.functions": createEdgeFunctionRestoreHandler({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    accessToken: target!.accessToken,
+                    conflictPolicy: args.conflictPolicy,
+                    ...(context.fetch === undefined
+                      ? {}
+                      : { fetch: context.fetch }),
+                  }),
+                  "auth.config": createAuthConfigRestoreHandler({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    client: management,
+                  }),
+                  "auth.sso": createAuthSsoRestoreHandler({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    conflictPolicy: args.conflictPolicy,
+                    client: management,
+                  }),
+                  "auth.tpa": createAuthTpaRestoreHandler({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    conflictPolicy: args.conflictPolicy,
+                    client: management,
+                  }),
+                  "api.modern_keys": createApiKeyRestoreHandler({
+                    bundleRoot: bundle.root,
+                    sourceProjectRef: bundle.manifest.source.projectRef,
+                    targetProjectRef,
+                    rotationMapPath: path.join(
+                      path.dirname(
+                        resume?.path ?? restoreCheckpointPath(plan.planId),
+                      ),
+                      `${plan.planId}.api-key-rotation.json`,
+                    ),
+                    client: management,
+                    registerSecret: (value) => {
+                      redactor.register(value);
+                    },
+                  }),
+                  "api.legacy_keys_state": createLegacyApiKeyRestoreHandler({
+                    bundleRoot: bundle.root,
+                    targetProjectRef,
+                    conflictPolicy: args.conflictPolicy,
+                    client: management,
+                  }),
+                }),
+            ...(storageKey === undefined || targetDatabase === undefined
               ? {}
               : {
                   ...createFileStorageRestoreHandlers({
@@ -770,6 +852,10 @@ export async function runCli(
                     storageKey,
                     conflictPolicy: args.conflictPolicy,
                   }),
+                }),
+            ...(storageKey === undefined
+              ? {}
+              : {
                   ...createVectorStorageRestoreHandlers({
                     bundleRoot: bundle.root,
                     targetProjectRef,
@@ -777,51 +863,6 @@ export async function runCli(
                     conflictPolicy: args.conflictPolicy,
                   }),
                 }),
-            "edge.functions": createEdgeFunctionRestoreHandler({
-              bundleRoot: bundle.root,
-              targetProjectRef,
-              accessToken: target.accessToken,
-              conflictPolicy: args.conflictPolicy,
-              ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
-            }),
-            "auth.config": createAuthConfigRestoreHandler({
-              bundleRoot: bundle.root,
-              targetProjectRef,
-              client: management,
-            }),
-            "auth.sso": createAuthSsoRestoreHandler({
-              bundleRoot: bundle.root,
-              targetProjectRef,
-              conflictPolicy: args.conflictPolicy,
-              client: management,
-            }),
-            "auth.tpa": createAuthTpaRestoreHandler({
-              bundleRoot: bundle.root,
-              targetProjectRef,
-              conflictPolicy: args.conflictPolicy,
-              client: management,
-            }),
-            "api.modern_keys": createApiKeyRestoreHandler({
-              bundleRoot: bundle.root,
-              sourceProjectRef: bundle.manifest.source.projectRef,
-              targetProjectRef,
-              rotationMapPath: path.join(
-                path.dirname(
-                  resume?.path ?? restoreCheckpointPath(plan.planId),
-                ),
-                `${plan.planId}.api-key-rotation.json`,
-              ),
-              client: management,
-              registerSecret: (value) => {
-                redactor.register(value);
-              },
-            }),
-            "api.legacy_keys_state": createLegacyApiKeyRestoreHandler({
-              bundleRoot: bundle.root,
-              targetProjectRef,
-              conflictPolicy: args.conflictPolicy,
-              client: management,
-            }),
           };
           validatePlanForExecution(plan, handlers);
           await preflightPlannedRestoreArtifacts(bundle.root, plan);

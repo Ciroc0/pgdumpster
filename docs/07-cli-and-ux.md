@@ -146,7 +146,7 @@ Current behavior:
 - source==target is rejected by the restore planning contract;
 - deterministic restore plan generation exists;
 - core restore executor/checkpoint/handlers exist in the repository;
-- CLI `--apply` rejects a blocked plan immediately after verified-bundle planning and before reading target credentials or discovering target resources. For an executable plan, it then runs target credential discovery, handler assembly and handler-completeness preflight before checkpoint creation or target mutation. It executes the existing checkpointed executor only when every planned component has a handler. Incomplete plans fail closed with `RESTORE_ADAPTER_MISSING`; protected substitutions and complete final parity reporting remain pending.
+- CLI `--apply` rejects a blocked plan immediately after verified-bundle planning and before reading target credentials or discovering target resources. For an executable plan, it derives database, Management and privileged Storage credential needs from planned automatic capabilities, then runs only the required target discovery, handler assembly and handler-completeness preflight before checkpoint creation or target mutation. It executes the existing checkpointed executor only when every planned component has a handler. Incomplete plans fail closed with `RESTORE_ADAPTER_MISSING`; protected substitutions and complete final parity reporting remain pending.
 
 Target restore UX also requires safe resume/protected substitution output and final parity reporting.
 

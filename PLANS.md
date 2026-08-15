@@ -143,6 +143,12 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ## Validation log
 
+### 2026-08-16 — planned credential-minimization boundary
+
+- The restore capability registry now declares automatic components requiring target database and Management credentials, alongside the existing privileged Storage credential subset. The CLI derives all three requirements from planned actions and only constructs their corresponding handlers when the credential is necessary.
+- A database-only restore regression succeeds with a target database URL but no Management credential or network call. Exact capability tests prevent handler and credential requirement lists from drifting.
+- Focused local validation: **2 test files / 13 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 710 tests, PASS**. Global coverage: **94.64% statements / 90.10% branches / 92.50% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
+
 ### 2026-08-16 — Storage credential capability ownership
 
 - Removed the CLI-local list of Storage components requiring a privileged target credential. The CLI now queries the canonical restore capability boundary, so planner capability, handler wiring and credential discovery cannot diverge through a duplicated list.

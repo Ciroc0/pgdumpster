@@ -6,6 +6,8 @@ import {
 } from "../../src/core/bundle/schemas.js";
 import {
   AUTOMATIC_RESTORE_COMPONENTS,
+  requiresDatabaseRestoreCredential,
+  requiresManagementRestoreCredential,
   requiresStorageRestoreCredential,
   supportsAutomaticRestore,
 } from "../../src/core/restore/capabilities.js";
@@ -251,6 +253,52 @@ describe("restore capability boundary", () => {
       "storage.vector_buckets",
       "storage.vector_indexes",
       "storage.vectors",
+    ]);
+  });
+
+  it("declares Database and Management credential requirements for their handler capabilities", () => {
+    expect(
+      AUTOMATIC_RESTORE_COMPONENTS.filter(requiresDatabaseRestoreCredential),
+    ).toEqual([
+      "database.extensions",
+      "database.roles",
+      "database.schema",
+      "database.data",
+      "auth.data",
+      "database.cron",
+      "database.queues",
+      "database.webhooks",
+      "database.migrations",
+      "database.auth_storage_customizations",
+      "database.publications",
+      "storage.file_buckets",
+      "storage.file_objects",
+      "storage.file_metadata",
+      "database.vault_root_key",
+    ]);
+    expect(
+      AUTOMATIC_RESTORE_COMPONENTS.filter(requiresManagementRestoreCredential),
+    ).toEqual([
+      "storage.service_config",
+      "storage.file_buckets",
+      "storage.file_objects",
+      "storage.file_metadata",
+      "storage.vector_buckets",
+      "storage.vector_indexes",
+      "storage.vectors",
+      "edge.functions",
+      "auth.config",
+      "auth.sso",
+      "auth.tpa",
+      "api.modern_keys",
+      "api.legacy_keys_state",
+      "database.postgres_config",
+      "database.pooler",
+      "database.ssl",
+      "realtime.config",
+      "rest.postgrest_config",
+      "network.restrictions",
+      "database.vault_root_key",
     ]);
   });
 

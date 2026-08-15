@@ -22,6 +22,7 @@ import {
   type ManifestBeforeFinalization,
 } from "../../src/core/bundle/finalize.js";
 import { loadCoverageRegistry } from "../../src/core/coverage/registry.js";
+import { restorePlanSha256 } from "../../src/core/restore/executor.js";
 import { canonicalJson } from "../../src/utils/canonical-json.js";
 
 const temporaryDirectories: string[] = [];
@@ -178,6 +179,79 @@ describe("CLI encrypted bundle input", () => {
     expect(stdout).toEqual([]);
     expect(stderr.join("")).toContain("RESTORE_PLAN_BLOCKED");
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("does not require a Management credential for a database-only restore plan", async () => {
+    const parent = await mkdtemp(
+      path.join(tmpdir(), "pgdumpster-cli-database-credential-scope-"),
+    );
+    temporaryDirectories.push(parent);
+    const bundle = await finalizedBundle(parent, { minimalPlan: true });
+    const { stdout, stderr, io } = ioBuffers();
+    const fetch = vi.fn();
+
+    const exitCode = await runCli(
+      [
+        "restore",
+        bundle,
+        "--target-project-ref",
+        "uvwxyzabcdefghijklmn",
+        "--target-db-url-env",
+        "PGDUMPSTER_TARGET_DB_URL",
+        "--apply",
+        "--json",
+      ],
+      io,
+      {
+        environment: {
+          PGDUMPSTER_TARGET_DB_URL: "postgresql://target-secret@localhost/db",
+        },
+        fetch,
+        restoreExecutor: ({ plan }) =>
+          Promise.resolve({
+            status: "restored",
+            planId: plan.planId,
+            planSha256: restorePlanSha256(plan),
+            backupOperationId: plan.source.backupOperationId,
+            sourceProjectRef: plan.source.projectRef,
+            targetProjectRef: plan.target.projectRef,
+            completedAt: "2026-08-16T01:10:00.000Z",
+            completedActions: 1,
+            skippedActions: plan.actions.length - 1,
+            manualActions: plan.manualActions,
+            actionEvidence: plan.actions.map((action) => {
+              const base = {
+                id: action.id,
+                component: action.component,
+                sourceStatus: action.sourceStatus,
+                declaredFidelity: action.fidelity,
+              };
+              return action.status === "planned"
+                ? {
+                    ...base,
+                    planStatus: "planned" as const,
+                    outcome: "verified" as const,
+                    verification: "applied_and_verified" as const,
+                  }
+                : {
+                    ...base,
+                    planStatus: "skipped" as const,
+                    outcome: "skipped" as const,
+                  };
+            }),
+          }),
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toEqual([]);
+    expect(fetch).not.toHaveBeenCalled();
+    const output = JSON.parse(stdout.join("")) as {
+      status: string;
+      parityReportPath: string;
+    };
+    expect(output).toMatchObject({ status: "restored" });
+    await unlink(output.parityReportPath);
   });
 
   it("rejects a corrupt planned artifact before executor mutation", async () => {
