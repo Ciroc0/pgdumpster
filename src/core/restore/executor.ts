@@ -41,16 +41,14 @@ export interface ExecuteRestoreOptions {
 }
 
 export type RestoreVerificationMethod =
-  | "applied_and_verified"
-  | "resume_reverified"
-  | "resume_recovered";
+  "applied_and_verified" | "resume_reverified" | "resume_recovered";
 
 export interface RestoreActionEvidence {
   id: string;
   component: string;
   planStatus: Extract<
     RestoreAction["status"],
-    "planned" | "skipped" | "blocked_platform_limit",
+    "planned" | "skipped" | "blocked_platform_limit"
   >;
   sourceStatus: RestoreAction["sourceStatus"];
   declaredFidelity: RestoreAction["fidelity"];
