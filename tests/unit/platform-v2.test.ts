@@ -102,6 +102,11 @@ describe("Management API v2 platform capture", () => {
       { id: "project.log_drains", status: "backed_up" },
       { id: "network.private_link", status: "backed_up" },
     ]);
+    for (const entry of result.coverage) {
+      expect(entry.sourceContract).toMatchObject({
+        restoreFidelity: "not_identically_restorable",
+      });
+    }
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(redactor.redact(`value ${secret}`)).toBe("value [REDACTED]");
     expect(

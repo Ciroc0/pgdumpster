@@ -237,6 +237,7 @@ describe("control-plane capture branch hardening", () => {
       "database.pgbouncer",
       "database.backup_schedule",
       "domains.custom_hostname",
+      "domains.vanity_subdomain",
     ]) {
       expect(
         captured.coverage.find((entry) => entry.id === id)?.sourceContract,
@@ -325,6 +326,10 @@ describe("control-plane capture branch hardening", () => {
     expect(status(captured.coverage, "project.read_replicas")).toBe(
       "backed_up",
     );
+    expect(
+      captured.coverage.find((entry) => entry.id === "project.read_replicas")
+        ?.sourceContract,
+    ).toMatchObject({ restoreFidelity: "not_identically_restorable" });
 
     const topology = writes.find(
       ({ path }) => path === "control-plane/read-replicas.json",

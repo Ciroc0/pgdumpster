@@ -145,6 +145,7 @@ const SPECS: readonly CaptureSpec[] = [
     sensitivity: "internal",
     artifact: "control-plane/vanity-subdomain.json",
     protected: false,
+    restoreFidelity: "not_identically_restorable",
     classify: (value) =>
       value !== null &&
       typeof value === "object" &&
@@ -339,7 +340,10 @@ export async function captureControlPlaneState(
         status: replicas.length === 0 ? "not_configured" : "backed_up",
         sensitivity: "internal",
         artifacts: [artifact],
-        sourceContract: contract,
+        sourceContract: {
+          ...contract,
+          restoreFidelity: "not_identically_restorable",
+        },
       });
     }
   }

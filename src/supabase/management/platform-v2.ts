@@ -47,11 +47,15 @@ function registerConfigStrings(value: unknown, redactor: Redactor): void {
   }
 }
 
-function sourceContract(path: PlatformV2ContractPath): Record<string, unknown> {
+function sourceContract(
+  path: PlatformV2ContractPath,
+  restoreFidelity?: "not_identically_restorable",
+): Record<string, unknown> {
   return {
     adapter: "management-api-platform-v2",
     endpoint: `GET ${path}`,
     openapiSha256: PLATFORM_V2_CONTRACT_SOURCE_SHA256,
+    ...(restoreFidelity === undefined ? {} : { restoreFidelity }),
   };
 }
 
@@ -126,7 +130,10 @@ export async function capturePlatformV2State(
   }
   registerConfigStrings(logDrains, redactor);
   const logDrainArtifact = "secrets/control-plane/log-drains.json";
-  const logDrainContract = sourceContract(logDrainPath);
+  const logDrainContract = sourceContract(
+    logDrainPath,
+    "not_identically_restorable",
+  );
   const logDrainSourceContract =
     logDrainReasonCode === undefined
       ? logDrainContract
@@ -149,7 +156,10 @@ export async function capturePlatformV2State(
     signal === undefined ? {} : { signal },
   );
   const privateLinkArtifact = "control-plane/private-link.json";
-  const privateLinkContract = sourceContract(privateLinkPath);
+  const privateLinkContract = sourceContract(
+    privateLinkPath,
+    "not_identically_restorable",
+  );
   await ordinary.writeJson(
     privateLinkArtifact,
     { sourceContract: privateLinkContract, data: privateLinks },

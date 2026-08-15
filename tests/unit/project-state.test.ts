@@ -110,6 +110,15 @@ describe("project-state capture", () => {
       { id: "diagnostics.health", status: "backed_up" },
       { id: "diagnostics.readonly", status: "backed_up" },
     ]);
+    for (const id of [
+      "project.disk_autoscale",
+      "project.addons",
+      "project.jit_access",
+    ]) {
+      expect(
+        result.coverage.find((entry) => entry.id === id)?.sourceContract,
+      ).toMatchObject({ restoreFidelity: "not_identically_restorable" });
+    }
     expect(fetch).toHaveBeenCalledTimes(8);
   });
 });

@@ -154,6 +154,11 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Metadata-only Analytics capture now yields explicit `not_exportable` data and `not_identically_restorable` catalog fidelity, so restore reports manual platform limits instead of failing with a missing handler.
 - `docs/06-restore-engine.md` was reconciled with the implemented guarded `restore --apply` behavior; it continues to state that final semantic parity and hosted E2E are pending.
 
+### 2026-08-15 — control-plane handler audit checkpoint
+
+- Audited capture surfaces that could otherwise become `planned` without a mutation handler. Vanity subdomain, disk/autoscale, selected add-ons, JIT access, read-replica topology, log drains and PrivateLink now carry `not_identically_restorable` source fidelity.
+- The restore planner turns those captured read-only surfaces into explicit manual platform limits. It never proceeds to a fabricated mutation endpoint, including when a billable-resource opt-in is supplied.
+
 ### 2026-08-15 — Auth provider restore checkpoint
 
 - Refreshed the dated official Auth contract snapshot with the current SSO-provider and Third-party Auth mutation contracts.

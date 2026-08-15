@@ -15,6 +15,7 @@ interface ProjectStateSpec {
   suffix: string;
   artifact: string;
   sensitivity: CoverageEntry["sensitivity"];
+  restoreFidelity?: "not_identically_restorable";
   query?: Readonly<Record<string, string>>;
   status?: (value: unknown) => CoverageEntry["status"];
 }
@@ -33,6 +34,7 @@ const SPECS: readonly ProjectStateSpec[] = [
     suffix: "/config/disk/autoscale",
     artifact: "control-plane/disk-autoscale.json",
     sensitivity: "internal",
+    restoreFidelity: "not_identically_restorable",
     status: (value) => {
       if (value === null || typeof value !== "object") return "backed_up";
       return Object.values(value).every((entry) => entry === null)
@@ -46,6 +48,7 @@ const SPECS: readonly ProjectStateSpec[] = [
     suffix: "/billing/addons",
     artifact: "control-plane/addons.json",
     sensitivity: "internal",
+    restoreFidelity: "not_identically_restorable",
     status: (value) => {
       if (value === null || typeof value !== "object") return "backed_up";
       const selected = Reflect.get(value, "selected_addons") as unknown;
@@ -60,6 +63,7 @@ const SPECS: readonly ProjectStateSpec[] = [
     suffix: "/jit-access",
     artifact: "control-plane/jit-access.json",
     sensitivity: "sensitive",
+    restoreFidelity: "not_identically_restorable",
     status: (value) =>
       value !== null &&
       typeof value === "object" &&
@@ -101,11 +105,15 @@ const ADVISOR_SPECS = [
   },
 ] as const;
 
-function sourceContract(path: ProjectContractPath): Record<string, unknown> {
+function sourceContract(
+  path: ProjectContractPath,
+  restoreFidelity?: "not_identically_restorable",
+): Record<string, unknown> {
   return {
     adapter: "management-api-project-state-v1",
     endpoint: `GET ${path}`,
     openapiSha256: PROJECT_CONTRACT_SOURCE_SHA256,
+    ...(restoreFidelity === undefined ? {} : { restoreFidelity }),
   };
 }
 
@@ -126,7 +134,7 @@ export async function captureProjectState(
         ...(spec.query === undefined ? {} : { query: spec.query }),
       },
     );
-    const contract = sourceContract(spec.path);
+    const contract = sourceContract(spec.path, spec.restoreFidelity);
     await sink.writeJson(
       spec.artifact,
       { sourceContract: contract, data: value },
