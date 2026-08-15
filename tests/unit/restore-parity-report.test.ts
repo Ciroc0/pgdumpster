@@ -356,7 +356,9 @@ describe("restore parity report", () => {
       ...result,
       targetProjectRef: sourceProjectRef,
     };
-    expect(() => createRestoreParityReport(value, mismatchedResult)).toThrowError(
+    expect(() =>
+      createRestoreParityReport(value, mismatchedResult),
+    ).toThrowError(
       expect.objectContaining({ code: "RESTORE_PARITY_EVIDENCE_INVALID" }),
     );
 
@@ -427,7 +429,9 @@ describe("restore parity report", () => {
     const parityText = await readFile(files.parity, "utf8");
     expect(parityText).not.toContain(databaseSecret);
     expect(parityText).not.toContain(accessToken);
-    expect(restoreParityReportSchema.parse(JSON.parse(parityText))).toMatchObject({
+    expect(
+      restoreParityReportSchema.parse(JSON.parse(parityText)),
+    ).toMatchObject({
       planId: cliPlanId,
       backupOperationId,
       sourceProjectRef,
