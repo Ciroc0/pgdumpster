@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { CoverageDocument, Manifest } from "../bundle/schemas.js";
 import { loadCoverageRegistry } from "../coverage/registry.js";
 import { PgDumpsterError } from "../errors/error.js";
+import { supportsAutomaticRestore } from "./capabilities.js";
 
 const projectRefSchema = z.string().regex(/^[a-z0-9]{20}$/u);
 const actionStatusSchema = z.enum([
@@ -349,6 +350,11 @@ export async function buildRestorePlan(
     } else if (BILLABLE.has(component.id) && !options.allowBillableResources) {
       status = "blocked_by_policy";
       reasonCode = "billable_resource_opt_in_required";
+    } else if (!supportsAutomaticRestore(component.id)) {
+      status = "blocked_platform_limit";
+      risk = "manual";
+      fidelity = "manual";
+      reasonCode ??= "automatic_restore_not_supported";
     } else {
       status = "planned";
       risk =
