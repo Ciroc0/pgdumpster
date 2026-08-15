@@ -8,6 +8,10 @@ import { loadSourceEnvironment } from "../config/environment.js";
 import { loadConfigFile } from "../config/file.js";
 import { executeProductBackup } from "../core/backup/product.js";
 import { packBundle } from "../core/bundle/archive.js";
+import {
+  decryptArchiveWithAge,
+  encryptArchiveWithAge,
+} from "../core/bundle/encryption.js";
 import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import { withVerifiedBundle } from "../core/bundle/input.js";
@@ -35,6 +39,8 @@ export interface CliContext {
   doctorDependencies?: DoctorDependencies;
   backupExecutor?: typeof executeProductBackup;
   archivePacker?: typeof packBundle;
+  ageEncryptor?: typeof encryptArchiveWithAge;
+  ageDecryptor?: typeof decryptArchiveWithAge;
   now?: () => Date;
   randomUUID?: () => string;
 }
@@ -44,10 +50,10 @@ const HELP = `pgDumpster
 Usage:
   pgdumpster doctor [--project-ref <ref>] [--json]
   pgdumpster backup --project-ref <ref> (--linked|--db-url-env <name>) [options]
-  pgdumpster inspect <bundle-directory|archive.tar.zst> [--json]
-  pgdumpster coverage <bundle-directory|archive.tar.zst> [--json]
-  pgdumpster verify <bundle-directory|archive.tar.zst> [--json]
-  pgdumpster restore <bundle-directory|archive.tar.zst> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
+  pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+  pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+  pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+  pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
   pgdumpster --version
   pgdumpster --help
 `;
@@ -360,20 +366,25 @@ export async function runCli(
           retryable: false,
         });
       }
-      if (loadedConfig?.config.encryption.mode === "age") {
+      const encryption =
+        loadedConfig?.config.encryption ?? ({ mode: "none" } as const);
+      if (encryption.mode === "age" && encryption.recipient === undefined) {
         throw new DomainError({
-          code: "ENCRYPTION_NOT_IMPLEMENTED",
-          category: "encryption",
-          message: "age encryption is not available in this build.",
+          code: "CONFIG_MISSING_REQUIRED",
+          category: "config",
+          message: "age backup encryption requires encryption.recipient.",
           retryable: false,
         });
       }
-      if (!args.allowPlaintextSecrets) {
+      const encryptedOutput = encryption.mode === "age";
+      const allowProtectedWorkspace =
+        args.allowPlaintextSecrets || encryptedOutput;
+      if (!allowProtectedWorkspace) {
         throw new DomainError({
           code: "PLAINTEXT_SECRETS_NOT_ALLOWED",
           category: "security",
           message:
-            "Plaintext backup requires explicit --allow-plaintext-secrets until encryption is configured.",
+            "Plaintext backup requires explicit --allow-plaintext-secrets when age encryption is not configured.",
           retryable: false,
         });
       }
@@ -464,6 +475,9 @@ export async function runCli(
         maxStorageConcurrency,
         maxApiConcurrency,
         allowPlaintextSecrets: args.allowPlaintextSecrets,
+        encryptionMode: encryption.mode,
+        encryptionRecipient:
+          encryption.mode === "age" ? encryption.recipient : undefined,
       });
       const runId = checkpoint?.runId ?? (context.randomUUID ?? randomUUID)();
       const startedAt =
@@ -489,14 +503,47 @@ export async function runCli(
         ...(source.storageKey === undefined
           ? {}
           : { storageKey: source.storageKey }),
-        allowPlaintextSecrets: args.allowPlaintextSecrets,
+        allowPlaintextSecrets: allowProtectedWorkspace,
         maxStorageConcurrency,
         maxApiConcurrency,
         ...(checkpoint === undefined ? {} : { resume: true }),
       });
       await rm(checkpointPath, { force: true });
       let outputPath = workspaceRoot;
-      if (args.archive) {
+      if (encryptedOutput) {
+        const archivePath = `${workspaceRoot}.tar.zst`;
+        const encryptedPath = `${archivePath}.age`;
+        try {
+          await (context.archivePacker ?? packBundle)(workspaceRoot, archivePath);
+          await (context.ageEncryptor ?? encryptArchiveWithAge)(
+            archivePath,
+            encryptedPath,
+            encryption.recipient!,
+            { environment },
+          );
+        } catch (error) {
+          await rm(archivePath, { force: true }).catch(() => undefined);
+          await rm(workspaceRoot, { recursive: true, force: true }).catch(
+            () => undefined,
+          );
+          throw error;
+        }
+        const cleanupResults = await Promise.allSettled([
+          rm(archivePath, { force: true }),
+          rm(workspaceRoot, { recursive: true, force: true }),
+        ]);
+        if (cleanupResults.some(({ status }) => status === "rejected")) {
+          throw new DomainError({
+            code: "ENCRYPTION_FAILED",
+            category: "encryption",
+            message:
+              "Encrypted backup was created but plaintext staging cleanup failed.",
+            retryable: false,
+            details: { encryptedOutput: encryptedPath },
+          });
+        }
+        outputPath = encryptedPath;
+      } else if (args.archive) {
         outputPath = `${workspaceRoot}.tar.zst`;
         await (context.archivePacker ?? packBundle)(workspaceRoot, outputPath);
       }
@@ -531,6 +578,14 @@ export async function runCli(
       if (bundlePath === undefined)
         throw new Error("restore requires a bundle directory or archive");
       const args = parseRestoreArguments(extra);
+      const loadedConfig =
+        globals.configPath === undefined
+          ? undefined
+          : await loadConfigFile(globals.configPath);
+      const ageIdentityFile =
+        loadedConfig?.config.encryption.mode === "age"
+          ? loadedConfig.config.encryption.identityFile
+          : undefined;
       const targetProjectRef = args.targetProjectRef!;
       const targetDbUrlEnvironment = args.targetDbUrlEnvironment!;
       const environment = context.environment ?? process.env;
@@ -545,14 +600,22 @@ export async function runCli(
         });
       }
       new SecretValue(targetDatabaseUrl, redactor);
-      const plan = await withVerifiedBundle(bundlePath, (bundle) =>
-        buildRestorePlan(bundle.manifest, bundle.coverage, {
-          planId: (context.randomUUID ?? randomUUID)(),
-          createdAt: (context.now ?? (() => new Date()))().toISOString(),
-          targetProjectRef,
-          conflictPolicy: args.conflictPolicy,
-          allowBillableResources: args.allowBillableResources,
-        }),
+      const plan = await withVerifiedBundle(
+        bundlePath,
+        (bundle) =>
+          buildRestorePlan(bundle.manifest, bundle.coverage, {
+            planId: (context.randomUUID ?? randomUUID)(),
+            createdAt: (context.now ?? (() => new Date()))().toISOString(),
+            targetProjectRef,
+            conflictPolicy: args.conflictPolicy,
+            allowBillableResources: args.allowBillableResources,
+          }),
+        {
+          ...(ageIdentityFile === undefined ? {} : { ageIdentityFile }),
+          ...(context.ageDecryptor === undefined
+            ? {}
+            : { ageDecryptor: context.ageDecryptor }),
+        },
       );
       if (args.mode === "apply") {
         throw new DomainError({
@@ -591,29 +654,46 @@ export async function runCli(
   }
 
   try {
-    await withVerifiedBundle(bundlePath, (bundle) => {
-      if (command === "verify") {
-        const result = { status: "verified", files: bundle.checksums.size };
-        io.stdout(
-          json
-            ? `${JSON.stringify(result)}\n`
-            : `VERIFIED  ${result.files} files\n`,
-        );
-      } else if (command === "coverage") {
-        io.stdout(
-          json
-            ? `${JSON.stringify(bundle.coverage)}\n`
-            : `${bundle.coverage.components.map(({ id, status }) => `${status.padEnd(16)} ${id}`).join("\n")}\n`,
-        );
-      } else {
-        const inspection = inspectVerifiedBundle(bundle);
-        io.stdout(
-          json
-            ? `${JSON.stringify(inspection)}\n`
-            : `${JSON.stringify(inspection, null, 2)}\n`,
-        );
-      }
-    });
+    const loadedConfig =
+      globals.configPath === undefined
+        ? undefined
+        : await loadConfigFile(globals.configPath);
+    const ageIdentityFile =
+      loadedConfig?.config.encryption.mode === "age"
+        ? loadedConfig.config.encryption.identityFile
+        : undefined;
+    await withVerifiedBundle(
+      bundlePath,
+      (bundle) => {
+        if (command === "verify") {
+          const result = { status: "verified", files: bundle.checksums.size };
+          io.stdout(
+            json
+              ? `${JSON.stringify(result)}\n`
+              : `VERIFIED  ${result.files} files\n`,
+          );
+        } else if (command === "coverage") {
+          io.stdout(
+            json
+              ? `${JSON.stringify(bundle.coverage)}\n`
+              : `${bundle.coverage.components.map(({ id, status }) => `${status.padEnd(16)} ${id}`).join("\n")}\n`,
+          );
+        } else {
+          const inspection = inspectVerifiedBundle(bundle);
+          io.stdout(
+            json
+              ? `${JSON.stringify(inspection)}\n`
+              : `${JSON.stringify(inspection, null, 2)}\n`,
+          );
+        }
+      },
+      {
+        ...(ageIdentityFile === undefined ? {} : { ageIdentityFile }),
+        ...(context.ageDecryptor === undefined
+          ? {}
+          : { ageDecryptor: context.ageDecryptor }),
+      },
+    );
     return 0;
   } catch (error) {
     const serialized = serializeError(error, redactor);
