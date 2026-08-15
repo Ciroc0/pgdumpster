@@ -51,7 +51,7 @@ Standard `age` archive encryption is implemented for local publication.
 - `--allow-plaintext-secrets` remains required only when creating a non-encrypted secret-bearing backup.
 - Reading `.tar.zst.age` requires a configured `encryption.identityFile`; the private key material itself is not accepted as a CLI argument.
 - `doctor` can prove whether the `age` executable is available. A direct backup with missing tooling also fails through the dependency error domain.
-- A hard process kill can still leave the resumable protected workspace/checkpoint; normal encryption success/failure cleanup is separate from crash recovery.
+- A hard process kill can still leave the protected resumable workspace/checkpoint; crash recovery is separate from normal encryption cleanup.
 
 ## Remaining hard gates
 
