@@ -25,6 +25,7 @@ Latest complete local gates on 2026-08-16 after live-restore regression hardenin
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
+- current `npm pack --dry-run --json` package audit reports 364 files, includes the compiled CLI/contracts/schemas, contains no development-only test/docs/scripts/workflow paths and remains `private: true`; this is package-content evidence only, not a release claim;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
 - default `verified`, explicit `quiesced`, and `best-effort` consistency are accepted by the backup CLI;
 - best-effort drift is preserved as `drift_detected`, including across resume;

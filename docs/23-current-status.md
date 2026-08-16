@@ -20,6 +20,8 @@ All independent repository coverage thresholds remain at 90% and pass. No produc
 
 Current official Supabase/OpenAPI, Storage and changelog contract snapshots match. A consumer installation of the generated development `.tgz` passed `--version`, `doctor --help` and `restore --help`; it is local package-smoke evidence, not a public publish/release claim.
 
+A current read-only `npm pack --dry-run --json` audit reports 364 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. The development package remains private; this confirms package contents only and is not publication evidence.
+
 GitHub Actions quota is currently exhausted for the account, so newly pushed workflow runs are expected to be blocked by quota until reset. That is not a meaningful remote quality signal for the current branch; local `pnpm check` and `pnpm test:coverage` are the active gates in the meantime. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
 
 CodeQL previously reached analysis/SARIF generation, but GitHub could not publish the result because code scanning was not enabled/accessible to the repository integration. This remains a repository configuration gate, not evidence that the static-analysis result is clean.
