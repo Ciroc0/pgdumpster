@@ -233,35 +233,6 @@ async function cli(args, environment) {
   return command(process.execPath, ["dist/cli/main.js", ...args], environment);
 }
 
-/** @param {string} database @param {string[]} args @param {NodeJS.ProcessEnv} environment */
-async function supabaseQuery(database, args, environment) {
-  const pnpmArguments = [
-    "exec",
-    "supabase",
-    "db",
-    "query",
-    "--db-url",
-    database,
-    ...args,
-  ];
-  if (process.platform === "win32") {
-    const pnpmEntrypoint = path.join(
-      process.env.APPDATA ?? "",
-      "npm",
-      "node_modules",
-      "pnpm",
-      "bin",
-      "pnpm.cjs",
-    );
-    return command(
-      process.execPath,
-      [pnpmEntrypoint, ...pnpmArguments],
-      environment,
-    );
-  }
-  return command("pnpm", pnpmArguments, environment);
-}
-
 /** @param {string} projectRef @param {NodeJS.ProcessEnv} environment */
 async function deployEdgeFixture(projectRef, environment) {
   const arguments_ = [
@@ -306,6 +277,17 @@ async function seedFixture(database) {
   }
 }
 
+/** @param {string} database @param {string} query */
+async function postgresQuery(database, query) {
+  const client = new pg.Client({ connectionString: database });
+  await client.connect();
+  try {
+    return await client.query(query);
+  } finally {
+    await client.end();
+  }
+}
+
 /** @param {unknown} value */
 function assertTargetEdgeFunctionInventoryEmpty(value) {
   edgeFunctionInventorySchema.parse(value);
@@ -322,23 +304,20 @@ async function assertTargetEdgeFunctionsEmpty(projectRef, accessToken) {
   assertTargetEdgeFunctionInventoryEmpty(await response.json());
 }
 
-/** @param {string} targetDatabaseUrl @param {string} targetProjectRef @param {string} accessToken @param {NodeJS.ProcessEnv} environment */
+/** @param {string} targetDatabaseUrl @param {string} targetProjectRef @param {string} accessToken */
 async function assertCleanTarget(
   targetDatabaseUrl,
   targetProjectRef,
   accessToken,
-  environment,
 ) {
-  const { stdout } = await supabaseQuery(
-    targetDatabaseUrl,
-    [
-      "select to_regclass('pgdumpster_e2e.jobs') is null as fixture_absent, (select count(*) from storage.buckets) = 0 as storage_empty, (select count(*) from auth.users where email like 'pgdumpster-e2e-%@example.test') = 0 as auth_fixture_absent",
-      "--output",
-      "json",
-    ],
-    environment,
-  );
-  const result = cleanTargetSchema.parse(JSON.parse(stdout));
+  const result = cleanTargetSchema.parse({
+    rows: (
+      await postgresQuery(
+        targetDatabaseUrl,
+        "select to_regclass('pgdumpster_e2e.jobs') is null as fixture_absent, (select count(*) from storage.buckets) = 0 as storage_empty, (select count(*) from auth.users where email like 'pgdumpster-e2e-%@example.test') = 0 as auth_fixture_absent",
+      )
+    ).rows,
+  });
   const row = result.rows[0];
   if (row.fixture_absent !== true) {
     currentStage = "target fixture database freshness preflight";
@@ -628,12 +607,7 @@ async function main() {
       );
     }
     currentStage = "target-cleanliness preflight";
-    await assertCleanTarget(
-      targetDatabaseUrl,
-      targetProjectRef,
-      accessToken,
-      environment,
-    );
+    await assertCleanTarget(targetDatabaseUrl, targetProjectRef, accessToken);
     currentStage = "source fixture seeding";
     await seedFixture(sourceDatabaseUrl);
     currentStage = "Auth fixture creation";
@@ -764,39 +738,24 @@ async function main() {
     const smokeSql =
       "select (select count(*) from pgdumpster_e2e.accounts) as accounts, (select count(*) from pgdumpster_e2e.jobs) as jobs, (select count(*) from pgdumpster_e2e.jobs where checksum = encode(digest(payload::text, 'sha256'), 'hex')) as valid_checksums, (select count(*) from pg_policies where schemaname = 'pgdumpster_e2e') as rls_policies, (select count(*) from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'pgdumpster_e2e' and tablename = 'jobs') as realtime_membership, (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pgdumpster_e2e' and c.relname = 'jobs' and not t.tgisinternal) as user_triggers";
     const [sourceSmoke, targetSmoke] = await Promise.all([
-      supabaseQuery(
-        sourceDatabaseUrl,
-        [smokeSql, "--output", "json"],
-        environment,
-      ),
-      supabaseQuery(
-        targetDatabaseUrl,
-        [smokeSql, "--output", "json"],
-        environment,
-      ),
+      postgresQuery(sourceDatabaseUrl, smokeSql),
+      postgresQuery(targetDatabaseUrl, smokeSql),
     ]);
-    const sourceRow = smokeSchema.parse(JSON.parse(sourceSmoke.stdout)).rows[0];
-    const targetRow = smokeSchema.parse(JSON.parse(targetSmoke.stdout)).rows[0];
+    const sourceRow = smokeSchema.parse({ rows: sourceSmoke.rows }).rows[0];
+    const targetRow = smokeSchema.parse({ rows: targetSmoke.rows }).rows[0];
     if (JSON.stringify(sourceRow) !== JSON.stringify(targetRow))
       throw new Error(
         "Post-restore database smoke does not match the source fixture.",
       );
     currentStage = "Storage smoke";
-    const sourceStorage = storageObjectsSchema.parse(
-      JSON.parse(
-        (
-          await supabaseQuery(
-            sourceDatabaseUrl,
-            [
-              "select b.id as bucket, o.name from storage.objects o join storage.buckets b on b.id = o.bucket_id order by b.id, o.name limit 1",
-              "--output",
-              "json",
-            ],
-            environment,
-          )
-        ).stdout,
-      ),
-    ).rows[0];
+    const sourceStorage = storageObjectsSchema.parse({
+      rows: (
+        await postgresQuery(
+          sourceDatabaseUrl,
+          "select b.id as bucket, o.name from storage.objects o join storage.buckets b on b.id = o.bucket_id order by b.id, o.name limit 1",
+        )
+      ).rows,
+    }).rows[0];
     const sourceObjectUrl = storageObjectUrl(
       sourceProjectRef,
       sourceStorage.bucket,

@@ -46,6 +46,13 @@ describe("live E2E harness", () => {
     expect(workflow).toContain("PGDUMPSTER_E2E_RESET_TARGET");
   });
 
+  it("uses the direct PostgreSQL client for E2E preflight and smoke queries", async () => {
+    const harness = await readFile("scripts/live-e2e.mjs", "utf8");
+
+    expect(harness).toContain("async function postgresQuery(database, query)");
+    expect(harness).not.toContain("async function supabaseQuery(");
+  });
+
   it("fails before invoking external commands when protected configuration is absent", async () => {
     await expect(
       executeFile(process.execPath, ["scripts/live-e2e.mjs"], {
