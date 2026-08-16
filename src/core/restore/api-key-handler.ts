@@ -129,6 +129,16 @@ function identity(key: Pick<Key, "type" | "name">): string {
   return `${key.type}\0${key.name}`;
 }
 
+function isPlatformGeneratedKey(key: Key): boolean {
+  switch (key.type) {
+    case "legacy":
+      return true;
+    case "publishable":
+    case "secret":
+      return key.name === "default";
+  }
+}
+
 async function source(options: ApiKeyRestoreHandlerOptions): Promise<Key[]> {
   const filename = await resolveBundleArtifact(options.bundleRoot, ARTIFACT);
   const stat = await lstat(filename);
@@ -230,7 +240,8 @@ export function createApiKeyRestoreHandler(
       if (
         sourceKeys.some(
           (key) =>
-            key.type !== "legacy" && currentIdentities.has(identity(key)),
+            !isPlatformGeneratedKey(key) &&
+            currentIdentities.has(identity(key)),
         )
       )
         fail(
@@ -240,14 +251,15 @@ export function createApiKeyRestoreHandler(
       if (
         sourceKeys.some(
           (key) =>
-            key.type === "legacy" && !currentIdentities.has(identity(key)),
+            isPlatformGeneratedKey(key) &&
+            !currentIdentities.has(identity(key)),
         )
       )
         fail(
-          "Target does not expose the generated legacy API key required for the protected rotation map.",
+          "Target does not expose a generated API key required for the protected rotation map.",
         );
       for (const key of sourceKeys) {
-        if (key.type === "legacy") continue;
+        if (isPlatformGeneratedKey(key)) continue;
         await options.client.post(
           endpoint,
           {

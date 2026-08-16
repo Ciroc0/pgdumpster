@@ -157,6 +157,42 @@ describe("modern API-key restore", () => {
     expect(get).toHaveBeenCalledTimes(2);
   });
 
+  it("maps generated default modern keys without attempting to create them", async () => {
+    const { root, rotationMapPath } = await fixture();
+    const defaultSource = {
+      ...sourceKey,
+      type: "publishable" as const,
+      name: "default",
+    };
+    await writeFile(
+      path.join(root, "secrets", "api-keys.json"),
+      JSON.stringify({ schemaVersion: 1, keys: [defaultSource] }),
+    );
+    const get = vi.fn(() =>
+      Promise.resolve([
+        {
+          ...defaultSource,
+          id: "target-default-key",
+          api_key: "sb_publishable_target",
+        },
+      ]),
+    );
+    const post = vi.fn();
+    const handler = createApiKeyRestoreHandler({
+      bundleRoot: root,
+      sourceProjectRef: "abcdefghijklmnopqrst",
+      targetProjectRef: "uvwxyzabcdefghijklmn",
+      rotationMapPath,
+      registerSecret: vi.fn(),
+      client: { get, post },
+    });
+
+    const result = await handler.apply({ action: action(), attempt: 1 });
+    expect(result.fingerprint).toEqual(expect.any(String));
+    expect(post).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
   it("returns false when the protected rotation map is absent or no longer matches", async () => {
     const { root, rotationMapPath } = await fixture();
     const handler = createApiKeyRestoreHandler({

@@ -430,7 +430,6 @@ function assertResumePlanBinding(
 ): void {
   if (
     plan.planId !== checkpoint.planId ||
-    plan.createdAt !== checkpoint.createdAt ||
     restorePlanSha256(plan) !== checkpoint.planSha256 ||
     plan.source.projectRef !== manifest.source.projectRef ||
     plan.source.backupOperationId !== manifest.operation.id ||

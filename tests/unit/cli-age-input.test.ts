@@ -311,7 +311,7 @@ describe("CLI encrypted bundle input", () => {
           id,
           planned: status === "planned",
         })),
-        now: plan.createdAt,
+        now: "2026-08-16T02:00:00.000Z",
       }),
     );
     const persistedBefore = await readFile(planPath, "utf8");
