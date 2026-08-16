@@ -244,7 +244,7 @@ Steps 1–7 have current implementation support, including encrypted backup/inpu
 
 ## Scheduling and retention
 
-pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. The complete hosted recovery E2E is still pending, so do not treat the current development build as release-complete automation.
+pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Disposable hosted database/File Storage recovery observations have passed with explicit platform limits, but protected current-candidate E2E and release gates remain open, so do not treat the development build as release-complete automation.
 
 ## Updating the development checkout
 

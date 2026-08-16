@@ -9,7 +9,7 @@ Snapshot date: **2026-08-16**.
 Latest complete local validation after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- test files: **114 passed**;
+- test files: **115 passed**;
 - tests: **724 passed**;
 - statements: **94.61%**;
 - branches: **90.04%**;
@@ -72,7 +72,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Encrypted input**: `.tar.zst.age` is supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`. pgDumpster never needs the private key value as a CLI argument.
 - **Destination**: local and configured S3-compatible destinations are exposed. S3 uses resumable multipart publication, writes a completion marker last and independently verifies the referenced remote object; a scoped Cloudflare R2 provider passed encrypted publication, marker and materialized offline verification.
 - **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. A blocked plan is rejected before target credential/resource discovery; executable plans derive database, Management and privileged Storage credential needs from planned automatic capabilities. The CLI validates all planned handlers and artifacts, then atomically persists the immutable plan, checkpoint and final parity report with restrictive permissions around mutation. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It fails closed for any unimplemented planned component.
-- **Hosted E2E**: disposable-source encrypted backup, offline verify and clean-target restore completed as `restored_with_platform_limits`. Database checks verified account/job counts, enum, RLS, trigger/checksum behavior and Realtime publication after resume recovery. A separate private Storage bucket/object fixture was also restored and directly verified by target API metadata/size. Cloudflare R2 S3 interoperability passed; final release evidence remains pending.
+- **Hosted E2E**: disposable-source encrypted backup, offline verify and clean-target restore completed as `restored_with_platform_limits`. Database checks verified account/job counts, enum, RLS, trigger/checksum behavior and Realtime publication after resume recovery. A current read-only source/target smoke confirmed matching fixture state: 2 accounts, 2 jobs, 2 valid trigger-derived checksums, 2 RLS policies, 1 user trigger and 1 Realtime table membership. A separate private Storage bucket/object fixture was also restored and directly verified by target API metadata/size. Cloudflare R2 S3 interoperability passed; protected current-candidate evidence remains pending.
 - **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
 - **Release**: normal CI exists. `.github/workflows/release.yml` is implemented for public npm trusted publishing through GitHub Actions OIDC, CI-built package smoke, CycloneDX SBOM, SHA-256 checksums, GitHub artifact attestation and GitHub Releases. It deliberately rejects the current private `0.0.0-development` package, and has not run for a valid release tag. Current-candidate CI/CodeQL, protected release-candidate E2E, trusted-publisher setup, tag/version/changelog finalization and published-artifact verification remain required.
 
@@ -83,6 +83,7 @@ Implemented global options:
 ```text
 --config <path>
 --json
+--non-interactive
 --version
 --help
 ```
@@ -135,8 +136,8 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. implement deterministic Management API simulator and Storage scale/stream evidence required by `docs/10-testing.md`;
-2. execute the protected full-fixture hosted E2E and resolve any fidelity gap without weakening fail-closed behavior;
+1. establish the remaining provider-scale/performance evidence required by `docs/10-testing.md`;
+2. execute the protected current-candidate hosted E2E and resolve any executable fidelity gap without weakening fail-closed behavior;
 3. fix the GitHub CodeQL repository-setting blocker, disposition any findings and rerun current-candidate CI;
 4. configure npm trusted publishing, finalize version/changelog and run the tagged release workflow;
 5. verify the published artifact, then complete the final documentation/acceptance audit.
