@@ -29,7 +29,7 @@ GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), blo
 The latest complete local result after Edge Function source-tree restore hardening is:
 
 - `pnpm check`: **PASS**;
-- **118 test files / 753 tests: PASS**;
+- **118 test files / 754 tests: PASS**;
 - **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
@@ -81,7 +81,7 @@ Do not upload decrypted bundles, rotation maps, age identity material or live se
 gate. It requires the `release-e2e` GitHub Environment and its source/target
 project refs, pooler URLs, Management token, scoped source/target privileged service keys for the Storage/Auth smokes and
 `age` recipient/identity secrets. It rejects equal refs and a target that still contains the dedicated
-fixture, Storage buckets or E2E Auth users before it seeds the source, so an operator must reset
+fixture, Storage buckets, E2E Auth users or any deployed Edge Function before it seeds the source, so an operator must reset
 or recreate the disposable target explicitly between runs. Its only persistent
 workflow output is a sanitized terminal-status summary; temporary encrypted
 bundles, config, age identity and newly created UUID-named restore artifacts

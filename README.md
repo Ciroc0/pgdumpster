@@ -29,7 +29,7 @@ Current branch snapshot as of 2026-08-16:
 - encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`;
 - plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
 - S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2;
-- latest local validation: **118 test files / 753 tests, PASS**;
+- latest local validation: **118 test files / 754 tests, PASS**;
 - current global coverage is **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**, with all independent 90% thresholds passing;
 - earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the GitHub Actions quota remains exhausted, so current-candidate remote CI cannot provide a meaningful branch-quality signal. This is not a code failure;
 - CodeQL analysis has previously run to SARIF generation, but result publication/status is blocked by repository code-scanning configuration/access;

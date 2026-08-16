@@ -10,7 +10,7 @@ Latest complete local validation after Edge Function source-tree restore hardeni
 
 - `pnpm check`: **PASS**;
 - test files: **118 passed**;
-- tests: **753 passed**;
+- tests: **754 passed**;
 - statements: **94.48%**;
 - branches: **90.02%**;
 - functions: **92.65%**;

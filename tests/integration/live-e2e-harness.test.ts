@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
@@ -6,6 +7,18 @@ import { describe, expect, it } from "vitest";
 const executeFile = promisify(execFile);
 
 describe("live E2E harness", () => {
+  it("checks target Edge Function inventory before source fixture creation", async () => {
+    const harness = await readFile("scripts/live-e2e.mjs", "utf8");
+
+    expect(harness).toContain("assertTargetEdgeFunctionsEmpty");
+    expect(harness).toContain(
+      "edgeFunctionInventorySchema = z\n  .array(z.object({ slug: z.string().min(1) }).passthrough())\n  .max(0)",
+    );
+    expect(harness.indexOf("await assertCleanTarget(")).toBeLessThan(
+      harness.indexOf('currentStage = "source fixture seeding"'),
+    );
+  });
+
   it("fails before invoking external commands when protected configuration is absent", async () => {
     await expect(
       executeFile(process.execPath, ["scripts/live-e2e.mjs"], {

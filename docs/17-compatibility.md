@@ -19,7 +19,7 @@ Status snapshot: **2026-08-16**.
 - **`age`**: standard `age` recipient encryption/decryption is implemented for local archive publication/input. Tooling is detected by `doctor`; runtime operations also fail through the dependency error domain when the executable cannot be started.
 - **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Scoped Cloudflare R2 interoperability passed encrypted publication, completion-marker, materialization and offline verification; a separate 128 MiB multipart observation reached 15.06 MiB/s with 152,346,624-byte peak RSS and removed its test artifacts. AWS and MinIO have not been exercised.
 
-The latest complete local gate after Edge Function source-tree restore hardening is `pnpm check` plus `pnpm test:coverage` with **118 test files / 753 tests passing** and **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**. That local result does not replace current-candidate cross-platform CI evidence, and the earlier OS matrix plus disposable hosted observation do not replace a protected release-candidate E2E.
+The latest complete local gate after Edge Function source-tree restore hardening is `pnpm check` plus `pnpm test:coverage` with **118 test files / 754 tests passing** and **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**. That local result does not replace current-candidate cross-platform CI evidence, and the earlier OS matrix plus disposable hosted observation do not replace a protected release-candidate E2E.
 
 ## Management API contracts
 

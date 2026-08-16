@@ -15,7 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { URL } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 
 import pg from "pg";
 import { z } from "zod";
@@ -97,6 +97,9 @@ const edgeSmokeSchema = z.object({
   type: z.literal("pgdumpster-e2e-edge"),
   schemaVersion: z.literal(1),
 });
+const edgeFunctionInventorySchema = z
+  .array(z.object({ slug: z.string().min(1) }).passthrough())
+  .max(0);
 const paritySchema = z.object({
   status: z.enum(["restored", "restored_with_platform_limits"]),
   actions: z
@@ -298,8 +301,29 @@ async function seedFixture(database) {
   }
 }
 
-/** @param {string} targetDatabaseUrl @param {NodeJS.ProcessEnv} environment */
-async function assertCleanTarget(targetDatabaseUrl, environment) {
+/** @param {unknown} value */
+function assertTargetEdgeFunctionInventoryEmpty(value) {
+  edgeFunctionInventorySchema.parse(value);
+}
+
+/** @param {string} projectRef @param {string} accessToken */
+async function assertTargetEdgeFunctionsEmpty(projectRef, accessToken) {
+  const response = await globalThis.fetch(
+    `https://api.supabase.com/v1/projects/${encodeURIComponent(projectRef)}/functions`,
+    { headers: { authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok)
+    throw new Error("Target Edge Function inventory could not be verified.");
+  assertTargetEdgeFunctionInventoryEmpty(await response.json());
+}
+
+/** @param {string} targetDatabaseUrl @param {string} targetProjectRef @param {string} accessToken @param {NodeJS.ProcessEnv} environment */
+async function assertCleanTarget(
+  targetDatabaseUrl,
+  targetProjectRef,
+  accessToken,
+  environment,
+) {
   const { stdout } = await supabaseQuery(
     targetDatabaseUrl,
     [
@@ -319,6 +343,7 @@ async function assertCleanTarget(targetDatabaseUrl, environment) {
     throw new Error(
       "Target is not clean. Reset or recreate the protected disposable target before running live E2E.",
     );
+  await assertTargetEdgeFunctionsEmpty(targetProjectRef, accessToken);
 }
 
 /** @param {string} projectRef @param {string} bucket @param {string} name */
@@ -506,7 +531,12 @@ async function main() {
     );
 
     currentStage = "target-cleanliness preflight";
-    await assertCleanTarget(targetDatabaseUrl, environment);
+    await assertCleanTarget(
+      targetDatabaseUrl,
+      targetProjectRef,
+      accessToken,
+      environment,
+    );
     currentStage = "source fixture seeding";
     await seedFixture(sourceDatabaseUrl);
     currentStage = "Auth fixture creation";
@@ -737,14 +767,18 @@ async function main() {
   }
 }
 
-try {
-  await main();
-} catch (error) {
-  const message =
-    error instanceof Error &&
-    error.message.startsWith("Missing required live-E2E environment variable:")
-      ? error.message
-      : `Live E2E failed during ${currentStage}.`;
-  process.stderr.write(`${message}\n`);
-  process.exitCode = 1;
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    await main();
+  } catch (error) {
+    const message =
+      error instanceof Error &&
+      error.message.startsWith(
+        "Missing required live-E2E environment variable:",
+      )
+        ? error.message
+        : `Live E2E failed during ${currentStage}.`;
+    process.stderr.write(`${message}\n`);
+    process.exitCode = 1;
+  }
 }
