@@ -361,6 +361,17 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - This closes the local large-database-dump fixture requirement only. Provider
   throughput/RSS, retries and checkpoint-overhead evidence remain separate.
 - Local validation: focused database-dump tests **11 tests, PASS**.
+
+### 2026-08-16 — Cloudflare R2 multipart scale observation
+
+- Published and independently verified a disposable **128 MiB** encrypted-form
+  transport object to the scoped Cloudflare R2 test bucket through
+  `publishS3Backup`, using 5 MiB multipart parts and concurrency 4. The run
+  completed in **8,497 ms** (**15.06 MiB/s**) with observed process peak RSS
+  **152,346,624 bytes**; it then removed both object and completion marker.
+- This is provider-specific live S3 publication evidence. It does not yet
+  establish comparative retry, requests-per-second or checkpoint-overhead
+  measurements under provider fault/load conditions.
 - This is real managed-Supabase evidence for the current candidate. It does
   not substitute for the separately required protected GitHub Environment
   workflow execution.

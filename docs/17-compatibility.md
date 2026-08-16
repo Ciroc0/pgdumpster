@@ -17,7 +17,7 @@ Status snapshot: **2026-08-16**.
 - **macOS**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
 - **Windows**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24; development also exercises Windows/Docker Desktop. The standard `age` publication path was specifically exercised locally on Windows, including the writable-descriptor durability path required before `fsync`.
 - **`age`**: standard `age` recipient encryption/decryption is implemented for local archive publication/input. Tooling is detected by `doctor`; runtime operations also fail through the dependency error domain when the executable cannot be started.
-- **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Scoped Cloudflare R2 interoperability passed encrypted publication, completion-marker, materialization and offline verification. AWS and MinIO have not been exercised.
+- **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Scoped Cloudflare R2 interoperability passed encrypted publication, completion-marker, materialization and offline verification; a separate 128 MiB multipart observation reached 15.06 MiB/s with 152,346,624-byte peak RSS and removed its test artifacts. AWS and MinIO have not been exercised.
 
 The latest complete local gate after the restored-Auth E2E smoke slice is `pnpm check` plus `pnpm test:coverage` with **116 test files / 728 tests passing** and **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**. That local result does not replace current-candidate cross-platform CI evidence, and the earlier OS matrix plus disposable hosted observation do not replace a protected release-candidate E2E.
 
