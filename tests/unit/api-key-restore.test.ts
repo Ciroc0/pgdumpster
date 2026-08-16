@@ -126,7 +126,7 @@ describe("modern API-key restore", () => {
     expect(post).not.toHaveBeenCalled();
   });
 
-  it("rejects non-recreatable legacy source keys before target access", async () => {
+  it("maps generated legacy target keys without attempting to create them", async () => {
     const { root, rotationMapPath } = await fixture();
     await writeFile(
       path.join(root, "secrets", "api-keys.json"),
@@ -135,20 +135,26 @@ describe("modern API-key restore", () => {
         keys: [{ ...sourceKey, type: "legacy" }],
       }),
     );
-    const get = vi.fn();
+    const legacySource = { ...sourceKey, type: "legacy" as const };
+    const get = vi.fn(() =>
+      Promise.resolve([
+        { ...legacySource, id: "target-legacy-key", api_key: "legacy-target" },
+      ]),
+    );
+    const post = vi.fn();
     const handler = createApiKeyRestoreHandler({
       bundleRoot: root,
       sourceProjectRef: "abcdefghijklmnopqrst",
       targetProjectRef: "uvwxyzabcdefghijklmn",
       rotationMapPath,
       registerSecret: vi.fn(),
-      client: { get, post: vi.fn() },
+      client: { get, post },
     });
 
-    await expect(
-      handler.apply({ action: action(), attempt: 1 }),
-    ).rejects.toMatchObject({ code: "RESTORE_ARTIFACT_INVALID" });
-    expect(get).not.toHaveBeenCalled();
+    const result = await handler.apply({ action: action(), attempt: 1 });
+    expect(result.fingerprint).toEqual(expect.any(String));
+    expect(post).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledTimes(2);
   });
 
   it("returns false when the protected rotation map is absent or no longer matches", async () => {

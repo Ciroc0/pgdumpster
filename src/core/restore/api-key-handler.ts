@@ -24,13 +24,13 @@ const rotationMapSchema = z
       z.object({
         source: z.object({
           id: z.string(),
-          type: z.enum(["publishable", "secret"]),
+          type: z.enum(["legacy", "publishable", "secret"]),
           name: z.string(),
           api_key: z.string(),
         }),
         target: z.object({
           id: z.string(),
-          type: z.enum(["publishable", "secret"]),
+          type: z.enum(["legacy", "publishable", "secret"]),
           name: z.string(),
           api_key: z.string(),
         }),
@@ -40,7 +40,7 @@ const rotationMapSchema = z
   .strict();
 interface Key {
   id: string;
-  type: "publishable" | "secret";
+  type: "legacy" | "publishable" | "secret";
   name: string;
   api_key: string;
   description?: string | null;
@@ -97,7 +97,7 @@ function keyFrom(value: unknown, requireValue: boolean): Key {
   const apiKey = key["api_key"];
   if (
     typeof id !== "string" ||
-    !["publishable", "secret"].includes(String(type)) ||
+    !["legacy", "publishable", "secret"].includes(String(type)) ||
     typeof name !== "string" ||
     (requireValue && (typeof apiKey !== "string" || apiKey.length < 4))
   )
@@ -106,7 +106,7 @@ function keyFrom(value: unknown, requireValue: boolean): Key {
     );
   return {
     id,
-    type: type as "publishable" | "secret",
+    type: type as Key["type"],
     name,
     ...(typeof apiKey === "string" ? { api_key: apiKey } : { api_key: "" }),
     ...(typeof key["description"] === "string" || key["description"] === null
@@ -227,12 +227,27 @@ export function createApiKeyRestoreHandler(
       const sourceFingerprint = fingerprint(sourceKeys);
       const current = await target(options, context.signal);
       const currentIdentities = new Set(current.map(identity));
-      if (sourceKeys.some((key) => currentIdentities.has(identity(key))))
+      if (
+        sourceKeys.some(
+          (key) =>
+            key.type !== "legacy" && currentIdentities.has(identity(key)),
+        )
+      )
         fail(
           "Target already has an API key with a source key identity.",
           "RESTORE_TARGET_CONFLICT",
         );
+      if (
+        sourceKeys.some(
+          (key) =>
+            key.type === "legacy" && !currentIdentities.has(identity(key)),
+        )
+      )
+        fail(
+          "Target does not expose the generated legacy API key required for the protected rotation map.",
+        );
       for (const key of sourceKeys) {
+        if (key.type === "legacy") continue;
         await options.client.post(
           endpoint,
           {
