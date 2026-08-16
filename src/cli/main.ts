@@ -16,6 +16,7 @@ import { backupCheckpointSchema } from "../core/checkpoint/backup.js";
 import { inspectVerifiedBundle } from "../core/bundle/inspect.js";
 import {
   buildRestorePlan,
+  restorePlanSchema,
   type RestorePlan,
   writeRestorePlan,
 } from "../core/restore/plan.js";
@@ -27,6 +28,7 @@ import {
 import {
   assertRestorePlanExecutable,
   executeRestore,
+  restorePlanSha256,
   validatePlanForExecution,
 } from "../core/restore/executor.js";
 import { restoreCheckpointSchema } from "../core/checkpoint/restore.js";
@@ -391,6 +393,60 @@ async function readResumeCheckpoint(filename: string) {
   };
 }
 
+async function readPersistedRestorePlan(
+  checkpointPath: string,
+  planId: string,
+): Promise<RestorePlan> {
+  const filename = path.join(
+    path.dirname(checkpointPath),
+    `${planId}.plan.json`,
+  );
+  try {
+    const stat = await lstat(filename);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 4_194_304) {
+      throw new Error("invalid persisted plan file");
+    }
+    return restorePlanSchema.parse(
+      JSON.parse(await readFile(filename, "utf8")),
+    );
+  } catch (cause) {
+    throw new DomainError({
+      code: "RESTORE_CHECKPOINT_INVALID",
+      category: "restore_policy",
+      message: "Restore resume requires a bounded immutable plan record.",
+      retryable: false,
+      cause,
+    });
+  }
+}
+
+function assertResumePlanBinding(
+  plan: RestorePlan,
+  checkpoint: ReturnType<typeof restoreCheckpointSchema.parse>,
+  manifest: { source: { projectRef: string }; operation: { id: string } },
+  targetProjectRef: string,
+  conflictPolicy: "fail" | "replace",
+  allowBillableResources: boolean,
+): void {
+  if (
+    plan.planId !== checkpoint.planId ||
+    plan.createdAt !== checkpoint.createdAt ||
+    restorePlanSha256(plan) !== checkpoint.planSha256 ||
+    plan.source.projectRef !== manifest.source.projectRef ||
+    plan.source.backupOperationId !== manifest.operation.id ||
+    plan.target.projectRef !== targetProjectRef ||
+    plan.conflictPolicy !== conflictPolicy ||
+    plan.allowBillableResources !== allowBillableResources
+  ) {
+    throw new DomainError({
+      code: "RESTORE_CHECKPOINT_MISMATCH",
+      category: "restore_policy",
+      message: "Restore checkpoint identity or immutable plan changed.",
+      retryable: false,
+    });
+  }
+}
+
 export async function runCli(
   argv: readonly string[],
   io: Io,
@@ -690,21 +746,31 @@ export async function runCli(
         bundlePath,
         loadedConfig,
         async (bundle) => {
-          const plan = await buildRestorePlan(
-            bundle.manifest,
-            bundle.coverage,
-            {
-              planId:
-                resume?.checkpoint.planId ??
-                (context.randomUUID ?? randomUUID)(),
-              createdAt:
-                resume?.checkpoint.createdAt ??
-                (context.now ?? (() => new Date()))().toISOString(),
+          const plan =
+            resume === undefined
+              ? await buildRestorePlan(bundle.manifest, bundle.coverage, {
+                  planId: (context.randomUUID ?? randomUUID)(),
+                  createdAt: (
+                    context.now ?? (() => new Date())
+                  )().toISOString(),
+                  targetProjectRef,
+                  conflictPolicy: args.conflictPolicy,
+                  allowBillableResources: args.allowBillableResources,
+                })
+              : await readPersistedRestorePlan(
+                  resume.path,
+                  resume.checkpoint.planId,
+                );
+          if (resume !== undefined) {
+            assertResumePlanBinding(
+              plan,
+              resume.checkpoint,
+              bundle.manifest,
               targetProjectRef,
-              conflictPolicy: args.conflictPolicy,
-              allowBillableResources: args.allowBillableResources,
-            },
-          );
+              args.conflictPolicy,
+              args.allowBillableResources,
+            );
+          }
           if (args.mode !== "apply") return { plan };
           assertRestorePlanExecutable(plan);
           const planned = (predicate: (component: string) => boolean) =>
@@ -890,7 +956,7 @@ export async function runCli(
             path.dirname(checkpointPath),
             `${plan.planId}.plan.json`,
           );
-          await writeRestorePlan(planPath, plan);
+          if (resume === undefined) await writeRestorePlan(planPath, plan);
           const result = await (context.restoreExecutor ?? executeRestore)({
             plan,
             checkpointPath,

@@ -16,11 +16,11 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 
 ## Current evidence
 
-Latest complete local gates on 2026-08-16 after restore preflight, credential-minimization, immutable-plan and command-help slices:
+Latest complete local gates on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **114 test files / 716 tests: PASS**;
-- global coverage: **94.66% statements / 90.11% branches / 92.50% functions / 95.68% lines**;
+- **114 test files / 717 tests: PASS**;
+- global coverage: **94.61% statements / 90.04% branches / 92.51% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
@@ -151,6 +151,13 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Fixed `pgdumpster <command> --help` so it returns usage and exits successfully before configuration or credential loading. Previously, `pgdumpster doctor --help` incorrectly reached doctor argument parsing and reported `INTERNAL_INVARIANT_VIOLATION`.
 - Added a regression covering `doctor`, `backup`, `inspect`, `coverage`, `verify` and `restore` command help. The built CLI smoke test now passes for `doctor --help` and `backup --help`.
 - Local validation: **114 test files / 716 tests, PASS**. Global coverage: **94.66% statements / 90.11% branches / 92.50% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
+
+### 2026-08-16 — live-restore regression hardening
+
+- A hosted encrypted backup and offline verification completed against a dedicated test source. An apply run on a disposable target exposed two fail-closed defects before a complete E2E claim: source `legacy` API keys were incorrectly rejected, and a resume invocation could rebuild and overwrite the immutable plan before checkpoint verification.
+- Legacy keys now map only to the target's already-generated matching legacy identity and are never posted. Resume now reads the bounded persisted plan beside the checkpoint, validates its hash and source/target/policy bindings, and never rewrites that record.
+- The target run remains partial evidence only; it is not semantic-parity proof. A fresh target rerun is required.
+- Local validation: **114 test files / 717 tests, PASS**. Global coverage: **94.61% statements / 90.04% branches / 92.51% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
 ### 2026-08-16 — S3 capability/status reconciliation
 

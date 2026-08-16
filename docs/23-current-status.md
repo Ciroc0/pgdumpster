@@ -6,15 +6,15 @@ Snapshot date: **2026-08-16**.
 
 ## Validation summary
 
-Latest complete local validation after restore-control-plane, credential-minimization, immutable-plan and command-help evidence slices:
+Latest complete local validation after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
 - test files: **114 passed**;
-- tests: **716 passed**;
-- statements: **94.66%**;
-- branches: **90.11%**;
-- functions: **92.50%**;
-- lines: **95.68%**.
+- tests: **717 passed**;
+- statements: **94.61%**;
+- branches: **90.04%**;
+- functions: **92.51%**;
+- lines: **95.65%**.
 
 All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.
 
@@ -103,7 +103,7 @@ For `encryption.mode: age`, backup requires `encryption.recipient`, automaticall
 
 `doctor` probes `age --version`. If the executable is missing when encryption/decryption is attempted, the runtime maps that failure to the dependency error domain. The backup command does not currently duplicate the `doctor` probe before source capture, so operators should keep `doctor` as the intended preflight step. A hard process termination can still leave the protected resumable workspace/checkpoint; crash recovery is separate from normal encryption cleanup.
 
-`restore --apply` performs target credential preflight and handler-completeness validation. A plan with an unsupported planned component fails before mutation with `RESTORE_ADAPTER_MISSING`; a fully supported plan proceeds through the existing checkpointed executor. `--resume <checkpoint>` reuses the checkpoint-bound immutable plan identity.
+`restore --apply` performs target credential preflight and handler-completeness validation. A plan with an unsupported planned component fails before mutation with `RESTORE_ADAPTER_MISSING`; a fully supported plan proceeds through the existing checkpointed executor. `--resume <checkpoint>` rereads the checkpoint-bound immutable plan, verifies its hash and bindings, and does not rewrite it.
 
 ## Consistency implementation boundary
 

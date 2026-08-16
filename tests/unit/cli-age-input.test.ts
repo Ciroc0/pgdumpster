@@ -2,6 +2,7 @@ import {
   copyFile,
   mkdtemp,
   mkdir,
+  readFile,
   rm,
   unlink,
   writeFile,
@@ -22,7 +23,19 @@ import {
   type ManifestBeforeFinalization,
 } from "../../src/core/bundle/finalize.js";
 import { loadCoverageRegistry } from "../../src/core/coverage/registry.js";
-import { restorePlanSha256 } from "../../src/core/restore/executor.js";
+import {
+  createRestoreCheckpoint,
+  writeRestoreCheckpoint,
+} from "../../src/core/checkpoint/restore.js";
+import {
+  restorePlanSha256,
+  type executeRestore,
+  type RestoreActionEvidence,
+} from "../../src/core/restore/executor.js";
+import {
+  restorePlanSchema,
+  writeRestorePlan,
+} from "../../src/core/restore/plan.js";
 import { canonicalJson } from "../../src/utils/canonical-json.js";
 
 const temporaryDirectories: string[] = [];
@@ -256,6 +269,124 @@ describe("CLI encrypted bundle input", () => {
       unlink(output.planPath),
       unlink(output.parityReportPath),
     ]);
+  });
+
+  it("resumes from the persisted immutable plan without overwriting it", async () => {
+    const parent = await mkdtemp(
+      path.join(tmpdir(), "pgdumpster-cli-restore-resume-"),
+    );
+    temporaryDirectories.push(parent);
+    const bundle = await finalizedBundle(parent, { minimalPlan: true });
+    const { stdout: dryRunOutput, io: dryRunIo } = ioBuffers();
+    const baseArguments = [
+      "restore",
+      bundle,
+      "--target-project-ref",
+      "uvwxyzabcdefghijklmn",
+      "--target-db-url-env",
+      "PGDUMPSTER_TARGET_DB_URL",
+    ];
+
+    expect(
+      await runCli([...baseArguments, "--dry-run", "--json"], dryRunIo),
+    ).toBe(0);
+    const plan = restorePlanSchema.parse(JSON.parse(dryRunOutput.join("")));
+    const stateDirectory = path.join(parent, "restore-state");
+    const checkpointPath = path.join(
+      stateDirectory,
+      `${plan.planId}.checkpoint.json`,
+    );
+    const planPath = path.join(stateDirectory, `${plan.planId}.plan.json`);
+    await mkdir(stateDirectory);
+    await writeRestorePlan(planPath, plan);
+    await writeRestoreCheckpoint(
+      checkpointPath,
+      createRestoreCheckpoint({
+        planId: plan.planId,
+        planSha256: restorePlanSha256(plan),
+        backupOperationId: plan.source.backupOperationId,
+        sourceProjectRef: plan.source.projectRef,
+        targetProjectRef: plan.target.projectRef,
+        actions: plan.actions.map(({ id, status }) => ({
+          id,
+          planned: status === "planned",
+        })),
+        now: plan.createdAt,
+      }),
+    );
+    const persistedBefore = await readFile(planPath, "utf8");
+    const { stderr, io } = ioBuffers();
+    const restoreExecutor = vi.fn<typeof executeRestore>(
+      ({ plan: persistedPlan }) =>
+        Promise.resolve({
+          status:
+            persistedPlan.manualActions.length > 0 ||
+            persistedPlan.actions.some(
+              ({ status }) => status === "blocked_platform_limit",
+            )
+              ? "restored_with_platform_limits"
+              : "restored",
+          planId: persistedPlan.planId,
+          planSha256: restorePlanSha256(persistedPlan),
+          backupOperationId: persistedPlan.source.backupOperationId,
+          sourceProjectRef: persistedPlan.source.projectRef,
+          targetProjectRef: persistedPlan.target.projectRef,
+          completedAt: "2026-08-16T02:00:00.000Z",
+          completedActions: persistedPlan.actions.filter(
+            ({ status }) => status === "planned",
+          ).length,
+          skippedActions: persistedPlan.actions.filter(
+            ({ status }) => status === "skipped",
+          ).length,
+          manualActions: persistedPlan.manualActions,
+          actionEvidence: persistedPlan.actions.map(
+            (action): RestoreActionEvidence => {
+              if (
+                action.status !== "planned" &&
+                action.status !== "skipped" &&
+                action.status !== "blocked_platform_limit"
+              ) {
+                throw new Error(`Unexpected action status: ${action.status}`);
+              }
+              const outcome =
+                action.status === "planned"
+                  ? "verified"
+                  : action.status === "skipped"
+                    ? "skipped"
+                    : "platform_limit";
+              return {
+                id: action.id,
+                component: action.component,
+                sourceStatus: action.sourceStatus,
+                declaredFidelity: action.fidelity,
+                planStatus: action.status,
+                outcome,
+                reasonCode: action.reasonCode,
+                ...(outcome === "verified"
+                  ? { verification: "applied_and_verified" }
+                  : {}),
+              };
+            },
+          ),
+        }),
+    );
+
+    expect(
+      await runCli(
+        [...baseArguments, "--apply", "--resume", checkpointPath, "--json"],
+        io,
+        {
+          environment: {
+            PGDUMPSTER_TARGET_DB_URL: "postgresql://target-secret@localhost/db",
+          },
+          restoreExecutor,
+        },
+      ),
+    ).toBe(0);
+    expect(stderr).toEqual([]);
+    expect(restoreExecutor).toHaveBeenCalledTimes(1);
+    expect(restoreExecutor.mock.calls[0]?.[0].plan.planId).toBe(plan.planId);
+    expect(await readFile(planPath, "utf8")).toBe(persistedBefore);
   });
 
   it("rejects a corrupt planned artifact before executor mutation", async () => {
