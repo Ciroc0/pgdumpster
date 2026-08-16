@@ -31,7 +31,7 @@ Current branch snapshot as of 2026-08-16:
 - S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2;
 - latest local validation: **118 test files / 753 tests, PASS**;
 - current global coverage is **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**, with all independent 90% thresholds passing;
-- earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but current-candidate remote CI has not been authenticatedly rechecked. Historical quota exhaustion must not be treated as current branch-quality evidence or as a code failure;
+- earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the GitHub Actions quota remains exhausted, so current-candidate remote CI cannot provide a meaningful branch-quality signal. This is not a code failure;
 - CodeQL analysis has previously run to SARIF generation, but result publication/status is blocked by repository code-scanning configuration/access;
 - disposable hosted source → encrypted backup → offline verify → clean-target restore has passed with applicable database semantic parity and direct private File Storage verification; the mandatory protected release-candidate E2E has **not** passed yet.
 

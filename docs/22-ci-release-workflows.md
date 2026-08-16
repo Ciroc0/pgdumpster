@@ -24,7 +24,7 @@ The repository currently contains:
 
 The earlier validated implementation checkpoint passed the regular CI workflow, including the OS/Node matrix.
 
-Earlier GitHub Actions quota exhaustion blocked newly pushed workflow runs before meaningful execution. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. The current unattended audit cannot query this private repository's Actions or code-scanning endpoints anonymously (both return 404) and has no GitHub CLI, so it does not classify quota as the current blocker. Current candidate commits still require a fresh authenticatedly observed successful remote CI run before they count as release evidence.
+GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), blocking newly pushed workflow runs before meaningful execution. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. The current unattended audit cannot query this private repository's Actions or code-scanning endpoints anonymously (both return 404) and has no GitHub CLI, so it cannot inspect the detailed run state. Current candidate commits still require a fresh successful remote CI run after quota is restored before they count as release evidence.
 
 The latest complete local result after Edge Function source-tree restore hardening is:
 

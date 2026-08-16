@@ -22,7 +22,7 @@ Current official Supabase/OpenAPI, Storage and changelog contract snapshots matc
 
 A current read-only `npm pack --dry-run --json` audit reports 372 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. The development package remains private; this confirms package contents only and is not publication evidence.
 
-Historical GitHub Actions quota exhaustion is not current remote evidence. The current unattended audit cannot query this private repository's Actions or code-scanning endpoints anonymously (both return 404) and has no GitHub CLI. Local `pnpm check` and `pnpm test:coverage` are current local gates; authenticated remote inspection is required before assessing current-candidate CI/CodeQL. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
+GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so current-candidate remote CI/CodeQL cannot provide a meaningful branch-quality signal. The current unattended audit cannot query this private repository's Actions or code-scanning endpoints anonymously (both return 404) and has no GitHub CLI. Local `pnpm check` and `pnpm test:coverage` are current local gates until quota is restored. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
 
 CodeQL previously reached analysis/SARIF generation, but GitHub could not publish the result because code scanning was not enabled/accessible to the repository integration. This remains a repository configuration gate, not evidence that the static-analysis result is clean.
 

@@ -8,7 +8,7 @@ Status snapshot: **2026-08-16**.
 
 ## Runtime matrix
 
-- **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. Earlier GitHub CI checkpoints exercised Node 22 and 24 successfully. Historical Actions quota exhaustion is not current-candidate evidence; remote status must be inspected with authenticated GitHub access before release.
+- **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. Earlier GitHub CI checkpoints exercised Node 22 and 24 successfully. GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so a current-candidate remote matrix remains unavailable until quota is restored.
 - **pnpm**: the repository `packageManager` pin is authoritative. Frozen-lockfile installs are part of the CI contract and were exercised on the earlier validated CI checkpoint.
 - **Supabase CLI**: supported policy is `>=2.111.0 <3.0.0`; the development dependency is pinned to `2.111.0`. Fixture/CLI behavior is validated and dedicated live observations also exist for newer 2.x behavior. A disposable hosted recovery has passed with explicit platform limits; a protected release-candidate workflow run remains required.
 - **Hosted Supabase**: compatibility is based on dated official Management API/CLI/product contracts. A disposable source-to-clean-target encrypted backup/restore and applicable database/File Storage parity observation passed with explicit platform limits; this does not certify an eventual release candidate.

@@ -38,7 +38,7 @@ Latest complete local gates on 2026-08-16 after Edge Function source-tree restor
 - inspect/coverage/verify and restore dry-run accept `.tar.zst.age` with a configured identity-file reference;
 - Windows encrypted-output publication behavior is covered by the local test suite.
 
-GitHub Actions quota exhaustion and CodeQL publication failure are historical evidence, not verified current status. This unattended environment cannot query the private repository's Actions or code-scanning endpoints anonymously and has no GitHub CLI. Local `pnpm check` and `pnpm test:coverage` remain the current local gates; authenticate and inspect remote runs before treating current-candidate CI/CodeQL as evidence. The earlier regular CI matrix passed on its validated checkpoint, while CodeQL previously reached SARIF generation but failed result publication/status because of repository code-scanning configuration.
+GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so current-candidate remote CI cannot provide a meaningful branch signal. This unattended environment cannot query the private repository's Actions or code-scanning endpoints anonymously and has no GitHub CLI. Local `pnpm check` and `pnpm test:coverage` remain the current local gates until quota is restored. The earlier regular CI matrix passed on its validated checkpoint, while CodeQL previously reached SARIF generation but failed result publication/status because of repository code-scanning configuration.
 
 The disposable hosted source → encrypted verified backup → offline verify →
 clean-target restore → semantic-parity observation is **PASS with explicit
@@ -390,7 +390,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ### GitHub CI / CodeQL note
 
-The earlier regular CI matrix passed on its validated checkpoint. Historical quota failure must not be interpreted as a current code-quality result: remote Actions/CodeQL state needs authenticated inspection. CodeQL publication remains a separate repository-configuration gate.
+The earlier regular CI matrix passed on its validated checkpoint. GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so remote Actions/CodeQL cannot provide current-candidate evidence. CodeQL publication remains a separate repository-configuration gate.
 
 ## Next implementation order
 

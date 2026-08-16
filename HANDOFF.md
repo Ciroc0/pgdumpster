@@ -32,7 +32,7 @@ Latest complete local gate on 2026-08-16 after Edge Function source-tree restore
 - database/control-plane/Auth/API-key/File Storage restore handlers are implemented; unsupported automatic restore surfaces are explicit manual/platform limits and a blocked plan fails before target mutation;
 - disposable managed-Supabase source → encrypted backup → offline verify → clean-target restore passed with database semantic parity, separately verified private Storage object restoration and restored Auth-user password login.
 
-The earlier GitHub Actions quota exhaustion is historical evidence, not a current-status assertion. This unattended environment cannot query the private repository's Actions or code-scanning state anonymously and has no GitHub CLI. Use local `pnpm check` and `pnpm test:coverage` as quality gates, then authenticate and inspect current remote workflow status before treating CI/CodeQL as release evidence; do not interpret quota failures as code failures.
+The GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so current-candidate remote CI cannot provide a meaningful branch-quality signal. This unattended environment cannot query the private repository's Actions or code-scanning state anonymously and has no GitHub CLI. Use local `pnpm check` and `pnpm test:coverage` as quality gates until quota is restored; do not interpret quota failures as code failures.
 
 ## Consistency boundary
 
