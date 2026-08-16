@@ -394,7 +394,7 @@ The earlier regular CI matrix passed on its validated checkpoint. GitHub Actions
 
 ## Next implementation order
 
-1. deterministic Management API simulator and the specified Storage scale/stream evidence;
-2. protected full-fixture hosted E2E (Vault, Edge/secrets, Auth/service config and application smoke) and resolve any resulting fidelity gap;
-3. authenticated CodeQL result publication/current-candidate CI once GitHub configuration permits it;
+1. protected full-fixture hosted E2E: first prove Edge Function source-tree capture → target deploy → invocation, then retain Vault ciphertext, Edge secret plaintext and private Auth signing material as explicit manual/platform limits;
+2. collect the remaining provider-under-load Storage/S3 retry, request-rate and checkpoint-overhead evidence; existing simulator, 10k/100k inventory, 32 MiB object-stream and 64 MiB database-dump regressions are complete;
+3. authenticated CodeQL result publication/current-candidate CI once GitHub Actions quota and repository configuration permit it;
 4. trusted-publisher setup, SemVer/tagged release workflow, published-artifact verification and final acceptance audit.
