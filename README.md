@@ -12,7 +12,7 @@ A successful run must never silently omit a registered component.
 
 pgDumpster is **not release-complete yet**. The repository contains a substantial working implementation, but several explicit release gates remain.
 
-Current branch snapshot as of 2026-08-15:
+Current branch snapshot as of 2026-08-16:
 
 - strict TypeScript ESM build and CLI are implemented;
 - the 55-component coverage registry is enforced during backup finalization;
@@ -28,12 +28,12 @@ Current branch snapshot as of 2026-08-15:
 - encrypted backups are published as `.tar.zst.age`; successful publication removes the plaintext archive and working bundle;
 - encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`;
 - plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
-- S3-compatible publication and verified `s3://` recovery are implemented locally; live provider interoperability evidence remains pending;
-- latest local validation: **92 test files / 541 tests, PASS**;
-- current global coverage is **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**, with all independent 90% thresholds passing;
+- S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2;
+- latest local validation: **114 test files / 720 tests, PASS**;
+- current global coverage is **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**, with all independent 90% thresholds passing;
 - earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the account's current Actions quota is exhausted, so newly pushed workflow results are not presently a meaningful branch-quality signal;
 - CodeQL analysis has previously run to SARIF generation, but result publication/status is blocked by repository code-scanning configuration/access;
-- the mandatory hosted source → encrypted backup → offline verify → fresh-target restore → semantic-parity E2E has **not** passed yet.
+- disposable hosted source → encrypted backup → offline verify → clean-target restore has passed with applicable database semantic parity and direct private File Storage verification; the mandatory protected release-candidate E2E has **not** passed yet.
 
 The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
 

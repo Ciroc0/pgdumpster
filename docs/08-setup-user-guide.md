@@ -241,7 +241,7 @@ The final supported recovery procedure is:
 7. perform required protected key substitutions;
 8. run semantic parity and application smoke checks.
 
-Steps 1–5 have substantial current implementation support, including encrypted backup/input. `restore --apply`, final parity and the full hosted proof remain release blockers. The complete procedure must not be represented as passed until the dedicated hosted E2E succeeds.
+Steps 1–7 have current implementation support, including encrypted backup/input, guarded `restore --apply`, immutable checkpointed plans and semantic parity reporting. A disposable source-to-clean-target database/File Storage observation passed, but the protected full hosted fixture and release-candidate evidence remain release blockers. The complete procedure must not be represented as passed until the dedicated hosted E2E succeeds.
 
 ## Scheduling and retention
 
