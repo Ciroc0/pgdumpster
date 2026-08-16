@@ -383,7 +383,11 @@ async function removeTargetStorage(projectRef, storageKey) {
       throw new Error(
         `Target Storage bucket could not be emptied (${storageErrorSummary(emptied.error)}).`,
       );
-    for (let attempt = 1; attempt <= TARGET_STORAGE_DELETE_ATTEMPTS; attempt += 1) {
+    for (
+      let attempt = 1;
+      attempt <= TARGET_STORAGE_DELETE_ATTEMPTS;
+      attempt += 1
+    ) {
       const deleted = await client.deleteBucket(bucket.id);
       if (!deleted.error) break;
       if (
