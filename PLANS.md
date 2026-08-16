@@ -38,7 +38,13 @@ Latest complete local gates on 2026-08-16 after live-restore regression hardenin
 
 GitHub Actions quota is currently exhausted for this account, so remote CI cannot provide a meaningful new branch signal until the quota resets. Local `pnpm check` and `pnpm test:coverage` remain the active quality gates during that period. The earlier regular CI matrix passed on its validated checkpoint. CodeQL analysis previously reached SARIF generation, but result publication/status remained blocked by repository code-scanning configuration.
 
-The full hosted source → encrypted verified backup → offline verify → clean-target restore → semantic-parity E2E remains **PENDING**.
+The disposable hosted source → encrypted verified backup → offline verify →
+clean-target restore → semantic-parity observation is **PASS with explicit
+platform limits**: the source and target fixture are both presently readable
+and contain the expected two `pgdumpster_e2e.jobs` rows. It proves the
+implemented database/File Storage/control-plane paths, not a release-candidate
+CI execution or automatic fidelity for components the platform cannot export or
+import exactly.
 
 See `docs/23-current-status.md` for the concise operator-facing snapshot.
 
@@ -63,10 +69,10 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Implement S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery with local fault-injection coverage.
 - [x] Run S3-provider interoperability validation against a scoped Cloudflare R2 bucket.
 - [x] Complete CLI `restore --apply`: executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, derive target database/Management/privileged-Storage credentials from planned capabilities, and bind resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Unsupported automatic components remain explicit platform/manual limits and blocked plans fail before mutation. Disposable hosted database/File Storage semantic-parity observations exist; the protected release-candidate E2E remains a separate evidence gate.
-- [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
+- [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 100k inventory and bounded 32 MiB streaming regressions are complete.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
-- [ ] Run the dedicated live managed-Supabase source → encrypted `verified` backup → offline verify → clean-target restore → application smoke tests → semantic parity E2E.
+- [ ] Run a current-candidate protected hosted E2E with application smoke for every automatically restorable configured component. The database/File Storage/control-plane observation is complete; Vault ciphertext, Edge secret plaintext and private Auth signing material remain documented manual/platform limits.
 - [ ] Perform the final `docs/13-acceptance-criteria.md` evidence audit and release only when every applicable item is satisfied.
 
 ## Current CLI truth
@@ -128,6 +134,12 @@ Storage object keys never become local filesystem paths. Payloads are content-ad
 ### Vault root-key boundary
 
 The root key is treated as a protected secret, registered with the central redactor and restored only through a guarded plan-first action before dependent encrypted state. Target Vault non-emptiness blocks replacement.
+
+The ordinary logical target role cannot insert captured `vault.secrets`
+ciphertext. Consequently root-key continuity is automatically verified, while
+target decryption of copied Vault ciphertext requires a Supabase physical
+restore/clone flow or explicit secret recreation with ID mapping. This is an
+explicit manual fidelity boundary, not a pending automatic restore feature.
 
 ### Auth fidelity boundary
 

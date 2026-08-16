@@ -243,6 +243,13 @@ Seed the source with representative data:
 
 - encrypted secret/data fixture whose correct decryption after restore proves root-key continuity.
 
+The protected root-key action can be live-verified, but a normal logical
+database restore cannot insert captured ciphertext rows into `vault.secrets` on
+the target. Treat target decryption of copied Vault ciphertext as a
+Supabase physical restore/clone or explicit recreate-with-ID-mapping procedure,
+not as an automatic pgDumpster logical-restore assertion. The E2E must report
+this as a manual/platform limit rather than fabricating an exact success.
+
 ### File Storage
 
 - public/private buckets;
@@ -287,6 +294,11 @@ Seed the source with representative data:
     - Realtime where feasible.
 12. Assert no secret canary leaked to CI logs.
 13. Delete/reset test data according to test account policy.
+
+For configured components whose source values are only exposed as digests or
+whose target cannot accept the captured ciphertext/private material, the E2E
+must record the specific manual action and continue to verify all executable
+actions. It must not silently skip the component or claim exact fidelity.
 
 If live credentials/projects are unavailable, the release gate is **not passed**. Codex/CI must report the goal incomplete rather than replacing this test with mocks.
 

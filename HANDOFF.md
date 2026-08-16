@@ -61,7 +61,7 @@ Standard `age` archive encryption is implemented for local publication.
 
 The current CLI has no intentionally unwired S3 or restore-apply path. The remaining gates are evidence/external-release gates:
 
-- the full protected release-candidate hosted E2E in `docs/10-testing.md` has not passed; the existing disposable observation covers database and File Storage but not the complete Vault/Edge/Auth/service-config fixture;
+- a protected current-candidate hosted E2E in `docs/10-testing.md` still needs application smoke for every automatically restorable configured component. The existing disposable observation covers database, File Storage and executable control-plane paths; Vault ciphertext, Edge secret plaintext and private Auth signing material are explicit manual/platform limits, not automatic-fixture gaps;
 - CodeQL result publication is blocked by repository code-scanning configuration/access, so there is no current clean CodeQL evidence or finding disposition;
 - current-candidate remote CI still needs a fresh successful run once GitHub Actions quota permits execution;
 - the implemented release workflow has not and must not run for the private `0.0.0-development` package. It additionally requires final SemVer/changelog, npm trusted-publisher configuration, public-release visibility/provenance eligibility, tag and the actual publication event.
