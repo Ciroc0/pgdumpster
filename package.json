@@ -1,9 +1,19 @@
 {
   "name": "pgdumpster",
-  "version": "0.0.0-development",
+  "version": "0.1.0",
   "description": "Backup, inspect, verify, and restore hosted Supabase projects without silent coverage gaps.",
   "type": "module",
-  "private": true,
+  "private": false,
+  "keywords": [
+    "supabase",
+    "postgresql",
+    "backup",
+    "restore",
+    "cli",
+    "s3",
+    "encryption",
+    "disaster-recovery"
+  ],
   "license": "SEE LICENSE IN LICENSE",
   "author": "Mathias Kjær Pedersen, trading as MKP Digital (CVR 45731170)",
   "repository": {

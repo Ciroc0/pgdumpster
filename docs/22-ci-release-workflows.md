@@ -47,16 +47,16 @@ This is a **configuration gate**. It must not be documented as a clean static-an
 
 ## Implemented release workflow and remaining gates
 
-`.github/workflows/release.yml` is implemented but intentionally cannot publish from the current development package: it only runs for a `v*` tag and rejects a private repository, `package.json.private: true`, and `0.0.0-development`. The repository guard is fail-closed: npm provenance and GitHub artifact attestations need public-repository eligibility on the relevant non-Enterprise plans. For a valid candidate, it runs frozen install, `pnpm check`, coverage, tag/version/repository-identity validation, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation, clean install/CLI smoke, npm trusted publishing with provenance, GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
+`.github/workflows/release.yml` is implemented but intentionally cannot publish until a valid `v*` tag targets a public-repository SemVer candidate. The repository guard is fail-closed: npm provenance and GitHub artifact attestations need public-repository eligibility on the relevant non-Enterprise plans. Before any publish it verifies `vX.Y.Z === package.json.version`, fetches `origin/main` and requires the release SHA to be contained there. It then uses the GitHub Actions API to require successful `CI`, `CodeQL` and `Live hosted E2E` workflow runs with `head_sha === GITHUB_SHA`; success on an older or different commit is rejected. For a valid candidate, it runs frozen install, `pnpm check`, coverage, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation and a local tarball install/CLI smoke before trusted npm publishing. After publish it downloads the exact package version from npm, verifies registry/downloaded SHA-512 integrity and package identity against the CI-built tarball, performs a fresh registry install and repeats the CLI smoke. It then creates GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
 
 This implementation is not execution evidence. Remaining release gates include:
 
 - current-candidate CI, including CodeQL result publication and disposition of any findings;
 - protected hosted source/target E2E workflow for a release candidate;
-- final release candidate version, changelog and registry trusted-publisher configuration. The trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed;
-- actual tagged workflow execution, including published-artifact checksum/install verification;
+- public non-development SemVer candidate, changelog, compatibility/current-contract review and registry trusted-publisher configuration. The trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed;
+- actual tagged workflow execution, including same-SHA CI/CodeQL/protected-E2E evidence and published-artifact checksum/install verification;
 
-The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability are implemented and live-validated. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.
+The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability/performance are implemented and live-validated. Comparative provider fault/load testing is optional confidence work, not a release gate. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.
 
 ## Live E2E requirement
 
@@ -91,15 +91,15 @@ are removed on exit without touching pre-existing local restore files.
 
 The implemented release workflow is designed to:
 
-- run from a protected tag/release/candidate commit;
-- require all ordinary CI and security gates green on the same candidate;
-- require the live E2E green for the same candidate;
+- run from a protected tag/release/candidate commit contained in `origin/main`;
+- require successful `CI` and `CodeQL` workflow runs whose `head_sha` exactly equals the release SHA;
+- require a successful protected `Live hosted E2E` workflow run whose `head_sha` exactly equals the release SHA;
 - validate version/changelog consistency;
 - perform a clean build/package/install smoke;
 - generate SBOM;
 - generate provenance/attestation where the registry supports it;
 - prefer short-lived trusted publishing/OIDC over long-lived registry tokens;
-- verify the package before publish and upload its checksum; the final release procedure must additionally verify the published registry artifact checksum/install;
+- verify the package before publish and upload its checksum; download the published registry artifact, compare its identity and SHA-512 integrity with the CI-built tarball, then fresh-install and smoke it;
 - create release notes without secret-bearing artifacts.
 
 Current npm contract note: npm trusted publishing requires npm CLI >= 11.5.1 and Node >= 22.14.0, a GitHub-hosted runner, `id-token: write`, and an exact `package.json.repository.url` match. npm generates package provenance automatically for trusted GitHub publishing only when both repository and package are public. GitHub artifact attestations are likewise public-repository-only on GitHub Free, Pro and Team. The repository remains private during this development phase, so provenance/attestation are release-time public-visibility dependencies rather than current evidence.

@@ -25,8 +25,8 @@ Latest complete local gates on 2026-08-16 after Edge Function source-tree restor
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - the current candidate's local live-E2E harness completed the encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database, direct Storage byte-hash, restored Auth password-login and Edge Function invocation smokes matched; the protected GitHub Environment execution remains separate release evidence;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
-- a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
-- current `npm pack --dry-run --json` package audit reports 372 files, includes the compiled CLI/contracts/schemas, contains no development-only test/docs/scripts/workflow paths and remains `private: true`; this is package-content evidence only, not a release claim;
+- a consumer install of the generated candidate tarball passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
+- current `npm pack --dry-run --json` package audit reports 372 files, includes the compiled CLI/contracts/schemas and contains no development-only test/docs/scripts/workflow paths; this is package-content evidence only, not a release claim;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
 - default `verified`, explicit `quiesced`, and `best-effort` consistency are accepted by the backup CLI;
 - best-effort drift is preserved as `drift_detected`, including across resume;
@@ -71,7 +71,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Implement S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery with local fault-injection coverage.
 - [x] Run S3-provider interoperability validation against a scoped Cloudflare R2 bucket.
 - [x] Complete CLI `restore --apply`: executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, derive target database/Management/privileged-Storage credentials from planned capabilities, and bind resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Unsupported automatic components remain explicit platform/manual limits and blocked plans fail before mutation. Disposable hosted database/File Storage semantic-parity observations exist; the protected release-candidate E2E remains a separate evidence gate.
-- [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 10k small-object orchestration, 100k inventory, bounded 32 MiB object streaming and 64 MiB database-dump streaming regressions are complete.
+- [x] Complete the performance evidence required by `docs/10-testing.md`: deterministic Management API simulation, 10k small-object orchestration, 100k inventory, bounded 32 MiB object streaming, 64 MiB database-dump streaming, and two scoped Cloudflare R2 128 MiB multipart observations. Comparative provider fault/load work is optional confidence evidence, not a release blocker.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
 - [ ] Run the current-candidate hosted E2E through its protected GitHub Environment. Local managed evidence now includes database/File Storage/Auth/control-plane plus Edge Function source-tree deploy/invocation; Vault ciphertext, Edge secret plaintext, and private Auth signing material remain documented manual/platform limits.
@@ -98,6 +98,7 @@ The remaining guards are release blockers, not placeholders to remove without th
 - Brand: `pgDumpster`.
 - Repository/package/CLI: `pgdumpster`.
 - Domain: `pgdumpster.com`.
+- The maintainer has secured `pgdumpster.com`. A 2026-08-16 basic collision check found no exact public npm package, GitHub repository, PyPI package or database-software web result named `pgdumpster`; this is not legal trademark clearance.
 - Public source license: PolyForm Shield License 1.0.0; project is source-available, not OSI open source.
 - Separate commercial licensing may be negotiated in writing.
 
@@ -108,6 +109,10 @@ Implement platform behavior from current official Supabase API/OpenAPI, CLI sour
 ### Completion semantics
 
 The goal remains active until every applicable acceptance criterion, required CI/release gate and the hosted source-to-target recovery/parity test pass. Mock/local tests cannot replace the live gate.
+
+### Release-evidence boundary
+
+The tagged release workflow is fail-closed on candidate provenance. It validates exact tag/package SemVer equality, requires the release SHA to be reachable from `origin/main`, and queries GitHub Actions for successful `ci.yml`, `codeql.yml` and `live-e2e.yml` runs with that exact `head_sha`. A successful run for an ancestor, another branch or another candidate is not release evidence. It smoke-installs the CI-built tarball before publication, then downloads the exact npm version after trusted publishing, verifies package identity and SHA-512 integrity against the CI-built tarball, and repeats the four CLI smokes from a fresh registry consumer install. This is workflow implementation only; current-candidate remote evidence remains an external release gate.
 
 ### Consistency boundary
 
@@ -162,6 +167,17 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ## Validation log
 
+### 2026-08-16 - release candidate provenance and registry-artifact gate
+
+- Hardened `release.yml` so a random `v*` tag cannot publish: it verifies tag/version equality, fetches `origin/main`, requires the release SHA to be contained in that branch, and rejects unless `CI`, `CodeQL` and protected `Live hosted E2E` each have a successful completed workflow run with `head_sha` exactly equal to `GITHUB_SHA`.
+- The workflow retains the local CI-built `.tgz` consumer smoke before publish. After trusted npm publishing it downloads the exact package version from npm, compares registry and downloaded SHA-512 integrity plus package identity with the CI-built package, then fresh-installs from npm and smoke-tests `--version`, `doctor --help`, `backup --help` and `restore --help`.
+- Release checkout/setup-node pins now match the revisions used by the repository's other workflows. This implementation has no tagged remote execution evidence yet; GitHub Actions quota, CodeQL publication and protected-E2E execution remain external release gates.
+
+### 2026-08-16 - release-documentation evidence reconciliation
+
+- Reconciled README, testing, release, acceptance, workflow and current-status documentation with the completed Cloudflare R2 evidence. The two scoped 128 MiB multipart observations, plus deterministic object/inventory/stream regressions, close the S3 interoperability/performance evidence requirement. Comparative provider fault/load work remains optional confidence work and is not a release blocker.
+- The remaining release gates are limited to current-candidate remote CI, published CodeQL result/finding disposition, protected exact-SHA E2E, public non-development SemVer/changelog/compatibility/current-contract preparation, npm trusted publisher, tagged workflow publication/attestation/SBOM/registry verification, and the final acceptance audit. This is not a release claim.
+
 ### 2026-08-16 - Edge Function deploy representation boundary
 
 - A disposable live probe captured a deployed function body and then attempted the corresponding target Management API deployment. The platform rejected the body because deployment requires an `entrypoint_path` and source-tree input that the captured representation does not supply.
@@ -211,12 +227,12 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 - On separate disposable managed-Supabase projects, an encrypted `verified` backup completed with 44 files and offline verification passed. Restore onto a clean target completed as `restored_with_platform_limits`; all 16 planned mutations were verified, with six documented non-exportable/manual platform limits.
 - Database semantic checks matched source and target for the fixture's account/job counts, enum, RLS policies, trigger behavior/checksums and Realtime publication. This is a real hosted source-to-target recovery observation, including resume recovery after an intentional live failure.
-- The fixture had no File Storage bucket/object and no external S3-compatible destination. Therefore Storage streaming/provider interoperability and the final fully applicable hosted E2E remain pending.
+- At this checkpoint, the fixture had no File Storage bucket/object and no external S3-compatible destination. The later File Storage and Cloudflare R2 observations below supersede those two evidence gaps; the protected current-candidate E2E remains pending.
 
 ### 2026-08-16 - hosted File Storage restore observation
 
 - A private source bucket containing one 38-byte marker object was captured in a second encrypted, offline-verified 45-file archive. Restore onto a fresh target completed with Storage service configuration, bucket, object and metadata actions all verified.
-- Direct target Storage API verification found the private bucket and exactly one restored `fixtures/marker.txt` object at 38 bytes. This closes the managed-Storage streaming E2E evidence; a separate external S3-compatible provider remains untested.
+- Direct target Storage API verification found the private bucket and exactly one restored `fixtures/marker.txt` object at 38 bytes. This closes the managed-Storage streaming E2E evidence; the later Cloudflare R2 observations below close external S3-compatible provider evidence.
 
 ### 2026-08-16 - S3 capability/status reconciliation
 
@@ -360,8 +376,9 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   protected object index in source order and that active downloads never exceed
   configured bounded concurrency.
 - This closes the local 10k-small-object fixture requirement only. It does not
-  claim RSS/throughput evidence for a real provider, a large database dump or
-  a provider-scale S3 upload.
+  itself claim RSS/throughput evidence for a real provider, a large database
+  dump or a provider-scale S3 upload; those are covered by the later R2
+  observations below.
 - Local validation: focused product-backup tests **5 tests, PASS**.
 
 ### 2026-08-16 - large database-dump streaming regression
@@ -405,6 +422,7 @@ The earlier regular CI matrix passed on its validated checkpoint. GitHub Actions
 
 ## Next implementation order
 
-1. public release sequence: configure protected Environment secrets, run current-candidate CI/CodeQL and protected E2E on the now-public repository;
-2. review any external findings;
-3. configure the npm trusted publisher, choose SemVer/tag, publish and verify the resulting artifact.
+1. restore GitHub Actions capacity/access, enable CodeQL result publication and disposition any findings;
+2. prepare a public non-development SemVer candidate on `main`, including changelog, compatibility/current-contract review and protected Environment/trusted-publisher setup;
+3. run current-candidate CI, CodeQL and protected E2E for that exact SHA, then create the matching tag and let the hardened release workflow publish and verify the registry artifact;
+4. complete the final documentation and acceptance audit.

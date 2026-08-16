@@ -12,9 +12,9 @@ After release, this table must list actively supported major/minor versions.
 
 Do **not** open a public GitHub issue for vulnerabilities that could expose secrets/data, enable arbitrary filesystem access/command execution, bypass restore safety, or corrupt recovery data.
 
-Use GitHub Private Vulnerability Reporting if enabled for the repository. If that is not available, the maintainer must publish a dedicated private security contact before public release.
+Use GitHub Private Vulnerability Reporting when it is enabled for the repository. If it is unavailable, report privately to [kontakt@mkpdigital.dk](mailto:kontakt@mkpdigital.dk) with the subject `[pgDumpster security]`.
 
-Before first public release, replace this paragraph with the actual verified private reporting channel. Do not publish a fake email address.
+Do not open a public issue for a vulnerability report.
 
 Include:
 

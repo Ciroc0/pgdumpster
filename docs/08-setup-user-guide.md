@@ -35,7 +35,7 @@ pnpm build
 pnpm check
 ```
 
-The package remains private/development-versioned. Do not document a fictitious public registry install command before release packaging is finalized.
+The `0.1.0` package is a local release candidate only. Do not document a public registry install command until the tagged release has actually been published.
 
 ## Credentials
 

@@ -5,6 +5,7 @@ on:
     tags: ["v*"]
 
 permissions:
+  actions: read
   contents: write
   id-token: write
   attestations: write
@@ -18,11 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.1.7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
@@ -34,12 +35,38 @@ jobs:
         shell: bash
         env:
           REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           test "$REPOSITORY_PRIVATE" = "false"
           test "$(node -p "require('./package.json').private")" = "false"
           test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
           test "$(node -p "require('./package.json').version")" != "0.0.0-development"
           test "$(node -p "require('./package.json').repository?.url")" = "git+https://github.com/Ciroc0/pgdumpster.git"
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main
+
+          require_successful_workflow() {
+            local workflow="$1"
+            local runs
+            local run_id
+            runs="$(curl --fail --silent --show-error --retry 3 --retry-all-errors \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?head_sha=$GITHUB_SHA&status=completed&per_page=100")"
+            run_id="$(jq -er --arg sha "$GITHUB_SHA" '
+              [.workflow_runs[] | select(.head_sha == $sha and .conclusion == "success")]
+              | sort_by(.updated_at)
+              | last
+              | .id
+            ' <<<"$runs")"
+            test -n "$run_id"
+            echo "Verified successful $workflow run $run_id for $GITHUB_SHA"
+          }
+
+          require_successful_workflow ci.yml
+          require_successful_workflow codeql.yml
+          require_successful_workflow live-e2e.yml
       - name: Pack package
         run: npm pack --json > package.jsonl
       - name: Generate checksums and SBOM
@@ -61,6 +88,55 @@ jobs:
           ./node_modules/.bin/pgdumpster restore --help
       - name: Publish with npm trusted publishing
         run: npm publish --provenance --access public
+      - name: Verify published npm artifact and fresh consumer install
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_NAME="$(node -p "require('./package.json').name")"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          npm cache clean --force
+          mkdir published-package
+          for attempt in 1 2 3 4 5; do
+            if (
+              cd published-package
+              npm pack --prefer-online --registry=https://registry.npmjs.org/ "$PACKAGE_NAME@$PACKAGE_VERSION" --json > ../published-package.json
+            ); then
+              break
+            fi
+            test "$attempt" -lt 5
+            sleep 5
+          done
+          npm view --registry=https://registry.npmjs.org/ "$PACKAGE_NAME@$PACKAGE_VERSION" dist --json > published-dist.json
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+
+          const expected = JSON.parse(readFileSync('package.jsonl', 'utf8'))[0];
+          const downloaded = JSON.parse(readFileSync('published-package.json', 'utf8'))[0];
+          const publishedDist = JSON.parse(readFileSync('published-dist.json', 'utf8'));
+          const downloadedPath = join('published-package', downloaded.filename);
+          const downloadedIntegrity = `sha512-${createHash('sha512').update(readFileSync(downloadedPath)).digest('base64')}`;
+
+          if (publishedDist.integrity !== expected.integrity || downloaded.integrity !== expected.integrity) {
+            throw new Error('Published npm integrity does not match the CI-built package.');
+          }
+          if (downloadedIntegrity !== expected.integrity) {
+            throw new Error('Downloaded npm tarball bytes do not match the expected package integrity.');
+          }
+          if (downloaded.name !== expected.name || downloaded.version !== expected.version) {
+            throw new Error('Downloaded npm package identity does not match the CI-built package.');
+          }
+          NODE
+          mkdir registry-smoke
+          cd registry-smoke
+          npm init -y
+          npm install --registry=https://registry.npmjs.org/ "$PACKAGE_NAME@$PACKAGE_VERSION"
+          node -e 'const [name, version] = process.argv.slice(1); const pkg = require(`./node_modules/${name}/package.json`); if (pkg.version !== version) process.exit(1);' "$PACKAGE_NAME" "$PACKAGE_VERSION"
+          ./node_modules/.bin/pgdumpster --version
+          ./node_modules/.bin/pgdumpster doctor --help
+          ./node_modules/.bin/pgdumpster backup --help
+          ./node_modules/.bin/pgdumpster restore --help
       - uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2
         with:
           subject-path: "*.tgz"

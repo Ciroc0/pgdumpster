@@ -343,6 +343,10 @@ Measure:
 
 No arbitrary object size may cause equivalent-size RAM allocation.
 
+### Current performance evidence
+
+The required deterministic fixtures exist: 10,000 small objects, 100,000-object inventory, 32 MiB streamed object download and a 64 MiB streamed database dump. S3 evidence is also complete: two scoped Cloudflare R2 128 MiB encrypted multipart publications used 5 MiB parts and concurrency 4, measured 15.06 MiB/s and 13.61 MiB/s, and the latter observed 34 requests, zero retries, 154,140,672-byte peak RSS and persisted checkpoint state. Both independently verified the remote object and removed the object/marker afterwards. Comparative provider fault/load measurements remain optional confidence work; they are not a release blocker.
+
 ## Release test gates
 
 A release is blocked by:

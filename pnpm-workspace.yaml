@@ -2,3 +2,5 @@ minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true
 onlyBuiltDependencies:
   - esbuild
+overrides:
+  nanoid: 3.3.18

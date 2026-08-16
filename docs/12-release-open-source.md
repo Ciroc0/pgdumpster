@@ -36,7 +36,7 @@ Implementation adds source/package/test/build files.
 
 ## Naming
 
-`pgdumpster` is a working CLI name.
+`pgdumpster` is the selected repository, package and CLI name.
 
 Before first public package/repository publication:
 
@@ -47,6 +47,10 @@ Before first public package/repository publication:
 5. update badges/install commands atomically.
 
 Do not invent a package-install command until the package actually exists.
+
+### Basic collision check
+
+On 2026-08-16, the exact npm registry lookup returned `404 Not Found`; GitHub's public repository search returned zero `pgdumpster` matches; PyPI returned `404`; and a general web/software search produced no database-product collision. The maintainer has secured `pgdumpster.com`. This is a practical pre-publication name check, not legal trademark clearance; obtain legal advice before relying on the name in a jurisdiction where a formal trademark search is required.
 
 ## Trademark statement
 
@@ -117,18 +121,15 @@ Live hosted E2E can run in a protected workflow when secrets are available and m
 
 Protected release flow:
 
-1. clean main branch;
-2. all required CI green;
-3. live hosted E2E green;
-4. changelog updated;
-5. compatibility matrix updated;
-6. version bump;
-7. build package from CI, not maintainer laptop;
-8. generate SBOM/provenance;
-9. publish package/release;
-10. verify install from published artifact;
-11. smoke `doctor --help`, `backup --help`, `restore --help`;
-12. tag/release notes.
+1. clean main branch and release SHA contained in `origin/main`;
+2. current-candidate CI and CodeQL green on that exact SHA, with CodeQL results published and findings dispositioned;
+3. protected hosted E2E green on that exact SHA;
+4. changelog, compatibility matrix and current official-contract review completed;
+5. public non-development SemVer candidate and npm trusted publisher configured;
+6. create the matching tag, which triggers the CI release workflow rather than a maintainer-laptop build;
+7. let that workflow generate SBOM/provenance, publish the package and create release notes;
+8. let that workflow download and integrity-verify the published package, then fresh-install it;
+9. let that workflow smoke `pgdumpster --version`, `doctor --help`, `backup --help`, `restore --help`.
 
 No release from uncommitted local state.
 
