@@ -19,7 +19,7 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after Edge Function source-tree restore hardening:
 
 - `pnpm check`: **PASS**;
-- **118 test files / 760 tests: PASS**;
+- **118 test files / 761 tests: PASS**;
 - global coverage: **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
@@ -38,7 +38,7 @@ Latest complete local gates on 2026-08-16 after Edge Function source-tree restor
 - inspect/coverage/verify and restore dry-run accept `.tar.zst.age` with a configured identity-file reference;
 - Windows encrypted-output publication behavior is covered by the local test suite.
 
-The preceding candidate SHA `0197c4f65f4f020adf3c814d6251fdf494514ee2` has successful exact-SHA GitHub CI, CodeQL, contract-drift and protected E2E runs on 2026-08-16. CI run `31976965121` covers quality, test, integration, security and the Ubuntu/macOS/Windows Node 22/24 matrix; CodeQL run `31976965125`, contract-drift run `31976973417` and E2E run `31976974455` completed successfully. The `0.1.1` remediation candidate must repeat all four for its exact SHA.
+Candidate SHA `f336302e20df2802303d498671b9aa8cc8dcafd2` has successful exact-SHA GitHub CI, CodeQL, contract-drift and protected E2E runs on 2026-08-16. CI run `31978134499`, CodeQL run `31978134451`, contract-drift run `31978143836` and E2E run `31978451505` completed successfully. The `0.1.2` candidate must repeat all four for its exact SHA.
 
 The disposable hosted source → encrypted verified backup → offline verify →
 clean-target restore → semantic-parity observation is **PASS with explicit
@@ -73,8 +73,8 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Complete CLI `restore --apply`: executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, derive target database/Management/privileged-Storage credentials from planned capabilities, and bind resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Unsupported automatic components remain explicit platform/manual limits and blocked plans fail before mutation. Disposable hosted database/File Storage semantic-parity observations exist; the protected release-candidate E2E remains a separate evidence gate.
 - [x] Complete the performance evidence required by `docs/10-testing.md`: deterministic Management API simulation, 10k small-object orchestration, 100k inventory, bounded 32 MiB object streaming, 64 MiB database-dump streaming, and two scoped Cloudflare R2 128 MiB multipart observations. Comparative provider fault/load work is optional confidence evidence, not a release blocker.
 - [x] Demonstrate CodeQL publication for preceding candidate SHA `0197c4f65f4f020adf3c814d6251fdf494514ee2` (run `31976965125`); repeat it for the final candidate.
-- [ ] Execute the fixed SBOM/provenance/package-smoke/release workflow for `v0.1.1`, then complete final source-of-truth revalidation. `v0.1.0` failed before `npm publish` because npm SBOM could not read the pnpm workspace dependency tree.
-- [x] Run protected hosted E2E for preceding candidate `0197c4f65f4f020adf3c814d6251fdf494514ee2` (run `31976974455`); repeat it for the current `0.1.1` candidate. Local managed evidence includes database/File Storage/Auth/control-plane plus Edge Function source-tree deploy/invocation; Vault ciphertext, Edge secret plaintext, and private Auth signing material remain documented manual/platform limits.
+- [ ] Execute the fixed SBOM/provenance/package-smoke/release workflow for `v0.1.2`, then complete final source-of-truth revalidation. `v0.1.0` failed before `npm publish` because npm SBOM could not read the pnpm workspace dependency tree; `v0.1.1` reached npm but its GitHub token had no npm registry authorization.
+- [x] Run protected hosted E2E for candidate `f336302e20df2802303d498671b9aa8cc8dcafd2` (run `31978451505`); repeat it for the current `0.1.2` candidate. Local managed evidence includes database/File Storage/Auth/control-plane plus Edge Function source-tree deploy/invocation; Vault ciphertext, Edge secret plaintext, and private Auth signing material remain documented manual/platform limits.
 - [x] Add a protected `workflow_dispatch` hosted-E2E harness which validates distinct source/target pooler bindings, rejects a target containing a dedicated database, Storage, Auth or Edge Function fixture, seeds deterministic database and Auth fixtures, requires a passing source `doctor`, runs encrypted verified backup/offline verify/terminal-coverage/dry-run/apply, validates the parity report and compares post-restore database, direct stream-hashed File Storage, Auth password-login and Edge Function invocation smoke state. It emits only a sanitized terminal summary and removes temporary config, bundle, age identity and new UUID-named restore artifacts without touching existing local restore files. Execution against a protected Environment remains separate evidence.
 - [ ] Perform the final `docs/13-acceptance-criteria.md` evidence audit and release only when every applicable item is satisfied.
 
@@ -422,6 +422,6 @@ The preceding candidate's complete CI and CodeQL runs demonstrate that the publi
 
 ## Next implementation order
 
-1. freeze the final public `0.1.1` candidate on `main` and run CI, CodeQL, official contract drift and protected E2E for that exact SHA;
-2. create `v0.1.1` only after those gates pass, then let the hardened workflow publish and verify the registry artifact;
+1. freeze the final public `0.1.2` candidate on `main` and run CI, CodeQL, official contract drift and protected E2E for that exact SHA;
+2. create `v0.1.2` only after those gates pass, then let the hardened workflow publish and verify the registry artifact;
 3. complete the post-release documentation and acceptance audit.

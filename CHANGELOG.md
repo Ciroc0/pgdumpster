@@ -6,6 +6,12 @@ The format follows Keep a Changelog principles and the project uses Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-17
+
+### Fixed
+
+- Normalize the CLI bin path to npm's documented package-relative form before the initial registry publication.
+
 ## [0.1.1] - 2026-08-17
 
 ### Fixed

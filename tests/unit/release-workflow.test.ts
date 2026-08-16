@@ -24,4 +24,12 @@ describe("release workflow", () => {
       "npm sbom --omit=dev --sbom-format cyclonedx --package-lock-only",
     );
   });
+
+  it("keeps the npm CLI entry in npm's package-relative form", async () => {
+    const packageJson = JSON.parse(
+      await readFile(new URL("../../package.json", import.meta.url), "utf8"),
+    ) as { bin?: Record<string, string> };
+
+    expect(packageJson.bin).toEqual({ pgdumpster: "dist/cli/main.js" });
+  });
 });

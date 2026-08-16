@@ -22,12 +22,12 @@ The repository currently contains:
 - `test-security` - archive/secret guards plus production dependency audit;
 - `test-os` - Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
 
-The preceding candidate SHA `0197c4f65f4f020adf3c814d6251fdf494514ee2` passed the whole regular CI workflow on 2026-08-16: [run `31976965121`](https://github.com/Ciroc0/pgdumpster/actions/runs/31976965121). It is exact-SHA evidence for that candidate only; the current `0.1.1` candidate must rerun it.
+The preceding candidate SHA `f336302e20df2802303d498671b9aa8cc8dcafd2` passed the whole regular CI workflow on 2026-08-16: [run `31978134499`](https://github.com/Ciroc0/pgdumpster/actions/runs/31978134499). It is exact-SHA evidence for that candidate only; the current `0.1.2` candidate must rerun it.
 
 The latest complete local result after Edge Function source-tree restore hardening is:
 
 - `pnpm check`: **PASS**;
-- **118 test files / 760 tests: PASS**;
+- **118 test files / 761 tests: PASS**;
 - **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
@@ -47,9 +47,9 @@ The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned a
 
 This implementation is not execution evidence. Remaining release gates include:
 
-- current `0.1.1` candidate CI, CodeQL, contract drift and protected hosted source/target E2E;
+- current `0.1.2` candidate CI, CodeQL, contract drift and protected hosted source/target E2E;
 - public non-development SemVer candidate, changelog and compatibility/current-contract review. Because npm cannot configure a trusted publisher before a package exists, the first publish uses a short-lived package-scoped `NPM_TOKEN` secret; immediately afterward the trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed, and the token secret/workflow mapping must be removed;
-- actual `v0.1.1` tagged workflow execution, including same-SHA CI/CodeQL/protected-E2E evidence and published-artifact checksum/install verification. `v0.1.0` failed before `npm publish` in its SBOM step and is not a published package;
+- actual `v0.1.2` tagged workflow execution, including same-SHA CI/CodeQL/protected-E2E evidence and published-artifact checksum/install verification. `v0.1.0` failed before `npm publish` in its SBOM step; `v0.1.1` failed at npm authorization because a GitHub token cannot publish to npm. Neither is a published package;
 
 The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability/performance are implemented and live-validated. Comparative provider fault/load testing is optional confidence work, not a release gate. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.
 

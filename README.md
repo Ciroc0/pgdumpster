@@ -29,12 +29,12 @@ Current branch snapshot as of 2026-08-16:
 - encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`;
 - plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
 - S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2. Two scoped 128 MiB multipart observations measured 15.06 and 13.61 MiB/s; the latter observed 34 requests, zero retries, 154,140,672-byte peak RSS and persisted checkpoint state. Comparative provider fault/load testing is optional additional confidence, not a release gate;
-- latest local validation: **118 test files / 760 tests, PASS**;
+- latest local validation: **118 test files / 761 tests, PASS**;
 - current global coverage is **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**, with all independent 90% thresholds passing;
-- the preceding candidate SHA `0197c4f65f4f020adf3c814d6251fdf494514ee2` passed GitHub CI, CodeQL, official-contract drift and protected Live hosted E2E. The evidence is exact-SHA only; the current `0.1.1` candidate must repeat it;
+- the preceding candidate SHA `f336302e20df2802303d498671b9aa8cc8dcafd2` passed GitHub CI, CodeQL, official-contract drift and protected Live hosted E2E. The evidence is exact-SHA only; the current `0.1.2` candidate must repeat it;
 - disposable hosted source → encrypted backup → offline verify → clean-target restore has passed both locally and in the protected E2E workflow, with database, private File Storage, Auth password-login and Edge Function invocation parity plus explicit platform limits.
 
-The remaining release gates are complete CI, CodeQL, official-contract and protected hosted-E2E workflows for the final `0.1.1` candidate SHA, then the tagged workflow's package/SBOM/provenance/attestation/published-artifact verification and trusted-publisher cutover. `v0.1.0` was stopped before `npm publish` because its SBOM step could not read the pnpm workspace layout; it is not a published package. Cloudflare R2/S3 performance and interoperability are not release blockers.
+The remaining release gates are complete CI, CodeQL, official-contract and protected hosted-E2E workflows for the final `0.1.2` candidate SHA, then the tagged workflow's package/SBOM/provenance/attestation/published-artifact verification and trusted-publisher cutover. `v0.1.0` stopped before `npm publish` because its SBOM step could not read the pnpm workspace layout; `v0.1.1` stopped at npm authorization because a GitHub token cannot publish to npm. Neither is a published package. Cloudflare R2/S3 performance and interoperability are not release blockers.
 
 The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
 
