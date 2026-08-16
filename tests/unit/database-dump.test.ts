@@ -1,12 +1,16 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   dumpExcludedDatabaseState,
   dumpLogicalDatabase,
+  dumpLogicalDatabaseComponent,
   dumpManagedSchemaCustomizations,
   dumpMigrationHistory,
 } from "../../src/database/dump.js";
@@ -158,6 +162,55 @@ describe("Supabase logical database dumps", () => {
       expect(call.args).not.toContain("--db-url");
       expect(call.options.environment?.["PGPASSWORD"]).toBeUndefined();
     }
+  });
+
+  it("accepts a 64 MiB streamed data dump without equivalent-size allocation", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-db-large-"));
+    temporaryDirectories.push(root);
+    const totalBytes = 64 * 1024 * 1024;
+    const chunkBytes = 64 * 1024;
+    let emittedBytes = 0;
+    let emittedChunks = 0;
+    const chunk = Buffer.alloc(chunkBytes, 0x61);
+
+    const artifact = await dumpLogicalDatabaseComponent(
+      {
+        connectionString: new SecretValue(
+          "postgresql://postgres:database-large-fixture@db.example.invalid/postgres",
+          new Redactor(),
+        ),
+        outputDirectory: root,
+        dependencies: {
+          resolveSupabaseCommand: () =>
+            Promise.resolve({ command: "supabase-test", prefixArgs: [] }),
+          runProcess: async (_command, args) => {
+            const output = args[args.indexOf("--file") + 1];
+            if (output === undefined) throw new Error("Missing output path");
+            const body = Readable.from(
+              (function* () {
+                while (emittedBytes < totalBytes) {
+                  const nextBytes = Math.min(
+                    chunkBytes,
+                    totalBytes - emittedBytes,
+                  );
+                  emittedBytes += nextBytes;
+                  emittedChunks += 1;
+                  yield chunk.subarray(0, nextBytes);
+                }
+              })(),
+            );
+            await pipeline(body, createWriteStream(output, { flags: "wx" }));
+            return { exitCode: 0, stdout: "", stderr: "" };
+          },
+        },
+      },
+      "database.data",
+      baseInventory,
+    );
+
+    expect(emittedChunks).toBe(totalBytes / chunkBytes);
+    expect(artifact.bytes).toBe(totalBytes);
+    expect(await stat(artifact.path)).toMatchObject({ size: totalBytes });
   });
 
   it("dumps migration history only when inventory proves the schema exists", async () => {

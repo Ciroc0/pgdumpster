@@ -138,7 +138,7 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. establish the remaining large-database-dump and provider-scale S3 performance evidence required by `docs/10-testing.md`; deterministic 10k small-object orchestration, 100k inventory and bounded 32 MiB object-stream regressions already exist;
+1. establish the remaining provider-scale S3 performance evidence required by `docs/10-testing.md`; deterministic 10k small-object orchestration, 100k inventory, bounded 32 MiB object-stream and 64 MiB database-dump regressions already exist;
 2. execute the protected current-candidate hosted E2E and resolve any executable fidelity gap without weakening fail-closed behavior;
 3. fix the GitHub CodeQL repository-setting blocker, disposition any findings and rerun current-candidate CI;
 4. configure npm trusted publishing, finalize version/changelog and run the tagged release workflow;
