@@ -288,6 +288,45 @@ function propagatePlatformLimits(
   }
 }
 
+function orderActionsByDependencies(actions: RestoreAction[]): void {
+  const byId = new Map(actions.map((action) => [action.id, action]));
+  const remaining = new Map(
+    actions.map((action) => [
+      action.id,
+      action.dependsOn.filter((dependency) => byId.has(dependency)).length,
+    ]),
+  );
+  const ordered: RestoreAction[] = [];
+  while (remaining.size > 0) {
+    const ready = actions
+      .filter((action) => remaining.get(action.id) === 0)
+      .sort(
+        (left, right) =>
+          left.phase - right.phase ||
+          left.component.localeCompare(right.component, "en"),
+      );
+    if (ready.length === 0)
+      throw new PgDumpsterError({
+        code: "RESTORE_PLAN_BLOCKED",
+        category: "restore_policy",
+        message: "Restore plan contains cyclic action dependencies.",
+        retryable: false,
+      });
+    for (const action of ready) {
+      remaining.delete(action.id);
+      ordered.push(action);
+      for (const candidate of actions) {
+        if (
+          candidate.dependsOn.includes(action.id) &&
+          remaining.has(candidate.id)
+        )
+          remaining.set(candidate.id, remaining.get(candidate.id)! - 1);
+      }
+    }
+  }
+  actions.splice(0, actions.length, ...ordered);
+}
+
 export async function buildRestorePlan(
   manifest: Manifest,
   coverage: CoverageDocument,
@@ -411,12 +450,8 @@ export async function buildRestorePlan(
       });
     }
   }
-  actions.sort(
-    (left, right) =>
-      left.phase - right.phase ||
-      left.component.localeCompare(right.component, "en"),
-  );
   propagatePlatformLimits(actions, manualActions);
+  orderActionsByDependencies(actions);
   const blocked = actions.some(({ status }) =>
     ["blocked_by_policy", "blocked_source_failure"].includes(status),
   );

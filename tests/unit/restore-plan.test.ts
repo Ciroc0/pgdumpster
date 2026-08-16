@@ -111,6 +111,13 @@ describe("restore planning", () => {
       dependsOn: ["restore.storage.file_objects"],
     });
     expect(fileObjectsIndex).toBeLessThan(fileMetadataIndex);
+    for (const [index, action] of plan.actions.entries()) {
+      for (const dependency of action.dependsOn) {
+        expect(
+          plan.actions.findIndex(({ id }) => id === dependency),
+        ).toBeLessThan(index);
+      }
+    }
   });
 
   it("blocks billable actions without opt-in", async () => {
