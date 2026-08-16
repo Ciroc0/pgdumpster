@@ -10,7 +10,7 @@ A successful run must never silently omit a registered component.
 
 ## Current development status
 
-pgDumpster is **not release-complete yet**. The repository contains a substantial working implementation, but several explicit release gates remain.
+pgDumpster `0.1.2` is published. The repository continues to document explicit platform limits and the evidence required for every future release.
 
 Current branch snapshot as of 2026-08-16:
 
@@ -31,10 +31,10 @@ Current branch snapshot as of 2026-08-16:
 - S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2. Two scoped 128 MiB multipart observations measured 15.06 and 13.61 MiB/s; the latter observed 34 requests, zero retries, 154,140,672-byte peak RSS and persisted checkpoint state. Comparative provider fault/load testing is optional additional confidence, not a release gate;
 - latest local validation: **118 test files / 761 tests, PASS**;
 - current global coverage is **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**, with all independent 90% thresholds passing;
-- the preceding candidate SHA `f336302e20df2802303d498671b9aa8cc8dcafd2` passed GitHub CI, CodeQL, official-contract drift and protected Live hosted E2E. The evidence is exact-SHA only; the current `0.1.2` candidate must repeat it;
+- release SHA `dd0d42c128907de473f71024196a62da2f124bcb` passed GitHub CI, CodeQL, official-contract drift and protected Live hosted E2E before `v0.1.2` was published;
 - disposable hosted source → encrypted backup → offline verify → clean-target restore has passed both locally and in the protected E2E workflow, with database, private File Storage, Auth password-login and Edge Function invocation parity plus explicit platform limits.
 
-The remaining release gates are complete CI, CodeQL, official-contract and protected hosted-E2E workflows for the final `0.1.2` candidate SHA, then the tagged workflow's package/SBOM/provenance/attestation/published-artifact verification and trusted-publisher cutover. `v0.1.0` stopped before `npm publish` because its SBOM step could not read the pnpm workspace layout; `v0.1.1` stopped at npm authorization because a GitHub token cannot publish to npm. Neither is a published package. Cloudflare R2/S3 performance and interoperability are not release blockers.
+`v0.1.2` passed the tagged workflow's package/SBOM/provenance/attestation/published-artifact verification and is published from GitHub OIDC trusted publishing without a retained npm token. The remaining post-release gates are the final acceptance/documentation audit and website install-copy update. Every future release must repeat CI, CodeQL, official-contract and protected hosted-E2E evidence for its exact SHA. Cloudflare R2/S3 performance and interoperability are not release blockers.
 
 The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
 

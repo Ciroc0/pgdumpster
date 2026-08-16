@@ -93,9 +93,7 @@ jobs:
           ./node_modules/.bin/pgdumpster doctor --help
           ./node_modules/.bin/pgdumpster backup --help
           ./node_modules/.bin/pgdumpster restore --help
-      - name: Publish with temporary bootstrap token or npm trusted publishing
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish with npm trusted publishing
         run: npm publish --provenance --access public
       - name: Verify published npm artifact and fresh consumer install
         shell: bash

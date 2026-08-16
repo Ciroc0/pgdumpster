@@ -22,7 +22,7 @@ The repository currently contains:
 - `test-security` - archive/secret guards plus production dependency audit;
 - `test-os` - Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
 
-The preceding candidate SHA `f336302e20df2802303d498671b9aa8cc8dcafd2` passed the whole regular CI workflow on 2026-08-16: [run `31978134499`](https://github.com/Ciroc0/pgdumpster/actions/runs/31978134499). It is exact-SHA evidence for that candidate only; the current `0.1.2` candidate must rerun it.
+Release SHA `dd0d42c128907de473f71024196a62da2f124bcb` passed the whole regular CI workflow on 2026-08-16: [run `31979435085`](https://github.com/Ciroc0/pgdumpster/actions/runs/31979435085), before `v0.1.2` published. A future candidate must rerun it for its exact SHA.
 
 The latest complete local result after Edge Function source-tree restore hardening is:
 
@@ -39,17 +39,15 @@ A dedicated contract-drift workflow exists and remains part of the platform sour
 
 ### CodeQL
 
-The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. It completed successfully for preceding candidate SHA `0197c4f65f4f020adf3c814d6251fdf494514ee2` on 2026-08-16: [run `31976965125`](https://github.com/Ciroc0/pgdumpster/actions/runs/31976965125). A newer candidate must repeat this check.
+The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. It completed successfully for release SHA `dd0d42c128907de473f71024196a62da2f124bcb` on 2026-08-16: [run `31979435100`](https://github.com/Ciroc0/pgdumpster/actions/runs/31979435100). A newer candidate must repeat this check.
 
 ## Implemented release workflow and remaining gates
 
 `.github/workflows/release.yml` is implemented but intentionally cannot publish until a valid `v*` tag targets a public-repository SemVer candidate. The repository guard is fail-closed: npm provenance and GitHub artifact attestations need public-repository eligibility on the relevant non-Enterprise plans. Before any publish it verifies `vX.Y.Z === package.json.version`, fetches `origin/main` and requires the release SHA to be contained there. It then uses the GitHub Actions API to require successful `CI`, `CodeQL` and `Live hosted E2E` workflow runs with `head_sha === GITHUB_SHA`; success on an older or different commit is rejected. For a valid candidate, it runs frozen install, `pnpm check`, coverage, CI-built `npm pack`, SHA-256 checksums, a CycloneDX SBOM from a fresh production install of that tarball, and a local tarball install/CLI smoke before publishing. After publish it downloads the exact package version from npm, verifies registry/downloaded SHA-512 integrity and package identity against the CI-built tarball, performs a fresh registry install and repeats the CLI smoke. It then creates GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
 
-This implementation is not execution evidence. Remaining release gates include:
+`v0.1.2` is execution evidence: release run [`31979898052`](https://github.com/Ciroc0/pgdumpster/actions/runs/31979898052) passed the same-SHA guards, package/SBOM/checksum steps, local and registry consumer smokes, provenance/attestation and GitHub Release creation. npm trusted publishing now targets GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with only `npm publish` allowed. The `NPM_TOKEN` secret and workflow mapping are removed.
 
-- current `0.1.2` candidate CI, CodeQL, contract drift and protected hosted source/target E2E;
-- public non-development SemVer candidate, changelog and compatibility/current-contract review. Because npm cannot configure a trusted publisher before a package exists, the first publish uses a short-lived package-scoped `NPM_TOKEN` secret; immediately afterward the trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed, and the token secret/workflow mapping must be removed;
-- actual `v0.1.2` tagged workflow execution, including same-SHA CI/CodeQL/protected-E2E evidence and published-artifact checksum/install verification. `v0.1.0` failed before `npm publish` in its SBOM step; `v0.1.1` failed at npm authorization because a GitHub token cannot publish to npm. Neither is a published package;
+For every future release, the remaining release gates are a new public SemVer candidate, changelog and compatibility/current-contract review, then current-candidate CI, CodeQL, contract drift and protected hosted source/target E2E before its immutable tag.
 
 The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability/performance are implemented and live-validated. Comparative provider fault/load testing is optional confidence work, not a release gate. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.
 

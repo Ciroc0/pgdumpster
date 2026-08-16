@@ -20,7 +20,7 @@ All independent repository coverage thresholds remain at 90% and pass. No produc
 
 Current official Supabase/OpenAPI, Storage and changelog contract snapshots match. A consumer installation of the generated development `.tgz` passed `--version`, `doctor --help`, `backup --help` and `restore --help`; it is local package-smoke evidence, not a public publish/release claim.
 
-A current read-only `npm pack --dry-run --json` audit reports 372 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. `0.1.2` is the next release candidate; this confirms package contents and is not publication evidence.
+A current read-only `npm pack --dry-run --json` audit reports 372 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. `v0.1.2` published this package; the audit records package contents rather than a future-release claim.
 
 The preceding candidate SHA `f336302e20df2802303d498671b9aa8cc8dcafd2` passed GitHub CI, CodeQL, official-contract drift and protected Live hosted E2E on 2026-08-16. CI run `31978134499` includes quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24; CodeQL run `31978134451`, contract-drift run `31978143836` and protected E2E run `31978451505` passed. This `0.1.2` remediation candidate must repeat all four gates for its exact SHA.
 
@@ -74,7 +74,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. A blocked plan is rejected before target credential/resource discovery; executable plans derive database, Management and privileged Storage credential needs from planned automatic capabilities. The CLI validates all planned handlers and artifacts, then atomically persists the immutable plan, checkpoint and final parity report with restrictive permissions around mutation. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Edge Functions archive a CLI-downloaded source tree with safe paths and checksums, reconstruct an isolated workdir and deploy through the current supported CLI path; the invalid Management API deployed body is never used as deployment input. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It fails closed for any unimplemented planned component.
 - **Hosted E2E**: a local execution and protected GitHub Environment run for the preceding candidate completed with backup `complete_with_platform_limits`, offline verification `verified`, restore/parity `restored_with_platform_limits`, 55 terminal coverage components, 20 verified planned restore actions, matching database, direct stream-hashed private Storage, restored Auth password login and restored Edge Function invocation smokes. Supabase returns worker-local `file:///tmp/...` metadata after deploy; this is normalized as non-portable while the CLI-downloaded source tree remains the deploy authority. PgBouncer, Auth secret/signing and Edge-secret-digest remain manual/platform limits. The final candidate must repeat the protected run. Cloudflare R2 S3 interoperability passed.
 - **CodeQL**: the preceding candidate's successful CodeQL run is exact-SHA evidence only and is not transferable to the final candidate SHA.
-- **Release**: normal CI exists. `.github/workflows/release.yml` is implemented for bootstrap npm publishing and later GitHub Actions OIDC trusted publishing, CI-built package smoke, a CycloneDX SBOM generated from a fresh production installation of that package, SHA-256 checksums, GitHub artifact attestation and GitHub Releases. It requires a public repository, a non-private SemVer package, its release SHA on `origin/main`, and successful CI, CodeQL and protected Live hosted E2E runs for that exact SHA. It also downloads, integrity-verifies and fresh-installs the published package after npm publish. `v0.1.0` stopped before publish because npm could not generate an SBOM from the pnpm workspace layout; `v0.1.1` stopped at npm authorization because the secret contained a GitHub token. Neither is a published package.
+- **Release**: `v0.1.2` is published. `.github/workflows/release.yml` uses GitHub Actions OIDC trusted publishing, CI-built package smoke, a CycloneDX SBOM generated from a fresh production installation of that package, SHA-256 checksums, GitHub artifact attestation and GitHub Releases. It requires a public repository, a non-private SemVer package, its release SHA on `origin/main`, and successful CI, CodeQL and protected Live hosted E2E runs for that exact SHA. It downloads, integrity-verifies and fresh-installs the published package after npm publish. The `NPM_TOKEN` bootstrap secret has been removed.
 
 ## Current CLI surface
 
@@ -128,18 +128,15 @@ Some source APIs only provide observable fingerprints rather than a transactiona
 
 ## Contract/live evidence
 
-The repository contains dated official-contract snapshots and runtime validation for the Management API surfaces used by adapters. The hosted encrypted backup, offline verification, clean-target database/File Storage restore, restored Auth password login and applicable semantic-parity observation have passed on disposable projects, with non-exportable hosted surfaces reported as platform limits. This is not equivalent to a protected, tagged release-candidate E2E run.
+The repository contains dated official-contract snapshots and runtime validation for the Management API surfaces used by adapters. The hosted encrypted backup, offline verification, clean-target database/File Storage restore, restored Auth password login and applicable semantic-parity observation have passed on disposable projects, with non-exportable hosted surfaces reported as platform limits. The protected, tagged release-candidate E2E also passed for `v0.1.2`.
 
 The preceding protected run proves the full hosted source-to-target recovery procedure for its SHA; a newer release candidate must not inherit that evidence.
 
 ## Remaining release gates
 
-R2/S3 interoperability and performance evidence are complete and are not on this list. The remaining gates are:
+R2/S3 interoperability and performance evidence are complete and are not on this list. `v0.1.2` passed its exact-SHA CI, CodeQL, official-contract drift and protected `release-e2e`, then published with package/SBOM/checksum/attestation/GitHub Release evidence. GitHub OIDC trusted publishing is configured and the temporary bootstrap token is removed.
 
-1. run CI, CodeQL, official-contract drift and protected `release-e2e` successfully for the final `0.1.2` candidate SHA;
-2. create immutable `v0.1.2` and verify the workflow-generated public package, SBOM, checksum, attestation and GitHub Release;
-3. configure npm trusted publishing and remove the temporary bootstrap token from GitHub and the workflow;
-4. complete the post-release documentation and `docs/13-acceptance-criteria.md` evidence audit.
+The remaining post-release gate is the final documentation and `docs/13-acceptance-criteria.md` evidence audit. Every future release must repeat the exact-SHA gates.
 
 ## Definition of done
 

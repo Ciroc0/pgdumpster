@@ -125,7 +125,7 @@ Protected release flow:
 2. current-candidate CI and CodeQL green on that exact SHA, with CodeQL results published and findings dispositioned;
 3. protected hosted E2E green on that exact SHA;
 4. changelog, compatibility matrix and current official-contract review completed;
-5. public non-development SemVer candidate plus registry authorization: an initial package uses a short-lived, package-scoped bootstrap token; subsequent releases use the configured npm trusted publisher;
+5. public non-development SemVer candidate plus configured npm trusted publisher;
 6. create the matching tag, which triggers the CI release workflow rather than a maintainer-laptop build;
 7. let that workflow generate SBOM/provenance, publish the package and create release notes;
 8. let that workflow download and integrity-verify the published package, then fresh-install it;

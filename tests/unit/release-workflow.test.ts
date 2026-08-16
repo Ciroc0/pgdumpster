@@ -18,7 +18,8 @@ describe("release workflow", () => {
     ).toBeLessThan(
       workflow.indexOf("npm publish --provenance --access public"),
     );
-    expect(workflow).toContain("NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}");
+    expect(workflow).not.toContain("NODE_AUTH_TOKEN:");
+    expect(workflow).toContain("Publish with npm trusted publishing");
     expect(workflow).toContain('npm install --omit=dev "../$PACKAGE"');
     expect(workflow).toContain(
       "npm sbom --omit=dev --sbom-format cyclonedx --package-lock-only",
