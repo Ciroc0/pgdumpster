@@ -1,4 +1,5 @@
 ﻿import { mkdtemp, rm } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -697,6 +698,98 @@ describe("product backup orchestration", () => {
     expect(collectLinkedFileStorageCatalog).toHaveBeenCalledTimes(1);
     expect(collectFileStorageCatalog).not.toHaveBeenCalled();
     expect(downloadStorageObject).not.toHaveBeenCalled();
+  });
+
+  it("captures 10k small Storage objects with bounded download concurrency", async () => {
+    const root = await workspace();
+    const redactor = new Redactor();
+    const databaseUrl = new SecretValue(
+      "postgresql://postgres:secret@example.invalid/postgres",
+      redactor,
+    );
+    const storageKey = new SecretValue(
+      "service-role-product-scale-test-key",
+      redactor,
+    );
+    const objectCount = 10_000;
+    const maxStorageConcurrency = 8;
+    let activeDownloads = 0;
+    let peakDownloads = 0;
+
+    configureCaptureMocks(true);
+    configureDumps(root, true);
+    vi.mocked(collectDatabaseInventory).mockResolvedValue(richInventory);
+    vi.mocked(collectDatabaseCatalogState).mockResolvedValue(richCatalog);
+    vi.mocked(collectFileStorageCatalog).mockResolvedValue({
+      schemaVersion: 1,
+      buckets: richStorageCatalog.buckets,
+      objects: Array.from({ length: objectCount }, (_, index) => ({
+        id: `small-object-${index}`,
+        bucket: "files",
+        name: `small/${String(index).padStart(5, "0")}.bin`,
+        owner: null,
+        ownerId: null,
+        version: null,
+        createdAt: null,
+        updatedAt: null,
+        lastAccessedAt: null,
+        expectedBytes: 1,
+        metadata: null,
+        userMetadata: null,
+      })),
+    });
+    vi.mocked(downloadStorageObject).mockImplementation(async (object) => {
+      activeDownloads += 1;
+      peakDownloads = Math.max(peakDownloads, activeDownloads);
+      await Promise.resolve();
+      activeDownloads -= 1;
+      return {
+        bucket: object.bucket,
+        name: object.name,
+        contentId: `content-${object.name}`,
+        path: `storage/file-objects/${object.name}`,
+        sha256: "a".repeat(64),
+        bytes: object.expectedBytes ?? 0,
+      };
+    });
+
+    await expect(
+      executeProductBackup({
+        ...baseOptions(root, redactor),
+        databaseUrl,
+        storageKey,
+        maxStorageConcurrency,
+        resume: false,
+      }),
+    ).rejects.toThrow(STOP);
+
+    const results = await runCapturedSteps();
+    const index = JSON.parse(
+      await readFile(
+        path.join(root, "secrets", "storage", "file-object-index.json"),
+        "utf8",
+      ),
+    ) as { objects: { name: string; bytes: number }[] };
+
+    expect(results.get("file-storage")?.coverage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "storage.file_objects",
+          status: "backed_up",
+        }),
+      ]),
+    );
+    expect(downloadStorageObject).toHaveBeenCalledTimes(objectCount);
+    expect(peakDownloads).toBeLessThanOrEqual(maxStorageConcurrency);
+    expect(index.objects).toHaveLength(objectCount);
+    expect(index.objects[0]).toMatchObject({
+      name: "small/00000.bin",
+      bytes: 1,
+    });
+    expect(index.objects.at(-1)).toMatchObject({
+      name: "small/09999.bin",
+      bytes: 1,
+    });
   });
 
   it("rejects invalid database source-mode combinations before side effects", async () => {

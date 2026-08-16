@@ -71,7 +71,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Implement S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery with local fault-injection coverage.
 - [x] Run S3-provider interoperability validation against a scoped Cloudflare R2 bucket.
 - [x] Complete CLI `restore --apply`: executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, derive target database/Management/privileged-Storage credentials from planned capabilities, and bind resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Unsupported automatic components remain explicit platform/manual limits and blocked plans fail before mutation. Disposable hosted database/File Storage semantic-parity observations exist; the protected release-candidate E2E remains a separate evidence gate.
-- [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 100k inventory and bounded 32 MiB streaming regressions are complete.
+- [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 10k small-object orchestration, 100k inventory and bounded 32 MiB streaming regressions are complete.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
 - [ ] Run the already locally passing current-candidate hosted E2E through its protected GitHub Environment with application smoke for every automatically restorable configured component. The database/File Storage/Auth/control-plane observation is complete; Vault ciphertext, Edge secret plaintext and private Auth signing material remain documented manual/platform limits.
@@ -340,6 +340,17 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   files / 728 tests, PASS**. Global coverage: **94.61% statements / 90.04%
   branches / 92.55% functions / 95.65% lines**; all 90% global thresholds:
   **PASS**.
+
+### 2026-08-16 — 10k small Storage-object orchestration regression
+
+- Added a deterministic 10,000-object fixture through the actual product
+  file-storage backup step. It verifies that every one-byte object reaches the
+  protected object index in source order and that active downloads never exceed
+  configured bounded concurrency.
+- This closes the local 10k-small-object fixture requirement only. It does not
+  claim RSS/throughput evidence for a real provider, a large database dump or
+  a provider-scale S3 upload.
+- Local validation: focused product-backup tests **5 tests, PASS**.
 - This is real managed-Supabase evidence for the current candidate. It does
   not substitute for the separately required protected GitHub Environment
   workflow execution.
