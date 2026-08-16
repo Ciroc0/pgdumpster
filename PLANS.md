@@ -38,7 +38,7 @@ Latest complete local gates on 2026-08-16 after Edge Function source-tree restor
 - inspect/coverage/verify and restore dry-run accept `.tar.zst.age` with a configured identity-file reference;
 - Windows encrypted-output publication behavior is covered by the local test suite.
 
-GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so current-candidate remote CI cannot provide a meaningful branch signal. This unattended environment cannot query the private repository's Actions or code-scanning endpoints anonymously and has no GitHub CLI. Local `pnpm check` and `pnpm test:coverage` remain the current local gates until quota is restored. The earlier regular CI matrix passed on its validated checkpoint, while CodeQL previously reached SARIF generation but failed result publication/status because of repository code-scanning configuration.
+The preceding `0.1.0` candidate SHA `761fdb16864528ae641c82c8b08bc33139a40c4c` has successful exact-SHA GitHub CI and CodeQL runs on 2026-08-16. CI run `31971524896` covers quality, test, integration, security and the Ubuntu/macOS/Windows Node 22/24 matrix; CodeQL run `31971524917` completed successfully. The public code-scanning endpoint reported zero open alerts. This status-reconciliation commit is the next candidate, so CI, CodeQL, contract drift and protected E2E must repeat for its exact SHA.
 
 The disposable hosted source → encrypted verified backup → offline verify →
 clean-target restore → semantic-parity observation is **PASS with explicit
@@ -72,7 +72,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Run S3-provider interoperability validation against a scoped Cloudflare R2 bucket.
 - [x] Complete CLI `restore --apply`: executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, derive target database/Management/privileged-Storage credentials from planned capabilities, and bind resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Unsupported automatic components remain explicit platform/manual limits and blocked plans fail before mutation. Disposable hosted database/File Storage semantic-parity observations exist; the protected release-candidate E2E remains a separate evidence gate.
 - [x] Complete the performance evidence required by `docs/10-testing.md`: deterministic Management API simulation, 10k small-object orchestration, 100k inventory, bounded 32 MiB object streaming, 64 MiB database-dump streaming, and two scoped Cloudflare R2 128 MiB multipart observations. Comparative provider fault/load work is optional confidence evidence, not a release blocker.
-- [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
+- [x] Demonstrate CodeQL publication and zero open public code-scanning alerts for preceding candidate SHA `761fdb16864528ae641c82c8b08bc33139a40c4c` (run `31971524917`); repeat it for the final candidate.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
 - [ ] Run the current-candidate hosted E2E through its protected GitHub Environment. Local managed evidence now includes database/File Storage/Auth/control-plane plus Edge Function source-tree deploy/invocation; Vault ciphertext, Edge secret plaintext, and private Auth signing material remain documented manual/platform limits.
 - [x] Add a protected `workflow_dispatch` hosted-E2E harness which validates distinct source/target pooler bindings, rejects a target containing a dedicated database, Storage, Auth or Edge Function fixture, seeds deterministic database and Auth fixtures, requires a passing source `doctor`, runs encrypted verified backup/offline verify/terminal-coverage/dry-run/apply, validates the parity report and compares post-restore database, direct stream-hashed File Storage, Auth password-login and Edge Function invocation smoke state. It emits only a sanitized terminal summary and removes temporary config, bundle, age identity and new UUID-named restore artifacts without touching existing local restore files. Execution against a protected Environment remains separate evidence.
@@ -112,7 +112,7 @@ The goal remains active until every applicable acceptance criterion, required CI
 
 ### Release-evidence boundary
 
-The tagged release workflow is fail-closed on candidate provenance. It validates exact tag/package SemVer equality, requires the release SHA to be reachable from `origin/main`, and queries GitHub Actions for successful `ci.yml`, `codeql.yml` and `live-e2e.yml` runs with that exact `head_sha`. A successful run for an ancestor, another branch or another candidate is not release evidence. It smoke-installs the CI-built tarball before publication, then downloads the exact npm version after trusted publishing, verifies package identity and SHA-512 integrity against the CI-built tarball, and repeats the four CLI smokes from a fresh registry consumer install. This is workflow implementation only; current-candidate remote evidence remains an external release gate.
+The tagged release workflow is fail-closed on candidate provenance. It validates exact tag/package SemVer equality, requires the release SHA to be reachable from `origin/main`, and queries GitHub Actions for successful `ci.yml`, `codeql.yml` and `live-e2e.yml` runs with that exact `head_sha`. A successful run for an ancestor, another branch or another candidate is not release evidence. It smoke-installs the CI-built tarball before publication, then downloads the exact npm version after trusted publishing, verifies package identity and SHA-512 integrity against the CI-built tarball, and repeats the four CLI smokes from a fresh registry consumer install. The protected exact-SHA E2E and registry-publication evidence remain external release gates.
 
 ### Consistency boundary
 
@@ -171,12 +171,12 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 - Hardened `release.yml` so a random `v*` tag cannot publish: it verifies tag/version equality, fetches `origin/main`, requires the release SHA to be contained in that branch, and rejects unless `CI`, `CodeQL` and protected `Live hosted E2E` each have a successful completed workflow run with `head_sha` exactly equal to `GITHUB_SHA`.
 - The workflow retains the local CI-built `.tgz` consumer smoke before publish. After trusted npm publishing it downloads the exact package version from npm, compares registry and downloaded SHA-512 integrity plus package identity with the CI-built package, then fresh-installs from npm and smoke-tests `--version`, `doctor --help`, `backup --help` and `restore --help`.
-- Release checkout/setup-node pins now match the revisions used by the repository's other workflows. This implementation has no tagged remote execution evidence yet; GitHub Actions quota, CodeQL publication and protected-E2E execution remain external release gates.
+- Release checkout/setup-node pins now match the revisions used by the repository's other workflows. This implementation has no tagged remote execution evidence yet; final-candidate CI, CodeQL, official-contract and protected-E2E execution remain external release gates.
 
 ### 2026-08-16 - release-documentation evidence reconciliation
 
 - Reconciled README, testing, release, acceptance, workflow and current-status documentation with the completed Cloudflare R2 evidence. The two scoped 128 MiB multipart observations, plus deterministic object/inventory/stream regressions, close the S3 interoperability/performance evidence requirement. Comparative provider fault/load work remains optional confidence work and is not a release blocker.
-- The remaining release gates are limited to current-candidate remote CI, published CodeQL result/finding disposition, protected exact-SHA E2E, public non-development SemVer/changelog/compatibility/current-contract preparation, npm trusted publisher, tagged workflow publication/attestation/SBOM/registry verification, and the final acceptance audit. This is not a release claim.
+- The remaining release gates are limited to final-candidate CI, CodeQL, official-contract and protected exact-SHA E2E, npm bootstrap/trusted publisher, tagged workflow publication/attestation/SBOM/registry verification, and the final acceptance audit. This is not a release claim.
 
 ### 2026-08-16 - Edge Function deploy representation boundary
 
@@ -418,11 +418,10 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ### GitHub CI / CodeQL note
 
-The earlier regular CI matrix passed on its validated checkpoint. GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so remote Actions/CodeQL cannot provide current-candidate evidence. CodeQL publication remains a separate repository-configuration gate.
+The preceding candidate's complete CI and CodeQL runs demonstrate that the public repository has usable Actions capacity and CodeQL result publication. The final candidate must still supply its own exact-SHA evidence.
 
 ## Next implementation order
 
-1. restore GitHub Actions capacity/access, enable CodeQL result publication and disposition any findings;
-2. prepare a public non-development SemVer candidate on `main`, including changelog, compatibility/current-contract review and protected Environment/trusted-publisher setup;
-3. run current-candidate CI, CodeQL and protected E2E for that exact SHA, then create the matching tag and let the hardened release workflow publish and verify the registry artifact;
-4. complete the final documentation and acceptance audit.
+1. freeze the final public `0.1.0` candidate on `main` and run CI, CodeQL, official contract drift and protected E2E for that exact SHA;
+2. bootstrap npm ownership, configure trusted publishing and then create the matching tag so the hardened workflow publishes and verifies the registry artifact;
+3. complete the post-release documentation and acceptance audit.

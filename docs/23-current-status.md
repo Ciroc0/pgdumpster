@@ -22,9 +22,7 @@ Current official Supabase/OpenAPI, Storage and changelog contract snapshots matc
 
 A current read-only `npm pack --dry-run --json` audit reports 372 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. `0.1.0` is a local release candidate only; this confirms package contents and is not publication evidence.
 
-GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so current-candidate remote CI/CodeQL cannot provide a meaningful branch-quality signal. The current unattended audit cannot query this private repository's Actions or code-scanning endpoints anonymously (both return 404) and has no GitHub CLI. Local `pnpm check` and `pnpm test:coverage` are current local gates until quota is restored. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
-
-CodeQL previously reached analysis/SARIF generation, but GitHub could not publish the result because code scanning was not enabled/accessible to the repository integration. This remains a repository configuration gate, not evidence that the static-analysis result is clean.
+The preceding `0.1.0` candidate SHA `761fdb16864528ae641c82c8b08bc33139a40c4c` passed GitHub CI and CodeQL on 2026-08-16. CI run `31971524896` includes quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24; CodeQL run `31971524917` completed and the public code-scanning API then reported zero open alerts. This status-reconciliation commit is the next candidate and must repeat CI, CodeQL, official contract drift and protected E2E for its exact SHA.
 
 ## Implemented repository slices
 
@@ -75,7 +73,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Destination**: local and configured S3-compatible destinations are exposed. S3 uses resumable multipart publication, writes a completion marker last and independently verifies the referenced remote object; a scoped Cloudflare R2 provider passed encrypted publication, marker and materialized offline verification. The latest disposable 128 MiB multipart baseline completed at 13.61 MiB/s with 34 requests, zero observed retries, 154,140,672-byte peak RSS and observed checkpoint-state persistence; its object/marker were removed. Comparative provider fault injection is optional additional confidence evidence.
 - **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. A blocked plan is rejected before target credential/resource discovery; executable plans derive database, Management and privileged Storage credential needs from planned automatic capabilities. The CLI validates all planned handlers and artifacts, then atomically persists the immutable plan, checkpoint and final parity report with restrictive permissions around mutation. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Edge Functions archive a CLI-downloaded source tree with safe paths and checksums, reconstruct an isolated workdir and deploy through the current supported CLI path; the invalid Management API deployed body is never used as deployment input. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It fails closed for any unimplemented planned component.
 - **Hosted E2E**: a current local execution against separate managed source/clean-target projects completed with backup `complete_with_platform_limits`, offline verification `verified`, restore/parity `restored_with_platform_limits`, 55 terminal coverage components, 20 verified planned restore actions, matching database, direct stream-hashed private Storage, restored Auth password login and restored Edge Function invocation smokes. Supabase returns worker-local `file:///tmp/...` metadata after deploy; this is normalized as non-portable while the CLI-downloaded source tree remains the deploy authority. PgBouncer, Auth secret/signing and Edge-secret-digest remain manual/platform limits. This does not replace the first protected GitHub Environment execution, which remains pending. Cloudflare R2 S3 interoperability passed.
-- **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
+- **CodeQL**: the preceding candidate's successful CodeQL run published successfully and the public endpoint showed zero open alerts. This is not transferable to the final candidate SHA.
 - **Release**: normal CI exists. `.github/workflows/release.yml` is implemented for public npm trusted publishing through GitHub Actions OIDC, CI-built package smoke, CycloneDX SBOM, SHA-256 checksums, GitHub artifact attestation and GitHub Releases. It requires a public repository, a non-private SemVer package, its release SHA on `origin/main`, and successful CI, CodeQL and protected Live hosted E2E runs for that exact SHA. It also downloads, integrity-verifies and fresh-installs the published package after npm publish. It has not run for a valid release tag.
 
 ## Current CLI surface
@@ -138,11 +136,10 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 R2/S3 interoperability and performance evidence are complete and are not on this list. The remaining gates are:
 
-1. restore GitHub Actions capacity/access, enable CodeQL result publication and disposition any findings;
-2. prepare a public non-development SemVer candidate on `main`, including changelog, compatibility review and current official-contract revalidation;
-3. run CI, CodeQL and the protected `release-e2e` workflow successfully for that exact candidate SHA;
-4. configure npm trusted publishing, create the matching `vX.Y.Z` tag and let the hardened release workflow publish, attest, generate SBOM/checksums, download/integrity-verify and fresh-install the package;
-5. complete the final documentation and `docs/13-acceptance-criteria.md` evidence audit.
+1. run CI, CodeQL, official-contract drift and protected `release-e2e` successfully for the final candidate SHA;
+2. bootstrap npm package ownership, configure trusted publishing without retaining a publish token, then create the matching immutable tag;
+3. verify the workflow-generated public package, SBOM, checksum, attestation and GitHub Release;
+4. complete the post-release documentation and `docs/13-acceptance-criteria.md` evidence audit.
 
 ## Definition of done
 

@@ -22,9 +22,7 @@ The repository currently contains:
 - `test-security` - archive/secret guards plus production dependency audit;
 - `test-os` - Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
 
-The earlier validated implementation checkpoint passed the regular CI workflow, including the OS/Node matrix.
-
-GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), blocking newly pushed workflow runs before meaningful execution. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. The current unattended audit cannot query this private repository's Actions or code-scanning endpoints anonymously (both return 404) and has no GitHub CLI, so it cannot inspect the detailed run state. Current candidate commits still require a fresh successful remote CI run after quota is restored before they count as release evidence.
+The frozen `0.1.0` candidate SHA `761fdb16864528ae641c82c8b08bc33139a40c4c` passed the whole regular CI workflow on 2026-08-16: [run `31971524896`](https://github.com/Ciroc0/pgdumpster/actions/runs/31971524896). It is exact-SHA evidence for that candidate only; any newer candidate must rerun it.
 
 The latest complete local result after Edge Function source-tree restore hardening is:
 
@@ -33,7 +31,7 @@ The latest complete local result after Edge Function source-tree restore hardeni
 - **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
-Once authenticated remote execution is available, the current branch must be rerun through the normal CI matrix before release evidence is considered current.
+The current official-contract and protected hosted-E2E workflows remain separate release evidence gates.
 
 ### Contract drift
 
@@ -41,9 +39,7 @@ A dedicated contract-drift workflow exists and remains part of the platform sour
 
 ### CodeQL
 
-The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. On the earlier attempted repository run it reached analysis/SARIF generation but failed during result publication/status because GitHub code scanning was not enabled/accessible to the integration (`Resource not accessible by integration`).
-
-This is a **configuration gate**. It must not be documented as a clean static-analysis result, and it also must not be misreported as a discovered code vulnerability.
+The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. It completed successfully for candidate SHA `761fdb16864528ae641c82c8b08bc33139a40c4c` on 2026-08-16: [run `31971524917`](https://github.com/Ciroc0/pgdumpster/actions/runs/31971524917). The public code-scanning API reported zero open alerts after that run. A newer candidate must repeat this check.
 
 ## Implemented release workflow and remaining gates
 
