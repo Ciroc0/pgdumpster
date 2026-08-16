@@ -6,6 +6,14 @@
   "private": true,
   "license": "SEE LICENSE IN LICENSE",
   "author": "Mathias Kjær Pedersen, trading as MKP Digital (CVR 45731170)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ciroc0/pgdumpster.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Ciroc0/pgdumpster/issues"
+  },
+  "homepage": "https://github.com/Ciroc0/pgdumpster#readme",
   "engines": {
     "node": ">=22.15.0 <23 || >=24 <25"
   },

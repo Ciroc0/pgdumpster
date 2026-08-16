@@ -12,11 +12,11 @@ This repository is no longer a pre-implementation bootstrap package. It contains
 
 ## Current implementation checkpoint
 
-Latest complete local gate on 2026-08-15 after the cross-service consistency/resume hardening and standard `age` encryption slices:
+Latest complete local gate on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **92 test files / 541 tests: PASS**;
-- global coverage: **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**;
+- **114 test files / 718 tests: PASS**;
+- global coverage: **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**;
 - all independent 90% coverage thresholds: **PASS**;
 - all 10 product backup steps have consistency adapters and step-owned partial cleanup;
 - default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;
@@ -26,7 +26,11 @@ Latest complete local gate on 2026-08-15 after the cross-service consistency/res
 - `.tar.zst.age` is accepted by inspect/coverage/verify and restore dry-run when an `encryption.identityFile` reference is configured;
 - the `age` subprocess path is shell-free, bounded, atomic and maps missing tooling to the dependency error domain;
 - Windows encrypted-output publication is covered by the local test suite;
-- `doctor` checks `age --version` and reports availability separately from the remaining destination/restore gates.
+- `doctor` checks `age --version` and reports availability separately from the remaining release-evidence gates;
+- configured S3-compatible destinations use resumable multipart publication, remote integrity verification and a completion marker written last; encrypted publication/materialization/offline verification passed against Cloudflare R2;
+- `restore --apply` is wired through integrity-first planning, complete-handler validation, immutable-plan/checkpoint persistence, capability-derived target credentials and the checkpointed executor;
+- database/control-plane/Auth/API-key/File Storage restore handlers are implemented; unsupported automatic restore surfaces are explicit manual/platform limits and a blocked plan fails before target mutation;
+- disposable managed-Supabase source → encrypted backup → offline verify → clean-target restore passed with database semantic parity and separately verified private Storage object restoration.
 
 The account's GitHub Actions quota is currently exhausted, so newly pushed workflows may be blocked by quota. Use local `pnpm check` and `pnpm test:coverage` as the active quality gates until reset; do not interpret quota failures as code failures.
 
@@ -55,13 +59,12 @@ Standard `age` archive encryption is implemented for local publication.
 
 ## Remaining hard gates
 
-The current CLI deliberately blocks unfinished release behavior:
+The current CLI has no intentionally unwired S3 or restore-apply path. The remaining gates are evidence/external-release gates:
 
-- S3-compatible destination publication is not wired;
-- `restore --apply` is not wired through the complete executor/substitution/parity path;
-- the dedicated hosted source-to-target recovery E2E has not passed;
-- CodeQL result publication is blocked by repository code-scanning configuration/access;
-- SBOM/provenance/package-smoke/release workflow remains to be completed.
+- the full protected release-candidate hosted E2E in `docs/10-testing.md` has not passed; the existing disposable observation covers database and File Storage but not the complete Vault/Edge/Auth/service-config fixture;
+- CodeQL result publication is blocked by repository code-scanning configuration/access, so there is no current clean CodeQL evidence or finding disposition;
+- current-candidate remote CI still needs a fresh successful run once GitHub Actions quota permits execution;
+- the implemented release workflow has not and must not run for the private `0.0.0-development` package. It additionally requires final SemVer/changelog, npm trusted-publisher configuration, public-release visibility/provenance eligibility, tag and the actual publication event.
 
 The safe implementation order is recorded in `PLANS.md`.
 

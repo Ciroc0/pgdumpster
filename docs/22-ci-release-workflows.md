@@ -47,13 +47,13 @@ This is a **configuration gate**. It must not be documented as a clean static-an
 
 ## Implemented release workflow and remaining gates
 
-`.github/workflows/release.yml` is implemented but intentionally cannot publish from the current development package: it only runs for a `v*` tag and rejects both `package.json.private: true` and `0.0.0-development`. For a valid candidate, it runs frozen install, `pnpm check`, coverage, tag/version validation, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation, clean install/CLI smoke, npm trusted publishing with provenance, GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
+`.github/workflows/release.yml` is implemented but intentionally cannot publish from the current development package: it only runs for a `v*` tag and rejects both `package.json.private: true` and `0.0.0-development`. For a valid candidate, it runs frozen install, `pnpm check`, coverage, tag/version/repository-identity validation, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation, clean install/CLI smoke, npm trusted publishing with provenance, GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
 
 This implementation is not execution evidence. Remaining release gates include:
 
 - current-candidate CI, including CodeQL result publication and disposition of any findings;
 - protected hosted source/target E2E workflow for a release candidate;
-- final release candidate version, changelog and registry trusted-publisher configuration;
+- final release candidate version, changelog and registry trusted-publisher configuration. The trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed;
 - actual tagged workflow execution, including published-artifact checksum/install verification;
 
 The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability are implemented and live-validated. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.
@@ -91,6 +91,8 @@ The implemented release workflow is designed to:
 - prefer short-lived trusted publishing/OIDC over long-lived registry tokens;
 - verify the package before publish and upload its checksum; the final release procedure must additionally verify the published registry artifact checksum/install;
 - create release notes without secret-bearing artifacts.
+
+Current npm contract note: npm trusted publishing requires npm CLI >= 11.5.1 and Node >= 22.14.0, a GitHub-hosted runner, `id-token: write`, and an exact `package.json.repository.url` match. npm generates package provenance automatically for trusted GitHub publishing only when both repository and package are public. The repository remains private during this development phase, so provenance is a release-time/public-visibility dependency rather than current evidence.
 
 ## Permissions and artifacts
 

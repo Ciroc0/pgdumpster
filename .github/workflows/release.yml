@@ -9,6 +9,10 @@ permissions:
   id-token: write
   attestations: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -32,6 +36,7 @@ jobs:
           test "$(node -p "require('./package.json').private")" = "false"
           test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
           test "$(node -p "require('./package.json').version")" != "0.0.0-development"
+          test "$(node -p "require('./package.json').repository?.url")" = "git+https://github.com/Ciroc0/pgdumpster.git"
       - name: Pack package
         run: npm pack --json > package.jsonl
       - name: Generate checksums and SBOM
@@ -48,6 +53,8 @@ jobs:
           npm init -y
           npm install "../$PACKAGE"
           ./node_modules/.bin/pgdumpster --version
+          ./node_modules/.bin/pgdumpster doctor --help
+          ./node_modules/.bin/pgdumpster backup --help
           ./node_modules/.bin/pgdumpster restore --help
       - name: Publish with npm trusted publishing
         run: npm publish --provenance --access public
