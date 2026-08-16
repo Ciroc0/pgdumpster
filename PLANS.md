@@ -19,9 +19,10 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **114 test files / 717 tests: PASS**;
-- global coverage: **94.61% statements / 90.04% branches / 92.51% functions / 95.65% lines**;
+- **114 test files / 718 tests: PASS**;
+- global coverage: **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
+- the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and narrow database semantic-parity checks with explicit platform limits; File Storage was not configured on that source, so this is meaningful hosted evidence but not the final complete E2E gate;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
@@ -157,7 +158,13 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - A hosted encrypted backup and offline verification completed against a dedicated test source. An apply run on a disposable target exposed two fail-closed defects before a complete E2E claim: source `legacy` API keys were incorrectly rejected, and a resume invocation could rebuild and overwrite the immutable plan before checkpoint verification.
 - Legacy keys now map only to the target's already-generated matching legacy identity and are never posted. Resume now reads the bounded persisted plan beside the checkpoint, validates its hash and source/target/policy bindings, and never rewrites that record.
 - The target run remains partial evidence only; it is not semantic-parity proof. A fresh target rerun is required.
-- Local validation: **114 test files / 717 tests, PASS**. Global coverage: **94.61% statements / 90.04% branches / 92.51% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
+- Local validation: **114 test files / 718 tests, PASS**. Global coverage: **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
+
+### 2026-08-16 — hosted encrypted restore and parity observation
+
+- On separate disposable managed-Supabase projects, an encrypted `verified` backup completed with 44 files and offline verification passed. Restore onto a clean target completed as `restored_with_platform_limits`; all 16 planned mutations were verified, with six documented non-exportable/manual platform limits.
+- Database semantic checks matched source and target for the fixture's account/job counts, enum, RLS policies, trigger behavior/checksums and Realtime publication. This is a real hosted source-to-target recovery observation, including resume recovery after an intentional live failure.
+- The fixture had no File Storage bucket/object and no external S3-compatible destination. Therefore Storage streaming/provider interoperability and the final fully applicable hosted E2E remain pending.
 
 ### 2026-08-16 — S3 capability/status reconciliation
 
