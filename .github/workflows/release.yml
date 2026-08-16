@@ -32,7 +32,10 @@ jobs:
       - run: pnpm test:coverage
       - name: Validate release identity
         shell: bash
+        env:
+          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
         run: |
+          test "$REPOSITORY_PRIVATE" = "false"
           test "$(node -p "require('./package.json').private")" = "false"
           test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
           test "$(node -p "require('./package.json').version")" != "0.0.0-development"

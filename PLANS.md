@@ -19,14 +19,14 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after Edge Function source-tree restore hardening:
 
 - `pnpm check`: **PASS**;
-- **117 test files / 752 tests: PASS**;
-- global coverage: **94.50% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
+- **118 test files / 753 tests: PASS**;
+- global coverage: **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - the current candidate's local live-E2E harness completed the same encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database, direct Storage byte-hash plus restored Auth password-login smokes matched; the protected GitHub Environment execution remains separate release evidence;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
-- current `npm pack --dry-run --json` package audit reports 364 files, includes the compiled CLI/contracts/schemas, contains no development-only test/docs/scripts/workflow paths and remains `private: true`; this is package-content evidence only, not a release claim;
+- current `npm pack --dry-run --json` package audit reports 372 files, includes the compiled CLI/contracts/schemas, contains no development-only test/docs/scripts/workflow paths and remains `private: true`; this is package-content evidence only, not a release claim;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
 - default `verified`, explicit `quiesced`, and `best-effort` consistency are accepted by the backup CLI;
 - best-effort drift is preserved as `drift_detected`, including across resume;

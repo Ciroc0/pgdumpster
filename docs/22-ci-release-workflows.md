@@ -26,11 +26,11 @@ The earlier validated implementation checkpoint passed the regular CI workflow, 
 
 Earlier GitHub Actions quota exhaustion blocked newly pushed workflow runs before meaningful execution. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. Current candidate commits still require a fresh successful remote CI run before they count as release evidence.
 
-The latest complete local result after hosted restore regression hardening is:
+The latest complete local result after Edge Function source-tree restore hardening is:
 
 - `pnpm check`: **PASS**;
-- **116 test files / 728 tests: PASS**;
-- **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
+- **118 test files / 753 tests: PASS**;
+- **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
 Once quota is available again, the current branch must be rerun through the normal CI matrix before release evidence is considered current.
@@ -47,7 +47,7 @@ This is a **configuration gate**. It must not be documented as a clean static-an
 
 ## Implemented release workflow and remaining gates
 
-`.github/workflows/release.yml` is implemented but intentionally cannot publish from the current development package: it only runs for a `v*` tag and rejects both `package.json.private: true` and `0.0.0-development`. For a valid candidate, it runs frozen install, `pnpm check`, coverage, tag/version/repository-identity validation, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation, clean install/CLI smoke, npm trusted publishing with provenance, GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
+`.github/workflows/release.yml` is implemented but intentionally cannot publish from the current development package: it only runs for a `v*` tag and rejects a private repository, `package.json.private: true`, and `0.0.0-development`. The repository guard is fail-closed: npm provenance and GitHub artifact attestations need public-repository eligibility on the relevant non-Enterprise plans. For a valid candidate, it runs frozen install, `pnpm check`, coverage, tag/version/repository-identity validation, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation, clean install/CLI smoke, npm trusted publishing with provenance, GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
 
 This implementation is not execution evidence. Remaining release gates include:
 
@@ -102,7 +102,7 @@ The implemented release workflow is designed to:
 - verify the package before publish and upload its checksum; the final release procedure must additionally verify the published registry artifact checksum/install;
 - create release notes without secret-bearing artifacts.
 
-Current npm contract note: npm trusted publishing requires npm CLI >= 11.5.1 and Node >= 22.14.0, a GitHub-hosted runner, `id-token: write`, and an exact `package.json.repository.url` match. npm generates package provenance automatically for trusted GitHub publishing only when both repository and package are public. The repository remains private during this development phase, so provenance is a release-time/public-visibility dependency rather than current evidence.
+Current npm contract note: npm trusted publishing requires npm CLI >= 11.5.1 and Node >= 22.14.0, a GitHub-hosted runner, `id-token: write`, and an exact `package.json.repository.url` match. npm generates package provenance automatically for trusted GitHub publishing only when both repository and package are public. GitHub artifact attestations are likewise public-repository-only on GitHub Free, Pro and Team. The repository remains private during this development phase, so provenance/attestation are release-time public-visibility dependencies rather than current evidence.
 
 ## Permissions and artifacts
 

@@ -9,9 +9,9 @@ Snapshot date: **2026-08-16**.
 Latest complete local validation after Edge Function source-tree restore hardening:
 
 - `pnpm check`: **PASS**;
-- test files: **117 passed**;
-- tests: **752 passed**;
-- statements: **94.50%**;
+- test files: **118 passed**;
+- tests: **753 passed**;
+- statements: **94.48%**;
 - branches: **90.02%**;
 - functions: **92.65%**;
 - lines: **95.45%**.
@@ -20,7 +20,7 @@ All independent repository coverage thresholds remain at 90% and pass. No produc
 
 Current official Supabase/OpenAPI, Storage and changelog contract snapshots match. A consumer installation of the generated development `.tgz` passed `--version`, `doctor --help` and `restore --help`; it is local package-smoke evidence, not a public publish/release claim.
 
-A current read-only `npm pack --dry-run --json` audit reports 364 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. The development package remains private; this confirms package contents only and is not publication evidence.
+A current read-only `npm pack --dry-run --json` audit reports 372 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. The development package remains private; this confirms package contents only and is not publication evidence.
 
 GitHub Actions quota is currently exhausted for the account, so newly pushed workflow runs are expected to be blocked by quota until reset. That is not a meaningful remote quality signal for the current branch; local `pnpm check` and `pnpm test:coverage` are the active gates in the meantime. Earlier regular CI passed its quality/test/integration/security and Ubuntu/macOS/Windows Node 22/24 matrix checkpoint.
 

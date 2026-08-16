@@ -62,7 +62,7 @@ async function fixture(): Promise<Fixture> {
     created_at: 100,
     updated_at: 200,
     verify_jwt: false,
-    entrypoint_path: "index.ts",
+    entrypoint_path: "./index.ts",
     import_map_path: null,
   };
   const sourcePath = "functions/hello-world/source/index.ts";

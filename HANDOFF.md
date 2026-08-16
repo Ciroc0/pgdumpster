@@ -15,8 +15,8 @@ This repository is no longer a pre-implementation bootstrap package. It contains
 Latest complete local gate on 2026-08-16 after Edge Function source-tree restore hardening:
 
 - `pnpm check`: **PASS**;
-- **117 test files / 752 tests: PASS**;
-- global coverage: **94.50% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
+- **118 test files / 753 tests: PASS**;
+- global coverage: **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
 - all independent 90% coverage thresholds: **PASS**;
 - all 10 product backup steps have consistency adapters and step-owned partial cleanup;
 - default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;
