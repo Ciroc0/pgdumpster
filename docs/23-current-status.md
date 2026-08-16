@@ -73,7 +73,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. A blocked plan is rejected before target credential/resource discovery; executable plans derive database, Management and privileged Storage credential needs from planned automatic capabilities. The CLI validates all planned handlers and artifacts, then atomically persists the immutable plan, checkpoint and final parity report with restrictive permissions around mutation. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It fails closed for any unimplemented planned component.
 - **Hosted E2E**: disposable-source encrypted backup, offline verify and clean-target restore completed as `restored_with_platform_limits`. Database checks verified account/job counts, enum, RLS, trigger/checksum behavior and Realtime publication after resume recovery. A separate private Storage bucket/object fixture was also restored and directly verified by target API metadata/size. Cloudflare R2 S3 interoperability passed; final release evidence remains pending.
 - **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
-- **Release**: normal CI exists. A local consumer-package smoke now passes. Remaining live-E2E, SBOM, provenance, CI-built publication and final release gates are still required.
+- **Release**: normal CI exists. `.github/workflows/release.yml` is implemented for public npm trusted publishing through GitHub Actions OIDC, CI-built package smoke, CycloneDX SBOM, SHA-256 checksums, GitHub artifact attestation and GitHub Releases. It deliberately rejects the current private `0.0.0-development` package, and has not run for a valid release tag. Current-candidate CI/CodeQL, protected release-candidate E2E, trusted-publisher setup, tag/version/changelog finalization and published-artifact verification remain required.
 
 ## Current CLI surface
 
@@ -126,7 +126,7 @@ Some source APIs only provide observable fingerprints rather than a transactiona
 
 ## Contract/live evidence
 
-The repository contains dated official-contract snapshots and runtime validation for the Management API surfaces used by adapters. Several slices have dedicated live observations, including Edge behavior, but those observations are **not equivalent to the required full hosted E2E**.
+The repository contains dated official-contract snapshots and runtime validation for the Management API surfaces used by adapters. The hosted encrypted backup, offline verification, clean-target database/File Storage restore and applicable semantic-parity observation have passed on disposable projects, with non-exportable hosted surfaces reported as platform limits. This is not equivalent to a protected, tagged release-candidate E2E run.
 
 No documentation should describe the full hosted source-to-target recovery gate as passed until the exact procedure in `docs/10-testing.md` succeeds.
 
@@ -134,10 +134,10 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. provision/reset dedicated hosted source/target fixtures and a configured S3-compatible provider, then run the full live E2E and provider-interoperability validation;
-2. resolve any live E2E gaps without weakening capability, integrity or coverage gates;
-3. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
-4. complete SBOM/provenance/package smoke/release workflow and final documentation/acceptance audit.
+1. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
+2. rerun current-candidate CI and execute the protected hosted E2E for that candidate;
+3. configure npm trusted publishing, finalize version/changelog and run the tagged release workflow;
+4. verify the published artifact, then complete the final documentation/acceptance audit.
 
 ## Definition of done
 

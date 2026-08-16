@@ -2,7 +2,7 @@
 
 This document records both the **current workflow implementation** and the remaining release-workflow requirements.
 
-Status snapshot: **2026-08-15**.
+Status snapshot: **2026-08-16**.
 
 ## Current workflows
 
@@ -24,13 +24,13 @@ The repository currently contains:
 
 The earlier validated implementation checkpoint passed the regular CI workflow, including the OS/Node matrix.
 
-The account's GitHub Actions quota is currently exhausted. Newly pushed workflow runs may therefore be blocked before meaningful execution until the quota resets. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate.
+Earlier GitHub Actions quota exhaustion blocked newly pushed workflow runs before meaningful execution. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. Current candidate commits still require a fresh successful remote CI run before they count as release evidence.
 
-During this period, local `pnpm check` and `pnpm test:coverage` are the active development gates. The latest complete local result after the standard `age` slice is:
+The latest complete local result after hosted restore regression hardening is:
 
 - `pnpm check`: **PASS**;
-- **92 test files / 541 tests: PASS**;
-- **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**;
+- **114 test files / 718 tests: PASS**;
+- **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
 Once quota is available again, the current branch must be rerun through the normal CI matrix before release evidence is considered current.
@@ -45,22 +45,18 @@ The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned a
 
 This is a **configuration gate**. It must not be documented as a clean static-analysis result, and it also must not be misreported as a discovered code vulnerability.
 
-## Missing release workflows/gates
+## Implemented release workflow and remaining gates
 
-The repository does not yet have a completed release-grade live-E2E/publish pipeline. Remaining work includes:
+`.github/workflows/release.yml` is implemented but intentionally cannot publish from the current development package: it only runs for a `v*` tag and rejects both `package.json.private: true` and `0.0.0-development`. For a valid candidate, it runs frozen install, `pnpm check`, coverage, tag/version validation, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation, clean install/CLI smoke, npm trusted publishing with provenance, GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
 
-- current branch CI rerun once Actions quota permits meaningful execution;
-- protected hosted source/target E2E workflow;
-- S3-compatible publication/recovery implementation and release evidence;
-- restore `--apply`/parity implementation and release evidence;
-- release workflow tied to an exact candidate commit/tag;
-- SBOM generation;
-- provenance/attestation where supported;
-- clean package/install smoke verification;
-- publication policy/registry finalization;
-- final CodeQL result publication and finding disposition.
+This implementation is not execution evidence. Remaining release gates include:
 
-The standard local `age` encryption path and S3 publication/recovery are implemented and locally gated. The full encrypted hosted recovery procedure is still pending because final restore parity and live E2E remain incomplete.
+- current-candidate CI, including CodeQL result publication and disposition of any findings;
+- protected hosted source/target E2E workflow for a release candidate;
+- final release candidate version, changelog and registry trusted-publisher configuration;
+- actual tagged workflow execution, including published-artifact checksum/install verification;
+
+The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability are implemented and live-validated. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.
 
 ## Live E2E requirement
 
@@ -83,7 +79,7 @@ Do not upload decrypted bundles, rotation maps, age identity material or live se
 
 ## Release workflow requirements
 
-The eventual release workflow must:
+The implemented release workflow is designed to:
 
 - run from a protected tag/release/candidate commit;
 - require all ordinary CI and security gates green on the same candidate;
@@ -93,7 +89,7 @@ The eventual release workflow must:
 - generate SBOM;
 - generate provenance/attestation where the registry supports it;
 - prefer short-lived trusted publishing/OIDC over long-lived registry tokens;
-- verify the published artifact checksum/install;
+- verify the package before publish and upload its checksum; the final release procedure must additionally verify the published registry artifact checksum/install;
 - create release notes without secret-bearing artifacts.
 
 ## Permissions and artifacts

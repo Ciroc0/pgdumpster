@@ -65,7 +65,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [ ] Complete CLI `restore --apply`: a blocked plan is now rejected before target credential/resource discovery; executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, discover target Storage credentials only when needed, and can bind checkpoint resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create target replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Read-only PgBouncer, backup-schedule and custom-hostname captures are explicit platform limits. Remaining: API/project handlers and hosted semantic-parity evidence.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
-- [ ] Complete SBOM/provenance/package smoke/release workflow and final source-of-truth revalidation.
+- [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
 - [ ] Run the dedicated live managed-Supabase source → encrypted `verified` backup → offline verify → clean-target restore → application smoke tests → semantic parity E2E.
 - [ ] Perform the final `docs/13-acceptance-criteria.md` evidence audit and release only when every applicable item is satisfied.
 
@@ -267,6 +267,6 @@ The earlier regular CI matrix passed on its validated checkpoint. Current Action
 
 ## Next implementation order
 
-1. hosted restore `--apply` + semantic-parity E2E and S3-provider interoperability evidence;
-2. CodeQL/release/SBOM/provenance;
-3. final acceptance audit.
+1. CodeQL result publication and finding disposition;
+2. protected current-candidate CI/live-E2E plus tagged trusted-publishing release workflow;
+3. published-artifact verification and final acceptance audit.

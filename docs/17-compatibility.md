@@ -4,22 +4,22 @@
 
 Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster documents separately what is **supported by policy**, what has been **exercised by CI/local gates**, and what still requires full hosted E2E evidence.
 
-Status snapshot: **2026-08-15**.
+Status snapshot: **2026-08-16**.
 
 ## Runtime matrix
 
 - **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. Earlier GitHub CI checkpoints exercised Node 22 and 24 successfully. The account's current Actions quota is exhausted, so newly pushed commits may be blocked before meaningful execution until reset.
 - **pnpm**: the repository `packageManager` pin is authoritative. Frozen-lockfile installs are part of the CI contract and were exercised on the earlier validated CI checkpoint.
-- **Supabase CLI**: supported policy is `>=2.111.0 <3.0.0`; the development dependency is pinned to `2.111.0`. Fixture/CLI behavior is validated and dedicated live observations also exist for newer 2.x behavior. Full hosted recovery E2E is still pending.
-- **Hosted Supabase**: compatibility is based on dated official Management API/CLI/product contracts. Endpoint-specific fixture/live observations exist; full source-to-target parity is still pending.
-- **PostgreSQL**: the target is a Supabase-managed PostgreSQL version compatible with captured logical state. Database backup/restore primitives are tested; the dedicated hosted projects are PostgreSQL 17 generation. Full source-to-target parity is still pending.
+- **Supabase CLI**: supported policy is `>=2.111.0 <3.0.0`; the development dependency is pinned to `2.111.0`. Fixture/CLI behavior is validated and dedicated live observations also exist for newer 2.x behavior. A disposable hosted recovery has passed with explicit platform limits; a protected release-candidate workflow run remains required.
+- **Hosted Supabase**: compatibility is based on dated official Management API/CLI/product contracts. A disposable source-to-clean-target encrypted backup/restore and applicable database/File Storage parity observation passed with explicit platform limits; this does not certify an eventual release candidate.
+- **PostgreSQL**: the target is a Supabase-managed PostgreSQL version compatible with captured logical state. Database backup/restore primitives are tested; the dedicated hosted projects are PostgreSQL 17 generation, and the applicable fixture parity checks passed after restore.
 - **Ubuntu**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
 - **macOS**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
 - **Windows**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24; development also exercises Windows/Docker Desktop. The standard `age` publication path was specifically exercised locally on Windows, including the writable-descriptor durability path required before `fsync`.
 - **`age`**: standard `age` recipient encryption/decryption is implemented for local archive publication/input. Tooling is detected by `doctor`; runtime operations also fail through the dependency error domain when the executable cannot be started.
-- **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Real AWS/R2/MinIO interoperability remains unverified.
+- **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Scoped Cloudflare R2 interoperability passed encrypted publication, completion-marker, materialization and offline verification. AWS and MinIO have not been exercised.
 
-The latest complete local gate after the standard `age` slice is `pnpm check` plus `pnpm test:coverage` with **92 test files / 541 tests passing** and **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**. That local result does not replace cross-platform CI evidence, and the earlier OS matrix does not replace the platform-independent hosted Supabase recovery E2E.
+The latest complete local gate after live-restore regression hardening is `pnpm check` plus `pnpm test:coverage` with **114 test files / 718 tests passing** and **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**. That local result does not replace current-candidate cross-platform CI evidence, and the earlier OS matrix plus disposable hosted observation do not replace a protected release-candidate E2E.
 
 ## Management API contracts
 
@@ -35,7 +35,7 @@ Use these terms precisely:
 - **live-observed**: a specific endpoint/CLI behavior was observed against a dedicated hosted test project;
 - **live-E2E validated**: the complete source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure passed.
 
-The repository currently has fixture-tested and selected live-observed surfaces. It must **not** describe the overall product as live-E2E validated yet.
+The repository has fixture-tested surfaces, selected live observations and a disposable source-to-clean-target recovery observation. It must **not** describe the overall product or a release candidate as live-E2E validated until the protected release procedure succeeds.
 
 ## Bundle compatibility
 
@@ -89,7 +89,7 @@ Adapters fail closed on source-contract shapes or cleanup conditions that would 
 
 Standard local `age` publication/input is implemented. Current behavior requires a recipient for encrypted backup and an identity-file path reference for encrypted input. Private identity contents are not normal CLI arguments.
 
-S3-compatible publication remains a binding release requirement and is deliberately blocked until streaming/multipart publication, completion semantics, remote integrity verification and interruption recovery have implementation/test evidence.
+S3-compatible publication is implemented with streaming/multipart publication, completion semantics, remote integrity verification and interruption-recovery coverage. Cloudflare R2 is the exercised provider; a release candidate still requires its protected E2E and release workflow gates.
 
 ## Deprecation
 
