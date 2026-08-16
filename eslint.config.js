@@ -9,6 +9,8 @@ export default tseslint.config(
       "dist/**",
       "eslint.config.js",
       "node_modules/**",
+      // Supabase Edge fixtures run in Deno, not this Node TypeScript project.
+      "supabase/**",
     ],
   },
   eslint.configs.recommended,

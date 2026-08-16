@@ -214,7 +214,7 @@ describe("restore capability boundary", () => {
     expect(plan.status).toBe("blocked");
   });
 
-  it("propagates the product capability limit through supported dependents", async () => {
+  it("keeps deployable Edge Functions independent of manual secret substitution", async () => {
     const plan = await planFor(["edge.secrets", "edge.functions"]);
 
     expect(
@@ -226,8 +226,7 @@ describe("restore capability boundary", () => {
     expect(
       plan.actions.find(({ component }) => component === "edge.functions"),
     ).toMatchObject({
-      status: "blocked_platform_limit",
-      reasonCode: "dependency_platform_limit",
+      status: "planned",
     });
   });
 

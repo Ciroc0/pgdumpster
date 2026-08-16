@@ -21,6 +21,7 @@ import pg from "pg";
 import { z } from "zod";
 
 const MAX_COMMAND_OUTPUT_BYTES = 65_536;
+const edgeFunctionSlug = "pgdumpster-e2e-edge";
 const projectRefPattern = /^[a-z0-9]{20}$/u;
 let currentStage = "configuration";
 const restoreArtifactNamePattern =
@@ -92,6 +93,10 @@ const authAdminCreateSchema = z.union([
 const authPasswordTokenSchema = z
   .object({ access_token: z.string().min(1), user: authUserSchema })
   .passthrough();
+const edgeSmokeSchema = z.object({
+  type: z.literal("pgdumpster-e2e-edge"),
+  schemaVersion: z.literal(1),
+});
 const paritySchema = z.object({
   status: z.enum(["restored", "restored_with_platform_limits"]),
   actions: z
@@ -249,6 +254,38 @@ async function supabaseQuery(database, args, environment) {
   return command("pnpm", pnpmArguments, environment);
 }
 
+/** @param {string} projectRef @param {NodeJS.ProcessEnv} environment */
+async function deployEdgeFixture(projectRef, environment) {
+  const arguments_ = [
+    "exec",
+    "supabase",
+    "functions",
+    "deploy",
+    edgeFunctionSlug,
+    "--project-ref",
+    projectRef,
+    "--use-api",
+    "--no-verify-jwt",
+  ];
+  if (process.platform === "win32") {
+    const pnpmEntrypoint = path.join(
+      process.env.APPDATA ?? "",
+      "npm",
+      "node_modules",
+      "pnpm",
+      "bin",
+      "pnpm.cjs",
+    );
+    await command(
+      process.execPath,
+      [pnpmEntrypoint, ...arguments_],
+      environment,
+    );
+    return;
+  }
+  await command("pnpm", arguments_, environment);
+}
+
 /** @param {string} database */
 async function seedFixture(database) {
   const fixture = await readFile("scripts/live-e2e-fixture.sql", "utf8");
@@ -322,6 +359,11 @@ function authPasswordTokenUrl(projectRef) {
   return `https://${projectRef}.supabase.co/auth/v1/token?grant_type=password`;
 }
 
+/** @param {string} projectRef */
+function edgeFunctionUrl(projectRef) {
+  return `https://${projectRef}.supabase.co/functions/v1/${edgeFunctionSlug}`;
+}
+
 /** @param {string} key */
 function privilegedApiHeaders(key) {
   return { authorization: `Bearer ${key}`, apikey: key };
@@ -369,6 +411,16 @@ async function assertAuthPasswordLogin(projectRef, key, user) {
     throw new Error(
       "Auth password smoke user does not match the source fixture.",
     );
+}
+
+/** @param {string} projectRef @param {string} key */
+async function assertEdgeFunctionInvocation(projectRef, key) {
+  const response = await globalThis.fetch(edgeFunctionUrl(projectRef), {
+    headers: privilegedApiHeaders(key),
+  });
+  if (!response.ok)
+    throw new Error("Edge Function smoke could not be invoked.");
+  edgeSmokeSchema.parse(await responseJson(response));
 }
 
 /** @param {string} directory @returns {Promise<Set<string>>} */
@@ -462,6 +514,8 @@ async function main() {
       sourceProjectRef,
       sourceStorageKey,
     );
+    currentStage = "source Edge Function deployment";
+    await deployEdgeFixture(sourceProjectRef, environment);
     currentStage = "source doctor";
     const doctor = lastJson(
       (
@@ -643,6 +697,8 @@ async function main() {
       targetStorageKey,
       authFixtureUser,
     );
+    currentStage = "Edge Function smoke";
+    await assertEdgeFunctionInvocation(targetProjectRef, targetStorageKey);
 
     const report = {
       schemaVersion: 1,
@@ -658,6 +714,7 @@ async function main() {
       databaseSmoke: "matched",
       storageSmoke: "matched",
       authSmoke: "matched",
+      edgeFunctionSmoke: "matched",
       manualActions: Array.isArray(restore.manualActions)
         ? restore.manualActions.map(({ component, reasonCode }) => ({
             component,

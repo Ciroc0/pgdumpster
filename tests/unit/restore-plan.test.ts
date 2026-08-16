@@ -162,7 +162,7 @@ describe("restore planning", () => {
     ).toMatchObject({ risk: "inspection" });
   });
 
-  it("propagates non-exportable prerequisites so dependent work is manual instead of executor-invalid", async () => {
+  it("keeps deployable functions planned when custom secret substitution is manual", async () => {
     const { manifest, coverage } = await source();
     const edgeSecrets = coverage.components.find(
       ({ id }) => id === "edge.secrets",
@@ -197,15 +197,15 @@ describe("restore planning", () => {
     expect(
       plan.actions.find(({ component }) => component === "edge.functions"),
     ).toMatchObject({
-      status: "blocked_platform_limit",
-      risk: "manual",
-      fidelity: "manual",
-      reasonCode: "dependency_platform_limit",
+      status: "planned",
+      risk: "mutation",
+      fidelity: "semantic",
     });
     expect(
-      plan.manualActions.find(({ component }) => component === "edge.functions")
-        ?.message,
-    ).toContain("edge.secrets");
+      plan.manualActions.find(
+        ({ component }) => component === "edge.functions",
+      ),
+    ).toBeUndefined();
   });
 
   it("refuses an in-place target", async () => {
