@@ -15,6 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, URL } from "node:url";
 
 import { StorageClient } from "@supabase/storage-js";
@@ -22,6 +23,8 @@ import pg from "pg";
 import { z } from "zod";
 
 const MAX_COMMAND_OUTPUT_BYTES = 65_536;
+const TARGET_STORAGE_DELETE_ATTEMPTS = 20;
+const TARGET_STORAGE_DELETE_RETRY_DELAY_MS = 500;
 const edgeFunctionSlug = "pgdumpster-e2e-edge";
 const projectRefPattern = /^[a-z0-9]{20}$/u;
 let currentStage = "configuration";
@@ -342,6 +345,14 @@ function resetTargetRequested(value) {
   throw new Error("Live E2E target reset opt-in is invalid.");
 }
 
+/** @param {{ status?: unknown; statusCode?: unknown }} error */
+function storageErrorSummary(error) {
+  const status = typeof error.status === "number" ? error.status : "unknown";
+  const code =
+    typeof error.statusCode === "string" ? error.statusCode : "unknown";
+  return `HTTP ${status}, Storage code ${code}`;
+}
+
 /** @param {string} database */
 async function removeTargetFixtureDatabaseState(database) {
   const client = new pg.Client({ connectionString: database });
@@ -369,10 +380,23 @@ async function removeTargetStorage(projectRef, storageKey) {
   for (const bucket of buckets) {
     const emptied = await client.emptyBucket(bucket.id);
     if (emptied.error)
-      throw new Error("Target Storage bucket could not be emptied.");
-    const deleted = await client.deleteBucket(bucket.id);
-    if (deleted.error)
-      throw new Error("Target Storage bucket could not be deleted.");
+      throw new Error(
+        `Target Storage bucket could not be emptied (${storageErrorSummary(emptied.error)}).`,
+      );
+    for (let attempt = 1; attempt <= TARGET_STORAGE_DELETE_ATTEMPTS; attempt += 1) {
+      const deleted = await client.deleteBucket(bucket.id);
+      if (!deleted.error) break;
+      if (
+        deleted.error.status === 400 &&
+        attempt < TARGET_STORAGE_DELETE_ATTEMPTS
+      ) {
+        await delay(TARGET_STORAGE_DELETE_RETRY_DELAY_MS);
+        continue;
+      }
+      throw new Error(
+        `Target Storage bucket could not be deleted (${storageErrorSummary(deleted.error)}).`,
+      );
+    }
   }
 }
 

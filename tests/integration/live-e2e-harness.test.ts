@@ -54,6 +54,15 @@ describe("live E2E harness", () => {
     expect(harness).toContain("count(*)::integer from pgdumpster_e2e.accounts");
   });
 
+  it("waits for Supabase Storage emptying before deleting a disposable bucket", async () => {
+    const harness = await readFile("scripts/live-e2e.mjs", "utf8");
+
+    expect(harness).toContain("TARGET_STORAGE_DELETE_ATTEMPTS = 20");
+    expect(harness).toContain("TARGET_STORAGE_DELETE_RETRY_DELAY_MS = 500");
+    expect(harness).toContain("deleted.error.status === 400");
+    expect(harness).toContain("storageErrorSummary(deleted.error)");
+  });
+
   it("maps the protected access token to the non-interactive Supabase CLI contract", async () => {
     const harness = await readFile("scripts/live-e2e.mjs", "utf8");
 
