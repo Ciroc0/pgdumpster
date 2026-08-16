@@ -29,11 +29,11 @@ Current branch snapshot as of 2026-08-16:
 - encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`;
 - plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
 - S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2;
-- latest local validation: **118 test files / 754 tests, PASS**;
-- current global coverage is **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**, with all independent 90% thresholds passing;
+- latest local validation: **118 test files / 755 tests, PASS**;
+- current global coverage is **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**, with all independent 90% thresholds passing;
 - earlier GitHub CI quality/test/integration/security/OS-matrix evidence passed, but the GitHub Actions quota remains exhausted, so current-candidate remote CI cannot provide a meaningful branch-quality signal. This is not a code failure;
 - CodeQL analysis has previously run to SARIF generation, but result publication/status is blocked by repository code-scanning configuration/access;
-- disposable hosted source → encrypted backup → offline verify → clean-target restore has passed with applicable database semantic parity and direct private File Storage verification; the mandatory protected release-candidate E2E has **not** passed yet.
+- disposable hosted source → encrypted backup → offline verify → clean-target restore has passed with database, private File Storage, Auth password-login and Edge Function invocation parity; the mandatory protected release-candidate E2E has **not** passed yet.
 
 The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
 
