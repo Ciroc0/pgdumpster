@@ -22,12 +22,12 @@ The repository currently contains:
 - `test-security` - archive/secret guards plus production dependency audit;
 - `test-os` - Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
 
-The frozen `0.1.0` candidate SHA `761fdb16864528ae641c82c8b08bc33139a40c4c` passed the whole regular CI workflow on 2026-08-16: [run `31971524896`](https://github.com/Ciroc0/pgdumpster/actions/runs/31971524896). It is exact-SHA evidence for that candidate only; any newer candidate must rerun it.
+The preceding candidate SHA `0197c4f65f4f020adf3c814d6251fdf494514ee2` passed the whole regular CI workflow on 2026-08-16: [run `31976965121`](https://github.com/Ciroc0/pgdumpster/actions/runs/31976965121). It is exact-SHA evidence for that candidate only; the current `0.1.1` candidate must rerun it.
 
 The latest complete local result after Edge Function source-tree restore hardening is:
 
 - `pnpm check`: **PASS**;
-- **118 test files / 755 tests: PASS**;
+- **118 test files / 760 tests: PASS**;
 - **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
@@ -39,18 +39,17 @@ A dedicated contract-drift workflow exists and remains part of the platform sour
 
 ### CodeQL
 
-The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. It completed successfully for candidate SHA `761fdb16864528ae641c82c8b08bc33139a40c4c` on 2026-08-16: [run `31971524917`](https://github.com/Ciroc0/pgdumpster/actions/runs/31971524917). The public code-scanning API reported zero open alerts after that run. A newer candidate must repeat this check.
+The CodeQL workflow initializes and analyzes JavaScript/TypeScript with pinned actions and `security-events: write` permission. It completed successfully for preceding candidate SHA `0197c4f65f4f020adf3c814d6251fdf494514ee2` on 2026-08-16: [run `31976965125`](https://github.com/Ciroc0/pgdumpster/actions/runs/31976965125). A newer candidate must repeat this check.
 
 ## Implemented release workflow and remaining gates
 
-`.github/workflows/release.yml` is implemented but intentionally cannot publish until a valid `v*` tag targets a public-repository SemVer candidate. The repository guard is fail-closed: npm provenance and GitHub artifact attestations need public-repository eligibility on the relevant non-Enterprise plans. Before any publish it verifies `vX.Y.Z === package.json.version`, fetches `origin/main` and requires the release SHA to be contained there. It then uses the GitHub Actions API to require successful `CI`, `CodeQL` and `Live hosted E2E` workflow runs with `head_sha === GITHUB_SHA`; success on an older or different commit is rejected. For a valid candidate, it runs frozen install, `pnpm check`, coverage, CI-built `npm pack`, SHA-256 checksums, CycloneDX SBOM generation and a local tarball install/CLI smoke before trusted npm publishing. After publish it downloads the exact package version from npm, verifies registry/downloaded SHA-512 integrity and package identity against the CI-built tarball, performs a fresh registry install and repeats the CLI smoke. It then creates GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
+`.github/workflows/release.yml` is implemented but intentionally cannot publish until a valid `v*` tag targets a public-repository SemVer candidate. The repository guard is fail-closed: npm provenance and GitHub artifact attestations need public-repository eligibility on the relevant non-Enterprise plans. Before any publish it verifies `vX.Y.Z === package.json.version`, fetches `origin/main` and requires the release SHA to be contained there. It then uses the GitHub Actions API to require successful `CI`, `CodeQL` and `Live hosted E2E` workflow runs with `head_sha === GITHUB_SHA`; success on an older or different commit is rejected. For a valid candidate, it runs frozen install, `pnpm check`, coverage, CI-built `npm pack`, SHA-256 checksums, a CycloneDX SBOM from a fresh production install of that tarball, and a local tarball install/CLI smoke before publishing. After publish it downloads the exact package version from npm, verifies registry/downloaded SHA-512 integrity and package identity against the CI-built tarball, performs a fresh registry install and repeats the CLI smoke. It then creates GitHub artifact attestation and a GitHub Release containing the package, checksums and SBOM.
 
 This implementation is not execution evidence. Remaining release gates include:
 
-- current-candidate CI, including CodeQL result publication and disposition of any findings;
-- protected hosted source/target E2E workflow for a release candidate;
+- current `0.1.1` candidate CI, CodeQL, contract drift and protected hosted source/target E2E;
 - public non-development SemVer candidate, changelog and compatibility/current-contract review. Because npm cannot configure a trusted publisher before a package exists, the first publish uses a short-lived package-scoped `NPM_TOKEN` secret; immediately afterward the trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed, and the token secret/workflow mapping must be removed;
-- actual tagged workflow execution, including same-SHA CI/CodeQL/protected-E2E evidence and published-artifact checksum/install verification;
+- actual `v0.1.1` tagged workflow execution, including same-SHA CI/CodeQL/protected-E2E evidence and published-artifact checksum/install verification. `v0.1.0` failed before `npm publish` in its SBOM step and is not a published package;
 
 The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability/performance are implemented and live-validated. Comparative provider fault/load testing is optional confidence work, not a release gate. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.
 

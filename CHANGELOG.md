@@ -6,6 +6,12 @@ The format follows Keep a Changelog principles and the project uses Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-17
+
+### Fixed
+
+- Generate the release CycloneDX SBOM from a fresh production consumer installation of the packed tarball. This avoids treating pnpm's workspace layout as npm's dependency tree and keeps the SBOM tied to the publishable artifact.
+
 ## [0.1.0] - 2026-08-16
 
 ### Added

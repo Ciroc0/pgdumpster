@@ -131,6 +131,10 @@ Protected release flow:
 8. let that workflow download and integrity-verify the published package, then fresh-install it;
 9. let that workflow smoke `pgdumpster --version`, `doctor --help`, `backup --help`, `restore --help`.
 
+If a tagged attempt fails before `npm publish`, do not move or reuse the tag.
+Cut a new SemVer candidate, repeat the exact-SHA evidence gates, and tag that
+new commit. A failed tag is not registry-publication evidence.
+
 No release from uncommitted local state.
 
 ## Dependency policy

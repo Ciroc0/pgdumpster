@@ -1,6 +1,6 @@
 {
   "name": "pgdumpster",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Backup, inspect, verify, and restore hosted Supabase projects without silent coverage gaps.",
   "type": "module",
   "private": false,

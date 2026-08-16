@@ -205,6 +205,10 @@ No entry may escape extraction root.
 
 This is a **release blocker**.
 
+The protected GitHub Environment execution passed for the preceding candidate
+SHA. It remains a release blocker for each newer candidate because the release
+workflow requires a successful run whose `head_sha` is exactly the tagged SHA.
+
 Maintain dedicated disposable source and target projects.
 
 Seed the source with representative data:
