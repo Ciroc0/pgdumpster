@@ -164,7 +164,7 @@ PGDUMPSTER_TARGET_PROJECT_REF=
 PGDUMPSTER_TARGET_DB_URL=
 ```
 
-S3 publication uses the configured credential source and does not claim provider interoperability until a real provider run has passed.
+S3 publication uses the configured credential source. A scoped Cloudflare R2 run passed encrypted publication, completion-marker, materialization and offline verification; other S3-compatible providers remain unexercised.
 
 ## Configuration file
 
@@ -173,7 +173,7 @@ The current config schema supports backup concurrency/consistency settings plus 
 Current runtime truth:
 
 - `destination.type: local` is implemented;
-- `destination.type: s3` is implemented for configured S3-compatible endpoints; provider interoperability remains a live validation gate;
+- `destination.type: s3` is implemented for configured S3-compatible endpoints; Cloudflare R2 interoperability is live-observed, while other providers remain a release-evidence consideration;
 - `encryption.mode: none` is implemented with explicit plaintext-secret opt-in;
 - `encryption.mode: age` is implemented for local encrypted publication;
 - `encryption.recipient` is required for encrypted backup;

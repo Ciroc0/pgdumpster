@@ -22,7 +22,7 @@ pgDumpster targets one **hosted Supabase Platform project** at a time and accoun
 - local disk capacity for the working bundle;
 - `age` executable on `PATH` when encrypted output/input is used.
 
-S3-compatible publication is supported when `destination.type: s3` is configured. The repository has local fault-injection coverage, but no live provider interoperability claim.
+S3-compatible publication is supported when `destination.type: s3` is configured. Local fault-injection coverage and one scoped Cloudflare R2 interoperability run passed encrypted publication, completion-marker, materialization and offline verification. This is provider-specific evidence, not a claim for every S3-compatible service.
 
 ## Source development install
 
