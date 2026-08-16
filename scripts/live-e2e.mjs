@@ -76,6 +76,17 @@ const storageObjectsSchema = z
   .passthrough();
 const paritySchema = z.object({
   status: z.enum(["restored", "restored_with_platform_limits"]),
+  actions: z
+    .array(
+      z
+        .object({
+          component: z.string().min(1),
+          outcome: z.enum(["verified", "platform_limit", "skipped"]),
+          planStatus: z.enum(["planned", "blocked_platform_limit", "skipped"]),
+        })
+        .passthrough(),
+    )
+    .min(1),
   manualActions: z.array(
     z.object({ component: z.string(), reasonCode: z.string() }),
   ),
@@ -465,6 +476,14 @@ async function main() {
       parity.manualActions.length !== (restore.manualActions?.length ?? 0)
     )
       throw new Error("Restore parity report does not match the apply result.");
+    const unverifiedPlannedActions = parity.actions.filter(
+      (action) =>
+        action.planStatus === "planned" && action.outcome !== "verified",
+    );
+    if (unverifiedPlannedActions.length > 0)
+      throw new Error(
+        "Restore parity report contains an unverified planned action.",
+      );
 
     const smokeSql =
       "select (select count(*) from pgdumpster_e2e.accounts) as accounts, (select count(*) from pgdumpster_e2e.jobs) as jobs, (select count(*) from pgdumpster_e2e.jobs where checksum = encode(digest(payload::text, 'sha256'), 'hex')) as valid_checksums, (select count(*) from pg_policies where schemaname = 'pgdumpster_e2e') as rls_policies, (select count(*) from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'pgdumpster_e2e' and tablename = 'jobs') as realtime_membership, (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pgdumpster_e2e' and c.relname = 'jobs' and not t.tgisinternal) as user_triggers";
@@ -531,6 +550,9 @@ async function main() {
       restoreStatus: restore.status,
       parityStatus: parity.status,
       coverageComponents: coverage.components.length,
+      verifiedRestoreActions: parity.actions.filter(
+        (action) => action.planStatus === "planned",
+      ).length,
       databaseSmoke: "matched",
       storageSmoke: "matched",
       manualActions: Array.isArray(restore.manualActions)
