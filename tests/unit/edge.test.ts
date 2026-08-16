@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -11,10 +13,16 @@ import { captureEdgeState } from "../../src/supabase/management/edge.js";
 
 interface FixtureOptions {
   empty?: boolean;
-  invalidContentType?: boolean;
-  missingContentType?: boolean;
   drift?: boolean;
   nullImportMapPath?: boolean;
+  downloadFails?: boolean;
+  downloadThrows?: boolean;
+  emptyDownload?: boolean;
+  missingDownloadedTree?: boolean;
+  missingCli?: boolean;
+  downloadedTreeFile?: boolean;
+  nestedDownload?: boolean;
+  caseCollision?: boolean;
 }
 
 const functionMetadata = {
@@ -44,10 +52,18 @@ function fixtureFetch(options: FixtureOptions = {}): typeof fetch {
     ...functionMetadata,
     ...(options.nullImportMapPath ? { import_map_path: null } : {}),
   };
-  return vi.fn<typeof fetch>((input, init) => {
+  return vi.fn<typeof fetch>((input) => {
     const url = requestUrl(input);
     if (url.endsWith("/functions")) {
-      return Promise.resolve(Response.json(options.empty ? [] : [metadata]));
+      return Promise.resolve(
+        Response.json(
+          options.empty
+            ? []
+            : options.caseCollision
+              ? [metadata, { ...metadata, id: "second", slug: "HELLO-WORLD" }]
+              : [metadata],
+        ),
+      );
     }
     if (url.endsWith("/secrets")) {
       return Promise.resolve(
@@ -62,22 +78,6 @@ function fixtureFetch(options: FixtureOptions = {}): typeof fetch {
                 },
               ],
         ),
-      );
-    }
-    if (url.endsWith("/functions/hello-world/body")) {
-      expect(new Headers(init?.headers).get("accept")).toBe(
-        "multipart/form-data",
-      );
-      return Promise.resolve(
-        new Response(new TextEncoder().encode("multipart-body"), {
-          headers: options.missingContentType
-            ? {}
-            : {
-                "content-type": options.invalidContentType
-                  ? "application/json"
-                  : "multipart/form-data; boundary=fixture-boundary",
-              },
-        }),
       );
     }
     if (url.endsWith("/functions/hello-world")) {
@@ -137,13 +137,56 @@ async function capture(options: FixtureOptions = {}) {
     "abcdefghijklmnopqrst",
     protectedSink,
     artifactSink,
-    { maxConcurrency: 2 },
+    {
+      maxConcurrency: 2,
+      accessToken: new SecretValue("management-token", redactor),
+      sourceTreeDependencies: {
+        resolveSupabaseCommand: () => {
+          if (options.missingCli) return Promise.reject(new Error("missing"));
+          return Promise.resolve({ command: "supabase-test", prefixArgs: [] });
+        },
+        runProcess: async (_command, args) => {
+          if (options.downloadFails)
+            return { exitCode: 1, stdout: "", stderr: "" };
+          if (options.downloadThrows) throw new Error("unavailable");
+          if (options.missingDownloadedTree)
+            return { exitCode: 0, stdout: "", stderr: "" };
+          const workdir = args[args.indexOf("--workdir") + 1]!;
+          const source = path.join(
+            workdir,
+            "supabase",
+            "functions",
+            "hello-world",
+          );
+          if (options.downloadedTreeFile) {
+            await mkdir(path.dirname(source), { recursive: true });
+            await writeFile(source, "not a directory");
+            return { exitCode: 0, stdout: "", stderr: "" };
+          }
+          await mkdir(source, { recursive: true });
+          if (options.emptyDownload)
+            return { exitCode: 0, stdout: "", stderr: "" };
+          await writeFile(
+            path.join(source, "index.ts"),
+            "Deno.serve(() => new Response('ok'));\n",
+          );
+          if (options.nestedDownload) {
+            await mkdir(path.join(source, "lib"), { recursive: true });
+            await writeFile(
+              path.join(source, "lib", "helper.ts"),
+              "export {};\n",
+            );
+          }
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+      },
+    },
   );
   return { ordinary, protectedWrites, result };
 }
 
 describe("Edge state capture", () => {
-  it("captures exact exposed multipart bytes as backed up", async () => {
+  it("captures CLI-downloaded deployable source as backed up", async () => {
     const { ordinary, protectedWrites, result } = await capture();
     expect(result.coverage.map(({ id, status }) => ({ id, status }))).toEqual([
       { id: "edge.functions", status: "backed_up" },
@@ -153,7 +196,7 @@ describe("Edge state capture", () => {
       expect.objectContaining({
         slug: "hello-world",
         status: "backed_up",
-        bytes: 14,
+        bytes: 38,
       }),
     ]);
     expect(result.coverage[1]?.children).toEqual([
@@ -164,7 +207,7 @@ describe("Edge state capture", () => {
     ]);
     expect(JSON.stringify(result.coverage)).not.toContain("digest-canary");
     expect(ordinary.map(({ path }) => path)).toEqual([
-      "functions/hello-world/source.multipart",
+      "functions/hello-world/source/index.ts",
       "functions/index.json",
     ]);
     expect(protectedWrites).toEqual([
@@ -182,25 +225,67 @@ describe("Edge state capture", () => {
     expect(ordinary.map(({ path }) => path)).toEqual(["functions/index.json"]);
   });
 
-  it("fails closed on a non-multipart body response", async () => {
-    await expect(capture({ invalidContentType: true })).rejects.toMatchObject({
-      code: "PLATFORM_API_CONTRACT_CHANGED",
+  it("fails closed when the CLI source download fails", async () => {
+    await expect(capture({ downloadFails: true })).rejects.toMatchObject({
+      code: "EDGE_FUNCTION_SOURCE_DOWNLOAD_FAILED",
       component: "edge.functions",
     });
   });
 
-  it("fails closed when the deployed body omits its content type", async () => {
-    await expect(capture({ missingContentType: true })).rejects.toMatchObject({
-      code: "PLATFORM_API_CONTRACT_CHANGED",
-      component: "edge.functions",
-    });
-  });
+  it.each([
+    [
+      "is unavailable",
+      { missingCli: true },
+      "EDGE_FUNCTION_SOURCE_DOWNLOAD_DEPENDENCY_MISSING",
+    ],
+    [
+      "throws",
+      { downloadThrows: true },
+      "EDGE_FUNCTION_SOURCE_DOWNLOAD_FAILED",
+    ],
+    [
+      "omits the source tree",
+      { missingDownloadedTree: true },
+      "EDGE_FUNCTION_SOURCE_TREE_INVALID",
+    ],
+    [
+      "returns an empty source tree",
+      { emptyDownload: true },
+      "EDGE_FUNCTION_SOURCE_TREE_INVALID",
+    ],
+    [
+      "returns a file instead of a source tree",
+      { downloadedTreeFile: true },
+      "EDGE_FUNCTION_SOURCE_TREE_INVALID",
+    ],
+  ] as const)(
+    "fails closed when source download %s",
+    async (_label, options, code) => {
+      await expect(capture(options)).rejects.toMatchObject({ code });
+    },
+  );
 
-  it("detects a function version change around the body stream", async () => {
+  it("detects a function version change around source download", async () => {
     await expect(capture({ drift: true })).rejects.toMatchObject({
       code: "BACKUP_SOURCE_DRIFT_DETECTED",
       category: "consistency",
       retryable: true,
+    });
+  });
+
+  it("captures nested downloaded source files with stable safe paths", async () => {
+    const { ordinary } = await capture({ nestedDownload: true });
+    expect(ordinary.map(({ path }) => path)).toEqual([
+      "functions/hello-world/source/index.ts",
+      "functions/hello-world/source/lib/helper.ts",
+      "functions/index.json",
+    ]);
+  });
+
+  it("rejects Edge Function names that collide on a case-insensitive filesystem", async () => {
+    await expect(capture({ caseCollision: true })).rejects.toMatchObject({
+      code: "EDGE_FUNCTION_SOURCE_TREE_INVALID",
+      category: "security",
     });
   });
 

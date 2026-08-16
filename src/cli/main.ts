@@ -42,7 +42,7 @@ import { createVaultRootKeyRestoreHandler } from "../core/restore/vault-root-key
 import { createControlPlaneRestoreHandlers } from "../core/restore/control-plane-handler.js";
 import { createFileStorageRestoreHandlers } from "../core/restore/file-storage-handlers.js";
 import { createVectorStorageRestoreHandlers } from "../core/restore/vector-storage-handlers.js";
-import { createEdgeFunctionRestoreHandler } from "../core/restore/edge-function-handler.js";
+import { createEdgeSourceTreeRestoreHandler } from "../core/restore/edge-source-tree-handler.js";
 import { createAuthConfigRestoreHandler } from "../core/restore/auth-config-handler.js";
 import { createApiKeyRestoreHandler } from "../core/restore/api-key-handler.js";
 import { createLegacyApiKeyRestoreHandler } from "../core/restore/legacy-api-key-handler.js";
@@ -664,6 +664,7 @@ export async function runCli(
         startedAt,
         consistency,
         management,
+        managementAccessToken: source.accessToken,
         redactor,
         ...(databaseUrl === undefined ? {} : { databaseUrl }),
         ...(args.linked ? { linked: true } : {}),
@@ -879,7 +880,7 @@ export async function runCli(
                     conflictPolicy: args.conflictPolicy,
                     client: management,
                   }),
-                  "edge.functions": createEdgeFunctionRestoreHandler({
+                  "edge.functions": createEdgeSourceTreeRestoreHandler({
                     bundleRoot: bundle.root,
                     targetProjectRef,
                     accessToken: target!.accessToken,

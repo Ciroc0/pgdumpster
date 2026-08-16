@@ -20,7 +20,7 @@ import {
 import { createControlPlaneRestoreHandlers } from "../../src/core/restore/control-plane-handler.js";
 import { createDatabaseRestoreHandlers } from "../../src/core/restore/database-handlers.js";
 import { createDatabaseSupplementRestoreHandlers } from "../../src/core/restore/database-supplement-handlers.js";
-import { createEdgeFunctionRestoreHandler } from "../../src/core/restore/edge-function-handler.js";
+import { createEdgeSourceTreeRestoreHandler } from "../../src/core/restore/edge-source-tree-handler.js";
 import { createFileStorageRestoreHandlers } from "../../src/core/restore/file-storage-handlers.js";
 import { createLegacyApiKeyRestoreHandler } from "../../src/core/restore/legacy-api-key-handler.js";
 import { buildRestorePlan } from "../../src/core/restore/plan.js";
@@ -141,7 +141,7 @@ function constructedHandlers() {
       storageKey,
       conflictPolicy,
     }),
-    "edge.functions": createEdgeFunctionRestoreHandler({
+    "edge.functions": createEdgeSourceTreeRestoreHandler({
       bundleRoot,
       targetProjectRef,
       accessToken,
@@ -214,7 +214,7 @@ describe("restore capability boundary", () => {
     expect(plan.status).toBe("blocked");
   });
 
-  it("classifies Edge Functions as manual when no deployable source adapter exists", async () => {
+  it("keeps source-tree-backed Edge Functions automatic while secrets remain manual", async () => {
     const plan = await planFor(["edge.secrets", "edge.functions"]);
 
     expect(
@@ -226,8 +226,7 @@ describe("restore capability boundary", () => {
     expect(
       plan.actions.find(({ component }) => component === "edge.functions"),
     ).toMatchObject({
-      status: "blocked_platform_limit",
-      reasonCode: "automatic_restore_not_supported",
+      status: "planned",
     });
   });
 
@@ -286,6 +285,7 @@ describe("restore capability boundary", () => {
       "storage.vector_buckets",
       "storage.vector_indexes",
       "storage.vectors",
+      "edge.functions",
       "auth.config",
       "auth.sso",
       "auth.tpa",
@@ -311,6 +311,6 @@ describe("restore capability boundary", () => {
       .sort();
 
     expect(missing).toEqual([]);
-    expect(dormant).toEqual(["database.vault_data", "edge.functions"]);
+    expect(dormant).toEqual(["database.vault_data"]);
   });
 });

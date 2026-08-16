@@ -118,7 +118,7 @@ Restore supported secret values/substitutions before dependent functions and nev
 
 ### 14. Edge Functions
 
-The Management API's captured deployed body is not a deployable source-tree input: a live probe was rejected for missing deployment metadata/entrypoint material. Until pgDumpster safely archives a CLI-downloaded source tree and deploys it through the supported CLI route, classify `edge.functions` as a manual action before target mutation. Do not claim recovery of original Git repository artifacts that the platform did not expose.
+The Management API's captured deployed body is not a deployable source-tree input: a live probe was rejected for missing deployment metadata/entrypoint material. pgDumpster therefore captures the Supabase CLI `functions download --use-api` source tree, validates every regular file/checksum/path, reconstructs an isolated `supabase/` workdir with per-function `config.toml`, and deploys through `functions deploy --use-api`. Target semantic metadata/inventory is then verified. This is not a claim to recover original Git repository artifacts that Supabase did not expose. A current managed-project source-to-target proof remains required.
 
 ### 15. Auth configuration
 

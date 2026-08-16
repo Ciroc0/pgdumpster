@@ -77,6 +77,7 @@ export interface ProductBackupOptions {
   startedAt: string;
   consistency: "verified" | "best-effort" | "quiesced";
   management: ManagementClient;
+  managementAccessToken?: SecretValue | undefined;
   redactor: Redactor;
   databaseUrl?: SecretValue | undefined;
   linked?: boolean | undefined;
@@ -516,7 +517,11 @@ export async function executeProductBackup(options: ProductBackupOptions) {
           options.projectRef,
           protectedSink,
           ordinary,
-          { maxConcurrency: options.maxApiConcurrency, signal },
+          {
+            maxConcurrency: options.maxApiConcurrency,
+            accessToken: options.managementAccessToken,
+            signal,
+          },
         );
         return result(captured.coverage);
       },

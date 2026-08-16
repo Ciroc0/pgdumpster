@@ -208,7 +208,11 @@ async function collectEdgeConsistencySnapshot(
       source.projectRef,
       sinks.protectedSink,
       sinks.ordinary,
-      { maxConcurrency: source.maxApiConcurrency, signal },
+      {
+        maxConcurrency: source.maxApiConcurrency,
+        captureSourceTree: false,
+        signal,
+      },
     );
     signal?.throwIfAborted();
     return sinks.finalize(captured.coverage);

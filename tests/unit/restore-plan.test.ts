@@ -162,7 +162,7 @@ describe("restore planning", () => {
     ).toMatchObject({ risk: "inspection" });
   });
 
-  it("classifies functions as manual when captured deployment bodies are not deploy inputs", async () => {
+  it("plans CLI source-tree functions while keeping digest-only secrets manual", async () => {
     const { manifest, coverage } = await source();
     const edgeSecrets = coverage.components.find(
       ({ id }) => id === "edge.secrets",
@@ -176,7 +176,7 @@ describe("restore planning", () => {
     edgeFunctions.status = "backed_up";
     edgeFunctions.artifacts = [
       "functions/index.json",
-      "functions/example/source.multipart",
+      "functions/example/source/index.ts",
     ];
 
     const plan = await buildRestorePlan(manifest, coverage, {
@@ -197,20 +197,15 @@ describe("restore planning", () => {
     expect(
       plan.actions.find(({ component }) => component === "edge.functions"),
     ).toMatchObject({
-      status: "blocked_platform_limit",
-      risk: "manual",
-      fidelity: "manual",
-      reasonCode: "automatic_restore_not_supported",
+      status: "planned",
+      risk: "mutation",
+      fidelity: "semantic",
     });
     expect(
-      plan.manualActions.find(
+      plan.manualActions.some(
         ({ component }) => component === "edge.functions",
       ),
-    ).toEqual(
-      expect.objectContaining({
-        reasonCode: "automatic_restore_not_supported",
-      }),
-    );
+    ).toBe(false);
   });
 
   it("refuses an in-place target", async () => {

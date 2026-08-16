@@ -1,24 +1,30 @@
 import { z } from "zod";
 
-import type {
-  ArtifactWriteResult,
-  BundleArtifactSink,
-} from "../../core/bundle/artifact-sink.js";
+import type { BundleArtifactSink } from "../../core/bundle/artifact-sink.js";
 import type { CoverageDocument } from "../../core/bundle/schemas.js";
 import { PgDumpsterError } from "../../core/errors/error.js";
 import type { ProtectedArtifactSink } from "../../security/protected-artifact.js";
+import type { SecretValue } from "../../security/secret-value.js";
+import { assertNoCaseFoldCollisions } from "../../security/bundle-path.js";
 import { mapBounded } from "../../utils/bounded-concurrency.js";
 import type { ManagementClient } from "./client.js";
 import {
   EDGE_CONTRACT_SOURCE_SHA256,
   edgeContractSchema,
 } from "./edge-contract.js";
+import {
+  downloadEdgeFunctionSourceTree,
+  type CapturedEdgeSourceFile,
+  type EdgeSourceTreeDependencies,
+} from "./edge-source-tree.js";
 
 type CoverageEntry = CoverageDocument["components"][number];
 
 export interface EdgeCaptureOptions {
   maxConcurrency?: number;
-  maxFunctionBodyBytes?: number;
+  accessToken?: SecretValue | undefined;
+  sourceTreeDependencies?: EdgeSourceTreeDependencies | undefined;
+  captureSourceTree?: boolean | undefined;
   signal?: AbortSignal | undefined;
 }
 
@@ -76,16 +82,6 @@ function sourceContract(endpoint: string): Record<string, unknown> {
   };
 }
 
-function contentTypeIsMultipart(
-  contentType: string | null,
-): contentType is string {
-  if (contentType === null) return false;
-  return (
-    /^multipart\/form-data(?:\s*;|$)/iu.test(contentType) &&
-    /(?:^|;)\s*boundary=(?:"[^"]+"|[^;\s]+)/iu.test(contentType)
-  );
-}
-
 function comparableFunction(value: z.infer<typeof functionSchema>): string {
   return JSON.stringify({
     id: value.id,
@@ -112,10 +108,8 @@ function driftError(slug: string): PgDumpsterError {
 }
 
 interface CapturedFunction {
-  body: ArtifactWriteResult;
-  contentType: string;
   metadata: z.infer<typeof functionSchema>;
-  path: string;
+  sourceFiles: readonly CapturedEdgeSourceFile[];
 }
 
 export async function captureEdgeState(
@@ -137,6 +131,20 @@ export async function captureEdgeState(
     .array()
     .parse(functionValues)
     .sort((left, right) => left.slug.localeCompare(right.slug, "en"));
+  try {
+    assertNoCaseFoldCollisions(
+      functions.map(({ slug }) => `functions/${slug}`),
+    );
+  } catch (error) {
+    throw new PgDumpsterError({
+      code: "EDGE_FUNCTION_SOURCE_TREE_INVALID",
+      category: "security",
+      component: "edge.functions",
+      message: "Edge Function slugs collide on a case-insensitive filesystem.",
+      retryable: false,
+      cause: error,
+    });
+  }
   const secrets = secretSchema
     .array()
     .parse(secretValues)
@@ -160,34 +168,33 @@ export async function captureEdgeState(
       if (comparableFunction(listed) !== comparableFunction(before)) {
         throw driftError(listed.slug);
       }
-      const response = await client.getRaw(`${detailPath}/body`, {
-        accept: "multipart/form-data",
-        signal,
-      });
-      const contentType = response.headers.get("content-type");
-      if (!contentTypeIsMultipart(contentType) || response.body === null) {
+      const captureSourceTree = options.captureSourceTree ?? true;
+      if (captureSourceTree && options.accessToken === undefined)
         throw new PgDumpsterError({
-          code: "PLATFORM_API_CONTRACT_CHANGED",
-          category: "platform_contract",
+          code: "EDGE_FUNCTION_SOURCE_DOWNLOAD_CREDENTIAL_MISSING",
+          category: "config",
           component: "edge.functions",
           message:
-            "Supabase returned an invalid Edge Function multipart body response.",
+            "Supabase CLI source download requires the configured management access token.",
           retryable: false,
-          details: { slug: listed.slug },
         });
-      }
-      const artifactPath = `functions/${listed.slug}/source.multipart`;
-      const body = await artifactSink.writeStream(artifactPath, response.body, {
-        maxBytes: options.maxFunctionBodyBytes ?? 536_870_912,
-        signal,
-      });
+      const sourceFiles = captureSourceTree
+        ? await downloadEdgeFunctionSourceTree(
+            projectRef,
+            listed.slug,
+            options.accessToken!,
+            artifactSink,
+            options.sourceTreeDependencies,
+            signal,
+          )
+        : [];
       const after = functionSchema.parse(
         await client.get(detailPath, functionDetailContract, { signal }),
       );
       if (comparableFunction(before) !== comparableFunction(after)) {
         throw driftError(listed.slug);
       }
-      return { body, contentType, metadata: after, path: artifactPath };
+      return { metadata: after, sourceFiles };
     },
     options.signal,
   );
@@ -197,14 +204,11 @@ export async function captureEdgeState(
     indexPath,
     {
       schemaVersion: 1,
-      representation: "management-api-multipart",
+      representation: "cli-source-tree",
       functions: capturedFunctions.map((entry) => ({
         metadata: entry.metadata,
-        body: {
-          path: entry.path,
-          bytes: entry.body.bytes,
-          sha256: entry.body.sha256,
-          contentType: entry.contentType,
+        source: {
+          files: entry.sourceFiles,
         },
       })),
     },
@@ -214,10 +218,10 @@ export async function captureEdgeState(
   const functionChildren = capturedFunctions.map((entry) => ({
     slug: entry.metadata.slug,
     status: "backed_up",
-    artifact: entry.path,
-    sha256: entry.body.sha256,
-    bytes: entry.body.bytes,
-    sourceFidelity: "deployed_representation_not_original_repository",
+    artifacts: entry.sourceFiles.map(({ path }) => path),
+    bytes: entry.sourceFiles.reduce((total, { bytes }) => total + bytes, 0),
+    sourceFidelity:
+      "cli_downloaded_deployable_source_tree_not_original_repository",
   }));
   const secretChildren = secrets.map(({ name, updated_at: updatedAt }) => ({
     name,
@@ -235,13 +239,18 @@ export async function captureEdgeState(
           ? {}
           : {
               message:
-                "The complete exposed multipart deployment representation is captured. This does not claim to reproduce the original source repository or legacy bundle formats.",
+                "A Supabase CLI-downloaded deployable source tree is captured. This does not claim to reproduce the original source repository or files not returned by Supabase.",
             }),
         sensitivity: "sensitive",
-        artifacts: [indexPath, ...capturedFunctions.map(({ path }) => path)],
+        artifacts: [
+          indexPath,
+          ...capturedFunctions.flatMap(({ sourceFiles }) =>
+            sourceFiles.map(({ path }) => path),
+          ),
+        ],
         children: functionChildren,
         sourceContract: sourceContract(
-          "/v1/projects/{ref}/functions + /functions/{function_slug}/body",
+          "/v1/projects/{ref}/functions + Supabase CLI functions download --use-api",
         ),
       },
       {
