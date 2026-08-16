@@ -147,9 +147,9 @@ Current behavior:
 - source==target is rejected by the restore planning contract;
 - deterministic restore plan generation exists;
 - core restore executor/checkpoint/handlers exist in the repository;
-- CLI `--apply` rejects a blocked plan immediately after verified-bundle planning and before reading target credentials or discovering target resources. For an executable plan, it derives database, Management and privileged Storage credential needs from planned automatic capabilities, then runs only the required target discovery, handler assembly and handler-completeness preflight. It atomically writes the immutable plan with restrictive permissions before checkpoint creation or target mutation, and returns its path with the checkpoint and parity-report paths. It executes the existing checkpointed executor only when every planned component has a handler. Incomplete plans fail closed with `RESTORE_ADAPTER_MISSING`; protected substitutions and complete final parity reporting remain pending.
+- CLI `--apply` rejects a blocked plan immediately after verified-bundle planning and before reading target credentials or discovering target resources. For an executable plan, it derives database, Management and privileged Storage credential needs from planned automatic capabilities, then runs only the required target discovery, handler assembly and handler-completeness preflight. It atomically writes the immutable plan with restrictive permissions before checkpoint creation or target mutation, and returns its path with the checkpoint and parity-report paths. It executes the existing checkpointed executor only when every planned component has a handler. Incomplete plans fail closed with `RESTORE_ADAPTER_MISSING`; protected API-key rotation maps and final parity reporting are implemented. Components whose source secret/private material is unavailable remain explicit manual/platform actions.
 
-Target restore UX also requires safe resume/protected substitution output and final parity reporting.
+Target restore UX provides safe resume, protected API-key rotation-map output and final parity reporting. Manual platform actions remain visible in the plan and parity report; they are never treated as automatic restore success.
 
 ## Credential environment variables
 

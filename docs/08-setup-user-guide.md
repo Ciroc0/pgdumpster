@@ -217,14 +217,13 @@ pgdumpster restore ./backups/<bundle>.tar.zst.age \
   --dry-run
 ```
 
-The repository contains restore executor/handler primitives, but the CLI does **not** currently perform target mutation. `--apply` fails closed until the complete apply/substitution/parity workflow is wired and live-tested.
+The CLI performs guarded target mutation only with explicit `restore --apply` after integrity verification, executable-plan validation, credential preflight and handler-completeness checks. It writes an immutable plan/checkpoint and emits a parity report. Components that lack exact source material or a supported target write contract remain fail-closed manual/platform actions rather than simulated restore success.
 
 ## Not currently available
 
 The following target workflows intentionally fail closed in the current CLI:
 
-- config `destination.type: s3`;
-- restore `--apply`.
+- automatic restoration of source secret/private material that the platform exposes only as a digest or does not accept on target.
 
 Do not work around those guards by relabeling a local/dry-run workflow as the final release workflow.
 
