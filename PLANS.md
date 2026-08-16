@@ -395,9 +395,9 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   observed S3 requests with **0** observed retry attempts, reached
   **154,140,672 bytes** peak RSS and exercised persisted upload-state
   checkpointing. The object and completion marker were removed after success.
-- This is a clean-provider baseline, not synthetic fault evidence: comparative
-  retry and checkpoint-overhead measurements under provider fault/load remain
-  open.
+- This is a clean-provider baseline. Comparative retry and checkpoint-overhead
+  measurements under provider fault/load are optional additional confidence
+  evidence, not a pre-public release gate.
 
 ### GitHub CI / CodeQL note
 
@@ -405,7 +405,6 @@ The earlier regular CI matrix passed on its validated checkpoint. GitHub Actions
 
 ## Next implementation order
 
-1. protected full-fixture hosted E2E: first prove Edge Function source-tree capture → target deploy → invocation, then retain Vault ciphertext, Edge secret plaintext and private Auth signing material as explicit manual/platform limits;
-2. collect the remaining provider-under-load Storage/S3 retry, request-rate and checkpoint-overhead evidence; existing simulator, 10k/100k inventory, 32 MiB object-stream and 64 MiB database-dump regressions are complete;
-3. authenticated CodeQL result publication/current-candidate CI once GitHub Actions quota and repository configuration permit it;
-4. trusted-publisher setup, SemVer/tagged release workflow, published-artifact verification and final acceptance audit.
+1. public release sequence: configure protected Environment secrets, run current-candidate CI/CodeQL and protected E2E on the now-public repository;
+2. review any external findings;
+3. configure the npm trusted publisher, choose SemVer/tag, publish and verify the resulting artifact.
