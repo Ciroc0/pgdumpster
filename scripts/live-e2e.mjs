@@ -3,7 +3,15 @@
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  rmdir,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -13,6 +21,8 @@ import { z } from "zod";
 
 const MAX_COMMAND_OUTPUT_BYTES = 65_536;
 const projectRefPattern = /^[a-z0-9]{20}$/u;
+const restoreArtifactNamePattern =
+  /^[0-9a-f-]{36}\.(?:api-key-rotation|checkpoint|parity|plan)\.json$/u;
 const commandOutputSchema = z.object({
   stdout: z.string(),
   stderr: z.string(),
@@ -236,6 +246,38 @@ async function storageDigest(url, key) {
   return { bytes, sha256: hash.digest("hex") };
 }
 
+/** @param {string} directory @returns {Promise<Set<string>>} */
+async function restoreDirectoryEntries(directory) {
+  try {
+    return new Set(await readdir(directory));
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    )
+      return new Set();
+    throw error;
+  }
+}
+
+/** @param {string} directory @param {ReadonlySet<string>} previousEntries */
+async function removeNewRestoreArtifacts(directory, previousEntries) {
+  const currentEntries = await restoreDirectoryEntries(directory);
+  for (const entry of currentEntries) {
+    if (previousEntries.has(entry)) continue;
+    if (!restoreArtifactNamePattern.test(entry))
+      throw new Error("Live E2E created an unexpected restore artifact.");
+    const filename = path.join(directory, entry);
+    const artifact = await lstat(filename);
+    if (!artifact.isFile() || artifact.isSymbolicLink())
+      throw new Error("Live E2E restore artifact is not a regular file.");
+    await rm(filename, { force: true });
+  }
+  if (previousEntries.size === 0) await rmdir(directory).catch(() => undefined);
+}
+
 async function main() {
   const sourceProjectRef = projectRef("PGDUMPSTER_E2E_SOURCE_PROJECT_REF");
   const targetProjectRef = projectRef("PGDUMPSTER_E2E_TARGET_PROJECT_REF");
@@ -256,6 +298,9 @@ async function main() {
   const targetStorageKey = required("PGDUMPSTER_E2E_TARGET_STORAGE_KEY");
   const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-live-e2e-"));
   const configPath = path.join(root, "pgdumpster.yaml");
+  const restoreDirectory = path.join(process.cwd(), ".pgdumpster-restore");
+  const previousRestoreEntries =
+    await restoreDirectoryEntries(restoreDirectory);
   /** @type {NodeJS.ProcessEnv} */
   const environment = {
     ...process.env,
@@ -473,6 +518,7 @@ async function main() {
     );
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } finally {
+    await removeNewRestoreArtifacts(restoreDirectory, previousRestoreEntries);
     await rm(root, { recursive: true, force: true });
   }
 }

@@ -84,7 +84,8 @@ project refs, pooler URLs, Management token, scoped source/target Storage keys a
 fixture or Storage buckets before it seeds the source, so an operator must reset
 or recreate the disposable target explicitly between runs. Its only persistent
 workflow output is a sanitized terminal-status summary; temporary encrypted
-bundles, config and the age identity are removed on exit.
+bundles, config, age identity and newly created UUID-named restore artifacts
+are removed on exit without touching pre-existing local restore files.
 
 ## Release workflow requirements
 
