@@ -15,8 +15,8 @@ This repository is no longer a pre-implementation bootstrap package. It contains
 Latest complete local gate on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **116 test files / 727 tests: PASS**;
-- global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**;
+- **116 test files / 728 tests: PASS**;
+- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
 - all independent 90% coverage thresholds: **PASS**;
 - all 10 product backup steps have consistency adapters and step-owned partial cleanup;
 - default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;
@@ -30,7 +30,7 @@ Latest complete local gate on 2026-08-16 after live-restore regression hardening
 - configured S3-compatible destinations use resumable multipart publication, remote integrity verification and a completion marker written last; encrypted publication/materialization/offline verification passed against Cloudflare R2;
 - `restore --apply` is wired through integrity-first planning, complete-handler validation, immutable-plan/checkpoint persistence, capability-derived target credentials and the checkpointed executor;
 - database/control-plane/Auth/API-key/File Storage restore handlers are implemented; unsupported automatic restore surfaces are explicit manual/platform limits and a blocked plan fails before target mutation;
-- disposable managed-Supabase source → encrypted backup → offline verify → clean-target restore passed with database semantic parity and separately verified private Storage object restoration.
+- disposable managed-Supabase source → encrypted backup → offline verify → clean-target restore passed with database semantic parity, separately verified private Storage object restoration and restored Auth-user password login.
 
 The account's GitHub Actions quota is currently exhausted, so newly pushed workflows may be blocked by quota. Use local `pnpm check` and `pnpm test:coverage` as the active quality gates until reset; do not interpret quota failures as code failures.
 
@@ -61,7 +61,7 @@ Standard `age` archive encryption is implemented for local publication.
 
 The current CLI has no intentionally unwired S3 or restore-apply path. The remaining gates are evidence/external-release gates:
 
-- a protected current-candidate hosted E2E in `docs/10-testing.md` still needs application smoke for every automatically restorable configured component. The existing disposable observation covers database, File Storage and executable control-plane paths; Vault ciphertext, Edge secret plaintext and private Auth signing material are explicit manual/platform limits, not automatic-fixture gaps;
+- a protected current-candidate hosted E2E in `docs/10-testing.md` still needs application smoke for every automatically restorable configured component. The existing disposable observation covers database, File Storage, restored Auth password login and executable control-plane paths; Vault ciphertext, Edge secret plaintext and private Auth signing material are explicit manual/platform limits, not automatic-fixture gaps;
 - CodeQL result publication is blocked by repository code-scanning configuration/access, so there is no current clean CodeQL evidence or finding disposition;
 - current-candidate remote CI still needs a fresh successful run once GitHub Actions quota permits execution;
 - the implemented release workflow has not and must not run for the private `0.0.0-development` package. It additionally requires final SemVer/changelog, npm trusted-publisher configuration, public-release visibility/provenance eligibility, tag and the actual publication event.

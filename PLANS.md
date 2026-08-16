@@ -19,11 +19,11 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **116 test files / 727 tests: PASS**;
-- global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**;
+- **116 test files / 728 tests: PASS**;
+- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
-- the current candidate's local live-E2E harness completed the same encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database plus direct Storage byte-hash smokes matched; the protected GitHub Environment execution remains separate release evidence;
+- the current candidate's local live-E2E harness completed the same encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database, direct Storage byte-hash plus restored Auth password-login smokes matched; the protected GitHub Environment execution remains separate release evidence;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
 - current `npm pack --dry-run --json` package audit reports 364 files, includes the compiled CLI/contracts/schemas, contains no development-only test/docs/scripts/workflow paths and remains `private: true`; this is package-content evidence only, not a release claim;
@@ -74,8 +74,8 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 100k inventory and bounded 32 MiB streaming regressions are complete.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
-- [ ] Run the already locally passing current-candidate hosted E2E through its protected GitHub Environment with application smoke for every automatically restorable configured component. The database/File Storage/control-plane observation is complete; Vault ciphertext, Edge secret plaintext and private Auth signing material remain documented manual/platform limits.
-- [x] Add a protected `workflow_dispatch` hosted-E2E harness which validates distinct source/target pooler bindings, rejects a non-clean target, seeds the deterministic database fixture, requires a passing source `doctor`, runs encrypted verified backup/offline verify/terminal-coverage/dry-run/apply, validates the parity report and compares post-restore database plus direct stream-hashed File Storage smoke state. It emits only a sanitized terminal summary and removes temporary config, bundle, age identity and new UUID-named restore artifacts without touching existing local restore files. Execution against a protected Environment remains separate evidence.
+- [ ] Run the already locally passing current-candidate hosted E2E through its protected GitHub Environment with application smoke for every automatically restorable configured component. The database/File Storage/Auth/control-plane observation is complete; Vault ciphertext, Edge secret plaintext and private Auth signing material remain documented manual/platform limits.
+- [x] Add a protected `workflow_dispatch` hosted-E2E harness which validates distinct source/target pooler bindings, rejects a target containing a dedicated database, Storage or Auth fixture, seeds deterministic database and Auth fixtures, requires a passing source `doctor`, runs encrypted verified backup/offline verify/terminal-coverage/dry-run/apply, validates the parity report and compares post-restore database, direct stream-hashed File Storage and Auth password-login smoke state. It emits only a sanitized terminal summary and removes temporary config, bundle, age identity and new UUID-named restore artifacts without touching existing local restore files. Execution against a protected Environment remains separate evidence.
 - [ ] Perform the final `docs/13-acceptance-criteria.md` evidence audit and release only when every applicable item is satisfied.
 
 ## Current CLI truth
@@ -317,12 +317,29 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   source-to-clean-target sequence completed locally: backup
   `complete_with_platform_limits`, offline verification `verified`, restore
   and parity `restored_with_platform_limits`, **55** terminal coverage
-  components, **19** verified planned restore actions, and matching database
-  plus direct Storage byte-hash smoke.
+  components, **19** verified planned restore actions, and matching database,
+  direct Storage byte-hash and restored Auth password-login smoke.
 - The only manual actions were the already classified PgBouncer, Auth secret
   fields/signing material, Edge secret digest and deployed Edge dependency
   platform limits. The short-lived age identity and sanitized local summary
   were removed after observation.
+
+### 2026-08-16 — restored Auth application smoke
+
+- The live harness now creates one disposable confirmed Auth user only after a
+  clean-target preflight that also rejects residual `pgdumpster-e2e-*` Auth
+  fixtures. Following encrypted backup and restore, it signs in to the target
+  using that source password and requires the restored user ID/email to match.
+- A fresh local managed-Supabase run passed backup
+  `complete_with_platform_limits`, offline verification `verified`, restore and
+  parity `restored_with_platform_limits`, all **55** terminal coverage
+  components, **19** verified planned actions, database/Storage smokes and the
+  Auth password smoke. The only manual actions remained the six documented
+  platform limits; no secret material was written to the result.
+- Local validation: `pnpm check`: **PASS**; `pnpm test:coverage`: **116 test
+  files / 728 tests, PASS**. Global coverage: **94.61% statements / 90.04%
+  branches / 92.55% functions / 95.65% lines**; all 90% global thresholds:
+  **PASS**.
 - This is real managed-Supabase evidence for the current candidate. It does
   not substitute for the separately required protected GitHub Environment
   workflow execution.

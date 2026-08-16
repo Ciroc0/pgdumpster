@@ -296,7 +296,7 @@ project port before it starts.
 10. Run parity verifier.
 11. Execute application-level smoke queries:
     - database reads;
-    - Auth-relevant validation;
+    - Auth-relevant validation, including password sign-in for a disposable source Auth user after target restore;
     - Vault encrypted data read;
     - Storage download and metadata;
     - Edge Function call;
