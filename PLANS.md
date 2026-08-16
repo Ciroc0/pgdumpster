@@ -19,8 +19,8 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **116 test files / 728 tests: PASS**;
-- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
+- **116 test files / 732 tests: PASS**;
+- global coverage: **94.47% statements / 90.02% branches / 92.55% functions / 95.47% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - the current candidate's local live-E2E harness completed the same encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database, direct Storage byte-hash plus restored Auth password-login smokes matched; the protected GitHub Environment execution remains separate release evidence;
@@ -59,7 +59,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Implement authenticated platform preflight/doctor, Management API transport, runtime validation, retry/rate-limit behavior and project capability discovery.
 - [x] Implement database logical dump/inventory plus Auth data, migrations, managed-schema customizations, extension state, Cron, Queues, Webhooks, Vault ciphertext and publication capture.
 - [x] Implement File Storage catalog/object streaming with content-addressed paths, metadata capture, integrity checks, bounded concurrency and resume-safe primitives.
-- [x] Implement Auth config/SSO/TPA/signing metadata, modern/legacy API keys, Edge Functions/secrets, Vault root-key capture and broad control-plane adapters.
+- [x] Implement Auth config/SSO/TPA/signing metadata, modern/legacy API keys, Edge Function/secret capture, Vault root-key capture and broad control-plane adapters.
 - [x] Implement Vector/Analytics capability adapters with separate completeness semantics and explicit platform limits.
 - [x] Implement backup coordinator/checkpoints/finalization and complete product backup orchestration across the registered components.
 - [x] Implement restore plan, restore checkpoints, executor, database/control-plane/publication/Vault handlers and semantic verification primitives.
@@ -74,7 +74,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 10k small-object orchestration, 100k inventory, bounded 32 MiB object streaming and 64 MiB database-dump streaming regressions are complete.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
-- [ ] Run the already locally passing current-candidate hosted E2E through its protected GitHub Environment with application smoke for every automatically restorable configured component. The database/File Storage/Auth/control-plane observation is complete; Vault ciphertext, Edge secret plaintext and private Auth signing material remain documented manual/platform limits.
+- [ ] Run the current-candidate hosted E2E through its protected GitHub Environment with application smoke for every automatically restorable configured component. The database/File Storage/Auth/control-plane observation is complete; Vault ciphertext, Edge secret plaintext, Edge Function source-tree re-export/deploy, and private Auth signing material remain documented manual/platform limits.
 - [x] Add a protected `workflow_dispatch` hosted-E2E harness which validates distinct source/target pooler bindings, rejects a target containing a dedicated database, Storage or Auth fixture, seeds deterministic database and Auth fixtures, requires a passing source `doctor`, runs encrypted verified backup/offline verify/terminal-coverage/dry-run/apply, validates the parity report and compares post-restore database, direct stream-hashed File Storage and Auth password-login smoke state. It emits only a sanitized terminal summary and removes temporary config, bundle, age identity and new UUID-named restore artifacts without touching existing local restore files. Execution against a protected Environment remains separate evidence.
 - [ ] Perform the final `docs/13-acceptance-criteria.md` evidence audit and release only when every applicable item is satisfied.
 
@@ -154,13 +154,19 @@ Source modern API-key values can be captured when the official reveal contract e
 
 ### Edge deployed representation
 
-The backed-up function body is the deployed representation returned by the platform, not a claim to recover the original Git repository. Function secret responses that expose digests are not misrepresented as original secret values.
+The backed-up function body is the deployed representation returned by the platform, not a claim to recover the original Git repository. A live probe established that this body is not accepted by the current Management API deploy endpoint: it lacks the deployment input metadata and source-tree layout. `supabase functions download --use-api` can recover a deployable source tree, but pgDumpster does not yet archive and safely reconstruct that tree for target deployment. Therefore `edge.functions` is a blocked manual action before mutation, rather than a false automatic restore claim. Function secret responses that expose digests are likewise not misrepresented as original secret values.
 
 ### Realtime contract boundary
 
 Current Realtime contract drift, including optional `postgres_changes_pool` and numeric writable settings, is runtime-validated. Nullable read fields are not guessed into unsupported PATCH values.
 
 ## Validation log
+
+### 2026-08-16 — Edge Function deploy representation boundary
+
+- A disposable live probe captured a deployed function body and then attempted the corresponding target Management API deployment. The platform rejected the body because deployment requires an `entrypoint_path` and source-tree input that the captured representation does not supply.
+- The current Supabase CLI `functions download --use-api` returned a source tree for the same function. This is a viable future adapter route, but it requires a new safe source-tree archive, reconstruction and CLI deployment slice; it is not implemented by the generic body handler.
+- The runtime contract now accepts the observed `null` `import_map_path` response shape while retaining the dated OpenAPI schema as the primary contract. `edge.functions` has been removed from automatic restore capabilities, so planning reports `automatic_restore_not_supported` before any target mutation.
 
 ### 2026-08-16 — bounded large Storage stream regression
 

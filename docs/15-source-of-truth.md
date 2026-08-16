@@ -134,7 +134,7 @@ Use current CLI/reference docs.
 Baseline:
 
 - deployed functions can be enumerated/downloaded;
-- CLI download is not a substitute for source-repository backup and may omit local files such as import maps/`deno.json`.
+- CLI download is not a substitute for source-repository backup and may omit local files such as import maps/`deno.json`; nevertheless, it returns a source-tree deployment input unlike the Management API's deployed-body representation.
 
 ## Release revalidation checklist
 

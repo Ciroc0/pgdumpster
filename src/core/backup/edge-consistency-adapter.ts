@@ -223,6 +223,9 @@ async function collectEdgeConsistencySnapshot(
       message: "Edge consistency snapshot failed.",
       retryable: false,
       component: "edge",
+      ...(error instanceof PgDumpsterError
+        ? { details: { sourceCode: error.code } }
+        : {}),
       cause: error,
     });
   }

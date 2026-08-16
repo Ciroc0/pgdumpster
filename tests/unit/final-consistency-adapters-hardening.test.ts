@@ -27,6 +27,7 @@ import { createSpecializedStorageConsistencyAdapter } from "../../src/core/backu
 import { createVaultRootKeyConsistencyAdapter } from "../../src/core/backup/vault-root-key-consistency-adapter.js";
 import type { BundleArtifactSink } from "../../src/core/bundle/artifact-sink.js";
 import type { CoverageDocument } from "../../src/core/bundle/schemas.js";
+import { PgDumpsterError } from "../../src/core/errors/error.js";
 import type { ProtectedArtifactSink } from "../../src/security/protected-artifact.js";
 import { Redactor } from "../../src/security/redactor.js";
 import { SecretValue } from "../../src/security/secret-value.js";
@@ -256,6 +257,23 @@ describe("final consistency adapter hardening", () => {
     ).rejects.toMatchObject({
       code: "EDGE_CONSISTENCY_SNAPSHOT_FAILED",
       category: "consistency",
+    });
+
+    vi.mocked(captureEdgeState).mockRejectedValueOnce(
+      new PgDumpsterError({
+        code: "PLATFORM_API_CONTRACT_CHANGED",
+        category: "platform_contract",
+        message: "fixture",
+        retryable: false,
+      }),
+    );
+    await expect(
+      createEdgeConsistencyAdapter(edgeSource).snapshot({
+        workspaceRoot: "unused",
+      }),
+    ).rejects.toMatchObject({
+      code: "EDGE_CONSISTENCY_SNAPSHOT_FAILED",
+      details: { sourceCode: "PLATFORM_API_CONTRACT_CHANGED" },
     });
   });
 

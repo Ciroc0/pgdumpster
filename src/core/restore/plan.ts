@@ -151,10 +151,6 @@ const DEPENDENCIES: Readonly<Record<string, readonly string[]>> = {
   "storage.vector_indexes": ["storage.vector_buckets"],
   "storage.vectors": ["storage.vector_indexes"],
   "storage.analytics_data": ["storage.analytics_catalog"],
-  // Functions can be deployed from their captured representation without
-  // plaintext custom-secret values. Secret substitution remains an explicit
-  // manual fidelity action and must not suppress an otherwise safe deploy.
-  "edge.functions": [],
   "auth.config": ["auth.data"],
   "auth.sso": ["auth.config"],
   "auth.tpa": ["auth.config"],

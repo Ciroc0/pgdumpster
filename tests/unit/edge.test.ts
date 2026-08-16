@@ -12,7 +12,9 @@ import { captureEdgeState } from "../../src/supabase/management/edge.js";
 interface FixtureOptions {
   empty?: boolean;
   invalidContentType?: boolean;
+  missingContentType?: boolean;
   drift?: boolean;
+  nullImportMapPath?: boolean;
 }
 
 const functionMetadata = {
@@ -38,12 +40,14 @@ function requestUrl(input: string | URL | Request): string {
 
 function fixtureFetch(options: FixtureOptions = {}): typeof fetch {
   let detailCalls = 0;
+  const metadata = {
+    ...functionMetadata,
+    ...(options.nullImportMapPath ? { import_map_path: null } : {}),
+  };
   return vi.fn<typeof fetch>((input, init) => {
     const url = requestUrl(input);
     if (url.endsWith("/functions")) {
-      return Promise.resolve(
-        Response.json(options.empty ? [] : [functionMetadata]),
-      );
+      return Promise.resolve(Response.json(options.empty ? [] : [metadata]));
     }
     if (url.endsWith("/secrets")) {
       return Promise.resolve(
@@ -66,11 +70,13 @@ function fixtureFetch(options: FixtureOptions = {}): typeof fetch {
       );
       return Promise.resolve(
         new Response(new TextEncoder().encode("multipart-body"), {
-          headers: {
-            "content-type": options.invalidContentType
-              ? "application/json"
-              : "multipart/form-data; boundary=fixture-boundary",
-          },
+          headers: options.missingContentType
+            ? {}
+            : {
+                "content-type": options.invalidContentType
+                  ? "application/json"
+                  : "multipart/form-data; boundary=fixture-boundary",
+              },
         }),
       );
     }
@@ -79,8 +85,8 @@ function fixtureFetch(options: FixtureOptions = {}): typeof fetch {
       return Promise.resolve(
         Response.json(
           options.drift && detailCalls === 2
-            ? { ...functionMetadata, version: 2 }
-            : functionMetadata,
+            ? { ...metadata, version: 2 }
+            : metadata,
         ),
       );
     }
@@ -183,11 +189,26 @@ describe("Edge state capture", () => {
     });
   });
 
+  it("fails closed when the deployed body omits its content type", async () => {
+    await expect(capture({ missingContentType: true })).rejects.toMatchObject({
+      code: "PLATFORM_API_CONTRACT_CHANGED",
+      component: "edge.functions",
+    });
+  });
+
   it("detects a function version change around the body stream", async () => {
     await expect(capture({ drift: true })).rejects.toMatchObject({
       code: "BACKUP_SOURCE_DRIFT_DETECTED",
       category: "consistency",
       retryable: true,
+    });
+  });
+
+  it("accepts a null import-map path from deployed functions without one", async () => {
+    const { result } = await capture({ nullImportMapPath: true });
+    expect(result.coverage[0]).toMatchObject({
+      id: "edge.functions",
+      status: "backed_up",
     });
   });
 });

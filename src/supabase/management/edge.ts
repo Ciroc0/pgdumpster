@@ -38,7 +38,7 @@ const functionSchema = z
     verify_jwt: z.boolean().optional(),
     import_map: z.boolean().optional(),
     entrypoint_path: z.string().optional(),
-    import_map_path: z.string().optional(),
+    import_map_path: z.string().nullable().optional(),
     ezbr_sha256: z.string().optional(),
   })
   .passthrough();
@@ -51,8 +51,20 @@ const secretSchema = z
   })
   .passthrough();
 
-const functionListContract = edgeContractSchema("FunctionResponse").array();
-const functionDetailContract = edgeContractSchema("FunctionSlugResponse");
+// The current Management API has been observed to return null for
+// import_map_path when a deployed function has no import map, despite the
+// dated OpenAPI snapshot declaring a string. Keep that official schema as the
+// primary contract and admit only the separately runtime-validated response
+// shape needed for this documented platform divergence.
+const observedFunctionContract = functionSchema;
+const functionListContract = z.union([
+  edgeContractSchema("FunctionResponse").array(),
+  observedFunctionContract.array(),
+]);
+const functionDetailContract = z.union([
+  edgeContractSchema("FunctionSlugResponse"),
+  observedFunctionContract,
+]);
 const secretListContract = edgeContractSchema("SecretResponse").array();
 
 function sourceContract(endpoint: string): Record<string, unknown> {

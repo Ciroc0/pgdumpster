@@ -214,7 +214,7 @@ describe("restore capability boundary", () => {
     expect(plan.status).toBe("blocked");
   });
 
-  it("keeps deployable Edge Functions independent of manual secret substitution", async () => {
+  it("classifies Edge Functions as manual when no deployable source adapter exists", async () => {
     const plan = await planFor(["edge.secrets", "edge.functions"]);
 
     expect(
@@ -226,7 +226,8 @@ describe("restore capability boundary", () => {
     expect(
       plan.actions.find(({ component }) => component === "edge.functions"),
     ).toMatchObject({
-      status: "planned",
+      status: "blocked_platform_limit",
+      reasonCode: "automatic_restore_not_supported",
     });
   });
 
@@ -285,7 +286,6 @@ describe("restore capability boundary", () => {
       "storage.vector_buckets",
       "storage.vector_indexes",
       "storage.vectors",
-      "edge.functions",
       "auth.config",
       "auth.sso",
       "auth.tpa",
@@ -311,6 +311,6 @@ describe("restore capability boundary", () => {
       .sort();
 
     expect(missing).toEqual([]);
-    expect(dormant).toEqual(["database.vault_data"]);
+    expect(dormant).toEqual(["database.vault_data", "edge.functions"]);
   });
 });

@@ -118,7 +118,7 @@ Restore supported secret values/substitutions before dependent functions and nev
 
 ### 14. Edge Functions
 
-Deploy captured deployable representation/configuration and verify target inventory. Do not claim recovery of original Git repository artifacts that the platform did not expose.
+The Management API's captured deployed body is not a deployable source-tree input: a live probe was rejected for missing deployment metadata/entrypoint material. Until pgDumpster safely archives a CLI-downloaded source tree and deploys it through the supported CLI route, classify `edge.functions` as a manual action before target mutation. Do not claim recovery of original Git repository artifacts that the platform did not expose.
 
 ### 15. Auth configuration
 

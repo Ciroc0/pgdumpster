@@ -27,7 +27,7 @@ const functionMetadataSchema = z
     verify_jwt: z.boolean().optional(),
     import_map: z.boolean().optional(),
     entrypoint_path: z.string().optional(),
-    import_map_path: z.string().optional(),
+    import_map_path: z.string().nullable().optional(),
     ezbr_sha256: z.string().optional(),
   })
   .passthrough();

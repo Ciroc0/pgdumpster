@@ -299,7 +299,7 @@ project port before it starts.
     - Auth-relevant validation, including password sign-in for a disposable source Auth user after target restore;
     - Vault encrypted data read;
     - Storage download and metadata;
-    - Edge Function call;
+    - Edge Function call, only after a deployable source-tree adapter is implemented and selected for the fixture;
     - Realtime where feasible.
 12. Assert no secret canary leaked to CI logs.
 13. Delete/reset test data according to test account policy.

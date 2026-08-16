@@ -65,10 +65,10 @@ pgDumpster must:
 
 ## Edge
 
-| ID               | Surface                                                 | Source                                | Restore       | Fidelity / rule                              |
-| ---------------- | ------------------------------------------------------- | ------------------------------------- | ------------- | -------------------------------------------- |
-| `edge.functions` | deployed function metadata/config/source representation | Management API + supported CLI/export | deploy        | Deployed state, not original Git repo        |
-| `edge.secrets`   | function secrets                                        | Management API                        | create/update | Exact SECRET where source API exposes values |
+| ID               | Surface                                               | Source                                                 | Restore       | Fidelity / rule                                                |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------------ | ------------- | -------------------------------------------------------------- |
+| `edge.functions` | deployed function metadata/config/body representation | Management API; CLI source-tree export pending adapter | manual        | Captured body is not deploy input; source-tree adapter missing |
+| `edge.secrets`   | function secrets                                      | Management API                                         | create/update | Exact SECRET where source API exposes values                   |
 
 ## Storage
 

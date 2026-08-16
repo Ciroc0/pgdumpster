@@ -162,7 +162,7 @@ describe("restore planning", () => {
     ).toMatchObject({ risk: "inspection" });
   });
 
-  it("keeps deployable functions planned when custom secret substitution is manual", async () => {
+  it("classifies functions as manual when captured deployment bodies are not deploy inputs", async () => {
     const { manifest, coverage } = await source();
     const edgeSecrets = coverage.components.find(
       ({ id }) => id === "edge.secrets",
@@ -197,15 +197,20 @@ describe("restore planning", () => {
     expect(
       plan.actions.find(({ component }) => component === "edge.functions"),
     ).toMatchObject({
-      status: "planned",
-      risk: "mutation",
-      fidelity: "semantic",
+      status: "blocked_platform_limit",
+      risk: "manual",
+      fidelity: "manual",
+      reasonCode: "automatic_restore_not_supported",
     });
     expect(
       plan.manualActions.find(
         ({ component }) => component === "edge.functions",
       ),
-    ).toBeUndefined();
+    ).toEqual(
+      expect.objectContaining({
+        reasonCode: "automatic_restore_not_supported",
+      }),
+    );
   });
 
   it("refuses an in-place target", async () => {
