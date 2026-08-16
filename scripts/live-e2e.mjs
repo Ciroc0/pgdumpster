@@ -578,6 +578,7 @@ async function main() {
     PGDUMPSTER_E2E_TARGET_DB_URL: targetDatabaseUrl,
     PGDUMPSTER_DB_URL: sourceDatabaseUrl,
     PGDUMPSTER_STORAGE_KEY: sourceStorageKey,
+    SUPABASE_ACCESS_TOKEN: accessToken,
   };
   try {
     await writeFile(

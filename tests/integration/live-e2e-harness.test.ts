@@ -53,6 +53,12 @@ describe("live E2E harness", () => {
     expect(harness).not.toContain("async function supabaseQuery(");
   });
 
+  it("maps the protected access token to the non-interactive Supabase CLI contract", async () => {
+    const harness = await readFile("scripts/live-e2e.mjs", "utf8");
+
+    expect(harness).toContain("SUPABASE_ACCESS_TOKEN: accessToken");
+  });
+
   it("emits a PostgreSQL SQLSTATE without logging database credentials", async () => {
     const harness = await readFile("scripts/live-e2e.mjs", "utf8");
 
