@@ -17,6 +17,7 @@ import path from "node:path";
 import process from "node:process";
 import { URL } from "node:url";
 
+import pg from "pg";
 import { z } from "zod";
 
 const MAX_COMMAND_OUTPUT_BYTES = 65_536;
@@ -219,6 +220,18 @@ async function supabaseQuery(database, args, environment) {
   return command("pnpm", pnpmArguments, environment);
 }
 
+/** @param {string} database */
+async function seedFixture(database) {
+  const fixture = await readFile("scripts/live-e2e-fixture.sql", "utf8");
+  const client = new pg.Client({ connectionString: database });
+  await client.connect();
+  try {
+    await client.query(fixture);
+  } finally {
+    await client.end();
+  }
+}
+
 /** @param {string} targetDatabaseUrl @param {NodeJS.ProcessEnv} environment */
 async function assertCleanTarget(targetDatabaseUrl, environment) {
   const { stdout } = await supabaseQuery(
@@ -349,11 +362,7 @@ async function main() {
     );
 
     await assertCleanTarget(targetDatabaseUrl, environment);
-    await supabaseQuery(
-      sourceDatabaseUrl,
-      ["--file", "scripts/live-e2e-fixture.sql"],
-      environment,
-    );
+    await seedFixture(sourceDatabaseUrl);
     const doctor = lastJson(
       (
         await cli(
