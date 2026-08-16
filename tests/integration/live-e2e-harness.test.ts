@@ -28,6 +28,11 @@ describe("live E2E harness", () => {
     expect(harness.indexOf("await resetTarget(")).toBeLessThan(
       harness.indexOf("await assertCleanTarget("),
     );
+    expect(harness).toContain('currentStage = "target Storage reset"');
+    expect(harness).toContain(
+      'currentStage = "target database and E2E Auth reset"',
+    );
+    expect(harness).toContain('currentStage = "target Edge Function reset"');
     expect(workflow).toContain("reset_target:");
     expect(workflow).toContain("PGDUMPSTER_E2E_RESET_TARGET");
   });

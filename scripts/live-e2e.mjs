@@ -418,8 +418,11 @@ async function resetTarget(
   accessToken,
   targetStorageKey,
 ) {
+  currentStage = "target Storage reset";
   await removeTargetStorage(targetProjectRef, targetStorageKey);
+  currentStage = "target database and E2E Auth reset";
   await removeTargetFixtureDatabaseState(targetDatabaseUrl);
+  currentStage = "target Edge Function reset";
   await removeTargetEdgeFunctions(targetProjectRef, accessToken);
 }
 
