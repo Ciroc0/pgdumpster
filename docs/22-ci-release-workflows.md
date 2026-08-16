@@ -49,7 +49,7 @@ This implementation is not execution evidence. Remaining release gates include:
 
 - current-candidate CI, including CodeQL result publication and disposition of any findings;
 - protected hosted source/target E2E workflow for a release candidate;
-- public non-development SemVer candidate, changelog, compatibility/current-contract review and registry trusted-publisher configuration. The trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed;
+- public non-development SemVer candidate, changelog and compatibility/current-contract review. Because npm cannot configure a trusted publisher before a package exists, the first publish uses a short-lived package-scoped `NPM_TOKEN` secret; immediately afterward the trusted publisher must target GitHub owner `Ciroc0`, repository `pgdumpster` and workflow filename `release.yml`, with `npm publish` explicitly allowed, and the token secret/workflow mapping must be removed;
 - actual tagged workflow execution, including same-SHA CI/CodeQL/protected-E2E evidence and published-artifact checksum/install verification;
 
 The standard `age` path, S3 publication/recovery and Cloudflare R2 interoperability/performance are implemented and live-validated. Comparative provider fault/load testing is optional confidence work, not a release gate. A disposable hosted source-to-clean-target restore has also passed with explicit platform limits; it is not a tagged, protected-workflow release-candidate run.

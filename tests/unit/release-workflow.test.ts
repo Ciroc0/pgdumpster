@@ -18,5 +18,6 @@ describe("release workflow", () => {
     ).toBeLessThan(
       workflow.indexOf("npm publish --provenance --access public"),
     );
+    expect(workflow).toContain("NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}");
   });
 });
