@@ -19,7 +19,7 @@ Status snapshot: **2026-08-16**.
 - **`age`**: standard `age` recipient encryption/decryption is implemented for local archive publication/input. Tooling is detected by `doctor`; runtime operations also fail through the dependency error domain when the executable cannot be started.
 - **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Scoped Cloudflare R2 interoperability passed encrypted publication, completion-marker, materialization and offline verification. AWS and MinIO have not been exercised.
 
-The latest complete local gate after the explicit non-interactive CLI slice is `pnpm check` plus `pnpm test:coverage` with **114 test files / 720 tests passing** and **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**. That local result does not replace current-candidate cross-platform CI evidence, and the earlier OS matrix plus disposable hosted observation do not replace a protected release-candidate E2E.
+The latest complete local gate after the Management API simulator slice is `pnpm check` plus `pnpm test:coverage` with **115 test files / 722 tests passing** and **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**. That local result does not replace current-candidate cross-platform CI evidence, and the earlier OS matrix plus disposable hosted observation do not replace a protected release-candidate E2E.
 
 ## Management API contracts
 

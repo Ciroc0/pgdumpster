@@ -19,8 +19,8 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **114 test files / 720 tests: PASS**;
-- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
+- **115 test files / 722 tests: PASS**;
+- global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
@@ -146,6 +146,11 @@ The backed-up function body is the deployed representation returned by the platf
 Current Realtime contract drift, including optional `postgres_changes_pool` and numeric writable settings, is runtime-validated. Nullable read fields are not guessed into unsupported PATCH values.
 
 ## Validation log
+
+### 2026-08-16 — deterministic Management API fault simulator
+
+- Added an in-process queued Management API simulator that deterministically models latency, connection resets, 429 retry headers, changing paginated/eventually-consistent responses, mutation between snapshots, secret-bearing fixture bodies and stale ETag headers. The test asserts transport sequencing without any live API dependency.
+- Local validation: focused simulator tests **2 tests, PASS**; `pnpm test:coverage`: **115 test files / 722 tests, PASS**. Global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
 ### 2026-08-16 — explicit non-interactive CLI contract
 

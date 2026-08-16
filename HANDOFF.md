@@ -15,8 +15,8 @@ This repository is no longer a pre-implementation bootstrap package. It contains
 Latest complete local gate on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **114 test files / 720 tests: PASS**;
-- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
+- **115 test files / 722 tests: PASS**;
+- global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**;
 - all independent 90% coverage thresholds: **PASS**;
 - all 10 product backup steps have consistency adapters and step-owned partial cleanup;
 - default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;

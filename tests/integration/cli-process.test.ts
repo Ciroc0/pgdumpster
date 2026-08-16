@@ -49,7 +49,7 @@ describe("built CLI process", () => {
   it("executes the ESM entrypoint and returns stable help", async () => {
     const result = await execute(["--help"]);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("pgdumpster doctor");
+    expect(result.stdout).toContain("pgdumpster [--non-interactive] doctor");
     expect(result.stderr).toBe("");
   });
 

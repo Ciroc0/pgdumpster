@@ -10,9 +10,9 @@ Latest complete local validation after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
 - test files: **114 passed**;
-- tests: **720 passed**;
-- statements: **94.61%**;
-- branches: **90.04%**;
+- tests: **722 passed**;
+- statements: **94.63%**;
+- branches: **90.07%**;
 - functions: **92.55%**;
 - lines: **95.65%**.
 
@@ -54,6 +54,7 @@ The implementation currently includes:
 - File Storage catalog + streamed content-addressed object capture;
 - specialized Vector and Analytics/Iceberg capability handling with explicit platform-limit semantics;
 - Management API client, contract snapshots/runtime validation and control-plane adapters;
+- deterministic queued Management API fault simulator for latency, reset, 429, stale ETag and eventual-consistency scenarios;
 - Auth config/SSO/TPA/signing-key capture;
 - modern/legacy API-key capture and target replacement/rotation semantics;
 - Edge Function deployed-representation capture and secret inventory;
