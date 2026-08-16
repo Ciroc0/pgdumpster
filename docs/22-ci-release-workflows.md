@@ -29,7 +29,7 @@ Earlier GitHub Actions quota exhaustion blocked newly pushed workflow runs befor
 The latest complete local result after hosted restore regression hardening is:
 
 - `pnpm check`: **PASS**;
-- **115 test files / 724 tests: PASS**;
+- **116 test files / 725 tests: PASS**;
 - **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
@@ -76,6 +76,15 @@ Protected secrets only. The release E2E must:
 12. clean/reset test data according to test-account policy.
 
 Do not upload decrypted bundles, rotation maps, age identity material or live secret material as CI artifacts.
+
+`live-e2e.yml` is the protected `workflow_dispatch` implementation of this
+gate. It requires the `release-e2e` GitHub Environment and its source/target
+project refs, pooler URLs, Management token and `age` recipient/identity
+secrets. It rejects equal refs and a target that still contains the dedicated
+fixture or Storage buckets before it seeds the source, so an operator must reset
+or recreate the disposable target explicitly between runs. Its only persistent
+workflow output is a sanitized terminal-status summary; temporary encrypted
+bundles, config and the age identity are removed on exit.
 
 ## Release workflow requirements
 

@@ -1,0 +1,54 @@
+name: Live hosted E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-e2e
+  cancel-in-progress: false
+
+jobs:
+  hosted-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: release-e2e
+    env:
+      PGDUMPSTER_ACCESS_TOKEN: ${{ secrets.PGDUMPSTER_ACCESS_TOKEN }}
+      PGDUMPSTER_E2E_SOURCE_PROJECT_REF: ${{ secrets.PGDUMPSTER_E2E_SOURCE_PROJECT_REF }}
+      PGDUMPSTER_E2E_TARGET_PROJECT_REF: ${{ secrets.PGDUMPSTER_E2E_TARGET_PROJECT_REF }}
+      PGDUMPSTER_E2E_SOURCE_DB_URL: ${{ secrets.PGDUMPSTER_E2E_SOURCE_DB_URL }}
+      PGDUMPSTER_E2E_TARGET_DB_URL: ${{ secrets.PGDUMPSTER_E2E_TARGET_DB_URL }}
+      PGDUMPSTER_E2E_AGE_RECIPIENT: ${{ secrets.PGDUMPSTER_E2E_AGE_RECIPIENT }}
+      PGDUMPSTER_E2E_AGE_IDENTITY: ${{ secrets.PGDUMPSTER_E2E_AGE_IDENTITY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: corepack enable
+      - name: Install age
+        run: sudo apt-get update && sudo apt-get install --yes age
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Materialize short-lived age identity
+        shell: bash
+        run: |
+          umask 077
+          printf '%s' "$PGDUMPSTER_E2E_AGE_IDENTITY" > "$RUNNER_TEMP/pgdumpster-age-identity.txt"
+      - name: Source-to-target encrypted recovery
+        env:
+          PGDUMPSTER_E2E_AGE_IDENTITY_FILE: ${{ runner.temp }}/pgdumpster-age-identity.txt
+        run: node scripts/live-e2e.mjs
+      - name: Publish sanitized result
+        if: always()
+        run: test ! -f live-e2e-summary.json || cat live-e2e-summary.json
+      - name: Remove local E2E material
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/pgdumpster-age-identity.txt" live-e2e-summary.json

@@ -12,6 +12,7 @@ temp/
 pgdumpster-*.tar.zst
 pgdumpster-*.tar.zst.age
 *.age
+live-e2e-summary.json
 backups/
 .pgdumpster-work/
 .pgdumpster-restore/
