@@ -22,6 +22,7 @@ import { z } from "zod";
 
 const MAX_COMMAND_OUTPUT_BYTES = 65_536;
 const projectRefPattern = /^[a-z0-9]{20}$/u;
+let currentStage = "configuration";
 const restoreArtifactNamePattern =
   /^[0-9a-f-]{36}\.(?:api-key-rotation|checkpoint|parity|plan)\.json$/u;
 const commandOutputSchema = z.object({
@@ -32,7 +33,11 @@ const cleanTargetSchema = z
   .object({
     rows: z
       .array(
-        z.object({ fixture_absent: z.boolean(), storage_empty: z.boolean() }),
+        z.object({
+          fixture_absent: z.boolean(),
+          storage_empty: z.boolean(),
+          auth_fixture_absent: z.boolean(),
+        }),
       )
       .min(1),
   })
@@ -261,7 +266,7 @@ async function assertCleanTarget(targetDatabaseUrl, environment) {
   const { stdout } = await supabaseQuery(
     targetDatabaseUrl,
     [
-      "select to_regclass('pgdumpster_e2e.jobs') is null as fixture_absent, (select count(*) from storage.buckets) = 0 as storage_empty",
+      "select to_regclass('pgdumpster_e2e.jobs') is null as fixture_absent, (select count(*) from storage.buckets) = 0 as storage_empty, (select count(*) from auth.users where email like 'pgdumpster-e2e-%@example.test') = 0 as auth_fixture_absent",
       "--output",
       "json",
     ],
@@ -269,7 +274,11 @@ async function assertCleanTarget(targetDatabaseUrl, environment) {
   );
   const result = cleanTargetSchema.parse(JSON.parse(stdout));
   const row = result.rows[0];
-  if (row.fixture_absent !== true || row.storage_empty !== true)
+  if (
+    row.fixture_absent !== true ||
+    row.storage_empty !== true ||
+    row.auth_fixture_absent !== true
+  )
     throw new Error(
       "Target is not clean. Reset or recreate the protected disposable target before running live E2E.",
     );
@@ -444,12 +453,16 @@ async function main() {
       { encoding: "utf8", mode: 0o600 },
     );
 
+    currentStage = "target-cleanliness preflight";
     await assertCleanTarget(targetDatabaseUrl, environment);
+    currentStage = "source fixture seeding";
     await seedFixture(sourceDatabaseUrl);
+    currentStage = "Auth fixture creation";
     const authFixtureUser = await createAuthFixtureUser(
       sourceProjectRef,
       sourceStorageKey,
     );
+    currentStage = "source doctor";
     const doctor = lastJson(
       (
         await cli(
@@ -463,6 +476,7 @@ async function main() {
     if (!doctor.ok)
       throw new Error("Doctor did not report a ready source project.");
 
+    currentStage = "encrypted backup";
     const backup = lastJson(
       (
         await cli(
@@ -496,6 +510,7 @@ async function main() {
     if (typeof bundle !== "string")
       throw new Error("Backup did not return an output path.");
 
+    currentStage = "offline verification";
     const verification = lastJson(
       (
         await cli(
@@ -506,6 +521,7 @@ async function main() {
       "offline verification",
       verificationSchema,
     );
+    currentStage = "coverage inspection";
     const coverage = lastJson(
       (
         await cli(
@@ -530,6 +546,7 @@ async function main() {
       "--target-db-url-env",
       "PGDUMPSTER_E2E_TARGET_DB_URL",
     ];
+    currentStage = "restore dry-run";
     const plan = lastJson(
       (await cli([...restoreArguments, "--dry-run", "--json"], environment))
         .stdout,
@@ -538,6 +555,7 @@ async function main() {
     );
     if (plan.target.projectRef !== targetProjectRef)
       throw new Error("Restore dry-run target binding is invalid.");
+    currentStage = "restore apply";
     const restore = lastJson(
       (await cli([...restoreArguments, "--apply", "--json"], environment))
         .stdout,
@@ -561,6 +579,7 @@ async function main() {
         "Restore parity report contains an unverified planned action.",
       );
 
+    currentStage = "database smoke";
     const smokeSql =
       "select (select count(*) from pgdumpster_e2e.accounts) as accounts, (select count(*) from pgdumpster_e2e.jobs) as jobs, (select count(*) from pgdumpster_e2e.jobs where checksum = encode(digest(payload::text, 'sha256'), 'hex')) as valid_checksums, (select count(*) from pg_policies where schemaname = 'pgdumpster_e2e') as rls_policies, (select count(*) from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'pgdumpster_e2e' and tablename = 'jobs') as realtime_membership, (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pgdumpster_e2e' and c.relname = 'jobs' and not t.tgisinternal) as user_triggers";
     const [sourceSmoke, targetSmoke] = await Promise.all([
@@ -581,6 +600,7 @@ async function main() {
       throw new Error(
         "Post-restore database smoke does not match the source fixture.",
       );
+    currentStage = "Storage smoke";
     const sourceStorage = storageObjectsSchema.parse(
       JSON.parse(
         (
@@ -617,6 +637,7 @@ async function main() {
       throw new Error(
         "Post-restore Storage object smoke does not match the source.",
       );
+    currentStage = "Auth password smoke";
     await assertAuthPasswordLogin(
       targetProjectRef,
       targetStorageKey,
@@ -659,4 +680,14 @@ async function main() {
   }
 }
 
-await main();
+try {
+  await main();
+} catch (error) {
+  const message =
+    error instanceof Error &&
+    error.message.startsWith("Missing required live-E2E environment variable:")
+      ? error.message
+      : `Live E2E failed during ${currentStage}.`;
+  process.stderr.write(`${message}\n`);
+  process.exitCode = 1;
+}
