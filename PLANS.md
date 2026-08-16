@@ -10,7 +10,7 @@ Build the production-ready pgDumpster CLI described by the binding repository sp
 
 ## Current milestone
 
-**Release convergence — encrypted publication, restore apply/parity, hosted recovery proof and release hardening.**
+**Release convergence - encrypted publication, restore apply/parity, hosted recovery proof and release hardening.**
 
 The broad capture/restore architecture, cross-service consistency layer, standard local `age` encryption and S3-compatible publication path now exist. Remaining work is concentrated in final release/security hardening.
 
@@ -162,108 +162,108 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ## Validation log
 
-### 2026-08-16 — Edge Function deploy representation boundary
+### 2026-08-16 - Edge Function deploy representation boundary
 
 - A disposable live probe captured a deployed function body and then attempted the corresponding target Management API deployment. The platform rejected the body because deployment requires an `entrypoint_path` and source-tree input that the captured representation does not supply.
 - The current Supabase CLI `functions download --use-api` returned a source tree for the same function. This is a viable future adapter route, but it requires a new safe source-tree archive, reconstruction and CLI deployment slice; it is not implemented by the generic body handler.
 - The runtime contract now accepts the observed `null` `import_map_path` response shape while retaining the dated OpenAPI schema as the primary contract. The former raw-body handler was deliberately removed from automatic planning; it is superseded by the separate CLI source-tree handler recorded below.
 
-### 2026-08-16 — Edge Function CLI source-tree restore
+### 2026-08-16 - Edge Function CLI source-tree restore
 
 - Replaced the non-deployable Management API body restore route with a Supabase CLI `functions download --use-api` source-tree capture. The capture accepts only bounded regular files under an isolated work directory, rejects path/case collisions and records each artifact SHA-256.
 - The restore handler validates all indexed source files before target discovery/mutation, reconstructs an isolated `supabase/functions/<slug>` tree and generated per-function `config.toml`, then invokes `functions deploy --use-api` through argument arrays. Target semantic metadata/inventory is verified after deployment; command output and credentials are never included in errors.
 - Local tests cover source download failures, malformed source trees/indexes, checksum/artifact integrity, conflict behavior, import-map/entrypoint configuration, default CLI resolution and deploy failures. Managed source-to-target invocation passed on 2026-08-16.
 
-### 2026-08-16 — bounded large Storage stream regression
+### 2026-08-16 - bounded large Storage stream regression
 
 - Added a 32 MiB Storage download fixture which creates and emits only 64 KiB chunks, then verifies byte count, digest and persisted artifact. It exercises the production stream → hash → file pipeline without constructing the full payload in the test or the download path.
 - Local validation: focused Storage stream tests **5 tests, PASS**; `pnpm test:coverage`: **115 test files / 724 tests, PASS**. Global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — Storage inventory scale regression
+### 2026-08-16 - Storage inventory scale regression
 
 - Added a deterministic 100,000-object Storage catalog inventory regression that verifies catalog normalization and canonical ordering without live data.
 - Local validation: focused Storage catalog tests **4 tests, PASS**; `pnpm test:coverage`: **115 test files / 723 tests, PASS**. Global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — deterministic Management API fault simulator
+### 2026-08-16 - deterministic Management API fault simulator
 
 - Added an in-process queued Management API simulator that deterministically models latency, connection resets, 429 retry headers, changing paginated/eventually-consistent responses, mutation between snapshots, secret-bearing fixture bodies and stale ETag headers. The test asserts transport sequencing without any live API dependency.
 - Local validation: focused simulator tests **2 tests, PASS**; `pnpm test:coverage`: **115 test files / 722 tests, PASS**. Global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — explicit non-interactive CLI contract
+### 2026-08-16 - explicit non-interactive CLI contract
 
 - Added global `--non-interactive` parsing with duplicate rejection. The CLI remains prompt-free and this flag does not bypass mandatory restore `--apply` behavior.
 - Local validation: focused CLI-help regression **8 tests, PASS**; `pnpm check`: **PASS**; `pnpm test:coverage`: **114 test files / 720 tests, PASS**. Global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — command-help release smoke repair
+### 2026-08-16 - command-help release smoke repair
 
 - Fixed `pgdumpster <command> --help` so it returns usage and exits successfully before configuration or credential loading. Previously, `pgdumpster doctor --help` incorrectly reached doctor argument parsing and reported `INTERNAL_INVARIANT_VIOLATION`.
 - Added a regression covering `doctor`, `backup`, `inspect`, `coverage`, `verify` and `restore` command help. The built CLI smoke test now passes for `doctor --help` and `backup --help`.
 - Local validation: **114 test files / 716 tests, PASS**. Global coverage: **94.66% statements / 90.11% branches / 92.50% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — live-restore regression hardening
+### 2026-08-16 - live-restore regression hardening
 
 - A hosted encrypted backup and offline verification completed against a dedicated test source. An apply run on a disposable target exposed two fail-closed defects before a complete E2E claim: source `legacy` API keys were incorrectly rejected, and a resume invocation could rebuild and overwrite the immutable plan before checkpoint verification.
 - Legacy keys now map only to the target's already-generated matching legacy identity and are never posted. Resume now reads the bounded persisted plan beside the checkpoint, validates its hash and source/target/policy bindings, and never rewrites that record.
 - The target run remains partial evidence only; it is not semantic-parity proof. A fresh target rerun is required.
 - Local validation: **114 test files / 718 tests, PASS**. Global coverage: **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — hosted encrypted restore and parity observation
+### 2026-08-16 - hosted encrypted restore and parity observation
 
 - On separate disposable managed-Supabase projects, an encrypted `verified` backup completed with 44 files and offline verification passed. Restore onto a clean target completed as `restored_with_platform_limits`; all 16 planned mutations were verified, with six documented non-exportable/manual platform limits.
 - Database semantic checks matched source and target for the fixture's account/job counts, enum, RLS policies, trigger behavior/checksums and Realtime publication. This is a real hosted source-to-target recovery observation, including resume recovery after an intentional live failure.
 - The fixture had no File Storage bucket/object and no external S3-compatible destination. Therefore Storage streaming/provider interoperability and the final fully applicable hosted E2E remain pending.
 
-### 2026-08-16 — hosted File Storage restore observation
+### 2026-08-16 - hosted File Storage restore observation
 
 - A private source bucket containing one 38-byte marker object was captured in a second encrypted, offline-verified 45-file archive. Restore onto a fresh target completed with Storage service configuration, bucket, object and metadata actions all verified.
 - Direct target Storage API verification found the private bucket and exactly one restored `fixtures/marker.txt` object at 38 bytes. This closes the managed-Storage streaming E2E evidence; a separate external S3-compatible provider remains untested.
 
-### 2026-08-16 — S3 capability/status reconciliation
+### 2026-08-16 - S3 capability/status reconciliation
 
 - Audited the current S3 adapter, configured bundle input and CLI/output wiring against the release acceptance criteria. The implementation performs bounded multipart upload, persists protected upload state, resumes committed parts, recovers a fully uploaded object when only its marker is missing, verifies remote metadata plus streamed bytes, then conditionally writes and rereads `COMPLETE.json` last.
 - Focused local evidence: **7 test files / 40 tests, PASS**, including cancellation, malformed/out-of-scope locator, marker, overwrite, missing response identity, multipart-conflict and vanished-upload cases.
 - `PLANS.md` previously incorrectly described configured S3 as `DESTINATION_NOT_IMPLEMENTED`; it is now explicitly classified as implemented but missing real-provider interoperability evidence.
 
-### 2026-08-16 — immutable restore-plan evidence
+### 2026-08-16 - immutable restore-plan evidence
 
 - `restore --apply` now atomically writes the runtime-validated immutable plan as a `0600` record beside the checkpoint before executor mutation. Machine and human results return that path together with checkpoint and parity-report paths.
 - CLI regression validates the persisted plan identity and verifies that database and Management secrets are absent from both plan and parity records. Focused local validation: **2 test files / 13 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 710 tests, PASS**. Global coverage: **94.64% statements / 90.08% branches / 92.50% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — planned credential-minimization boundary
+### 2026-08-16 - planned credential-minimization boundary
 
 - The restore capability registry now declares automatic components requiring target database and Management credentials, alongside the existing privileged Storage credential subset. The CLI derives all three requirements from planned actions and only constructs their corresponding handlers when the credential is necessary.
 - A database-only restore regression succeeds with a target database URL but no Management credential or network call. Exact capability tests prevent handler and credential requirement lists from drifting.
 - Focused local validation: **2 test files / 13 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 710 tests, PASS**. Global coverage: **94.64% statements / 90.10% branches / 92.50% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — Storage credential capability ownership
+### 2026-08-16 - Storage credential capability ownership
 
 - Removed the CLI-local list of Storage components requiring a privileged target credential. The CLI now queries the canonical restore capability boundary, so planner capability, handler wiring and credential discovery cannot diverge through a duplicated list.
 - Added an exact capability regression covering every automatic Storage handler requiring that credential. Focused local validation: **2 test files / 11 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 708 tests, PASS**. Global coverage: **94.64% statements / 90.10% branches / 92.48% functions / 95.68% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-16 — blocked-plan credential-discovery boundary
+### 2026-08-16 - blocked-plan credential-discovery boundary
 
 - Extracted `assertRestorePlanExecutable` as the core boundary used by both CLI and executor. It rejects `plan.status: blocked` before CLI reads the target database URL, loads the target Management token or performs target API discovery.
 - Added a CLI regression with no target credentials and a mocked fetch; it deterministically returns `RESTORE_PLAN_BLOCKED` and makes no network call.
 - Focused local validation: **2 test files / 12 tests, PASS**; `tsc --noEmit`: **PASS**. Full `pnpm check`: **113 test files / 707 tests, PASS**. Global coverage: **94.62% statements / 90.10% branches / 92.39% functions / 95.66% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-15 — restore artifact preflight checkpoint
+### 2026-08-15 - restore artifact preflight checkpoint
 
 - `restore --apply` now validates every artifact named by a planned action after handler-completeness validation and before checkpoint creation or target mutation. Direct artifacts must be non-symlink files and resolve within the verified bundle root.
 - Verified-input checksum enforcement rejects a removed declared artifact even earlier as `BUNDLE_INCOMPLETE`; the executor is not invoked and diagnostics remain redacted.
 - Local result: **110 test files / 690 tests, PASS**. Global coverage: **94.67% statements / 90.01% branches / 92.45% functions / 95.73% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-15 — Analytics restore-fidelity checkpoint
+### 2026-08-15 - Analytics restore-fidelity checkpoint
 
 - The current official Analytics/Iceberg surface is alpha and requires separate S3 credentials for table data. pgDumpster captures catalog metadata but cannot export the referenced data plane.
 - Metadata-only Analytics capture now yields explicit `not_exportable` data and `not_identically_restorable` catalog fidelity, so restore reports manual platform limits instead of failing with a missing handler.
 - `docs/06-restore-engine.md` was reconciled with the implemented guarded `restore --apply` behavior; it continues to state that final semantic parity and hosted E2E are pending.
 
-### 2026-08-15 — control-plane handler audit checkpoint
+### 2026-08-15 - control-plane handler audit checkpoint
 
 - Audited capture surfaces that could otherwise become `planned` without a mutation handler. Vanity subdomain, disk/autoscale, selected add-ons, JIT access, read-replica topology, log drains and PrivateLink now carry `not_identically_restorable` source fidelity.
 - The restore planner turns those captured read-only surfaces into explicit manual platform limits. It never proceeds to a fabricated mutation endpoint, including when a billable-resource opt-in is supplied.
 
-### 2026-08-15 — Auth provider restore checkpoint
+### 2026-08-15 - Auth provider restore checkpoint
 
 - Refreshed the dated official Auth contract snapshot with the current SSO-provider and Third-party Auth mutation contracts.
 - Added runtime-validated Management API `POST` and `DELETE` transport methods.
@@ -271,14 +271,14 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Local result: **108 test files / 678 tests, PASS**; contract-drift check: **PASS**.
 - Global coverage: **94.71% statements / 90.01% branches / 92.46% functions / 95.83% lines**; all 90% global thresholds: **PASS**.
 
-### 2026-08-14/15 — coverage hardening checkpoint
+### 2026-08-14/15 - coverage hardening checkpoint
 
 - Focused hardening batches expanded Management/client, artifact/bundle/database/restore/checkpoint/process/storage/config/Auth/control-plane/Vault/executor behavior.
 - Local result at that checkpoint: 70 test files, 395 tests, all green.
 - Global coverage at that checkpoint: 94.48% statements, 90.32% branches, 93.22% functions, 95.72% lines.
 - Repository 90% global thresholds: PASS.
 
-### 2026-08-15 — consistency and resume hardening checkpoint
+### 2026-08-15 - consistency and resume hardening checkpoint
 
 - Concrete consistency adapters cover all 10 product backup steps.
 - Drift handling covers pre-snapshot, copy-time and post-snapshot observations.
@@ -289,7 +289,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - CLI exit-code mapping includes consistency → 6, source-component failures → 5 and destination/I/O → 8.
 - Local `pnpm check` after the initial slice: **85 test files / 500 tests, PASS**.
 
-### 2026-08-15 — post-consistency coverage hardening checkpoint
+### 2026-08-15 - post-consistency coverage hardening checkpoint
 
 - Added focused failure/security-path tests for Edge, Vault, specialized Storage, safe cleanup and generic consistency cleanup/cancellation semantics.
 - Final local suite: **88 test files / 525 tests, PASS**.
@@ -297,7 +297,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Repository 90% global thresholds: **PASS**.
 - Coverage thresholds were not lowered and production files were not excluded to recover the gate.
 
-### 2026-08-15 — standard age encryption checkpoint
+### 2026-08-15 - standard age encryption checkpoint
 
 - Added shell-free `age` encrypt/decrypt subprocess wrapper with bounded diagnostics, cancellation, atomic publication and restrictive output permissions.
 - Windows durability handling uses a writable file descriptor before `fsync`, covered by the local Windows test run.
@@ -308,7 +308,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Global coverage: **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**.
 - Repository 90% global thresholds: **PASS**.
 
-### 2026-08-16 — managed-schema diff engine compatibility
+### 2026-08-16 - managed-schema diff engine compatibility
 
 - Current official Supabase CLI documentation was revalidated. The legacy
   `db diff` engine has known publication, Storage-bucket and
@@ -322,7 +322,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   PASS**; `pnpm lint` and `pnpm build`: **PASS**. Full candidate validation
   and a repeat encrypted hosted E2E remain pending.
 
-### 2026-08-16 — current-candidate local hosted E2E
+### 2026-08-16 - current-candidate local hosted E2E
 
 - Re-ran the hardened live harness after explicitly selecting `pg-delta` for
   managed `auth`/`storage` schema customizations. The encrypted verified
@@ -336,7 +336,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   platform limits. The short-lived age identity and sanitized local summary
   were removed after observation.
 
-### 2026-08-16 — restored Auth application smoke
+### 2026-08-16 - restored Auth application smoke
 
 - The live harness now creates one disposable confirmed Auth user only after a
   clean-target preflight that also rejects residual `pgdumpster-e2e-*` Auth
@@ -353,7 +353,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   branches / 92.55% functions / 95.65% lines**; all 90% global thresholds:
   **PASS**.
 
-### 2026-08-16 — 10k small Storage-object orchestration regression
+### 2026-08-16 - 10k small Storage-object orchestration regression
 
 - Added a deterministic 10,000-object fixture through the actual product
   file-storage backup step. It verifies that every one-byte object reaches the
@@ -364,7 +364,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   a provider-scale S3 upload.
 - Local validation: focused product-backup tests **5 tests, PASS**.
 
-### 2026-08-16 — large database-dump streaming regression
+### 2026-08-16 - large database-dump streaming regression
 
 - Added a deterministic 64 MiB `database.data` dump fixture whose simulated CLI
   process streams 64 KiB chunks directly into the production `.partial`
@@ -374,7 +374,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   throughput/RSS, retries and checkpoint-overhead evidence remain separate.
 - Local validation: focused database-dump tests **11 tests, PASS**.
 
-### 2026-08-16 — Cloudflare R2 multipart scale observation
+### 2026-08-16 - Cloudflare R2 multipart scale observation
 
 - Published and independently verified a disposable **128 MiB** encrypted-form
   transport object to the scoped Cloudflare R2 test bucket through
@@ -388,7 +388,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   not substitute for the separately required protected GitHub Environment
   workflow execution.
 
-### 2026-08-16 — Cloudflare R2 load baseline
+### 2026-08-16 - Cloudflare R2 load baseline
 
 - A second disposable 128 MiB multipart upload used 5 MiB parts and
   concurrency 4. It completed in **9,408 ms** (**13.61 MiB/s**), made **34**

@@ -2,7 +2,7 @@
 
 This file is the final “done” contract. A feature is not complete merely because code exists.
 
-## Evidence audit — 2026-08-16
+## Evidence audit - 2026-08-16
 
 The checkboxes below remain the binding criterion-level ledger. This audit records their current classification without converting code review into acceptance. **Implemented + evidenced** means current local tests and/or recorded disposable live evidence; **implemented but evidence missing** means the code exists but needs current-candidate, scale or protected live proof; **implementation missing** means a required path is absent; **platform/manual limit** means automatic exact fidelity is not available and requires an operator procedure; **release-time/external gate** requires GitHub/npm/repository action.
 

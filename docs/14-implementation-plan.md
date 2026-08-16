@@ -14,7 +14,7 @@ For each slice:
 
 Do not accumulate known-red test debt.
 
-## Milestone 0 — repository foundation
+## Milestone 0 - repository foundation
 
 Deliver:
 
@@ -40,7 +40,7 @@ pnpm build
 pnpm test
 ```
 
-## Milestone 1 — domain model and bundle core
+## Milestone 1 - domain model and bundle core
 
 Implement:
 
@@ -57,7 +57,7 @@ Implement:
 
 Tests include corrupt/malicious bundle fixtures before network adapters exist.
 
-## Milestone 2 — configuration and doctor
+## Milestone 2 - configuration and doctor
 
 Implement:
 
@@ -71,7 +71,7 @@ Implement:
 
 No backup yet until doctor can prove prerequisites.
 
-## Milestone 3 — Management API adapter framework
+## Milestone 3 - Management API adapter framework
 
 Implement:
 
@@ -86,7 +86,7 @@ Implement:
 
 Then implement all required control-plane/auth/API/secrets/Vault adapters from the coverage registry.
 
-## Milestone 4 — database engine
+## Milestone 4 - database engine
 
 Implement supported dump workflow:
 
@@ -99,7 +99,7 @@ Implement supported dump workflow:
 
 Add local integration fixtures and subprocess security tests.
 
-## Milestone 5 — File Storage engine
+## Milestone 5 - File Storage engine
 
 Implement:
 
@@ -115,7 +115,7 @@ Implement:
 - adversarial object-key tests;
 - stress/memory tests.
 
-## Milestone 6 — Edge Functions
+## Milestone 6 - Edge Functions
 
 Implement:
 
@@ -125,7 +125,7 @@ Implement:
 - Edge secret export;
 - redaction tests.
 
-## Milestone 7 — Vector and Analytics adapters
+## Milestone 7 - Vector and Analytics adapters
 
 Implement dynamic capability discovery.
 
@@ -133,7 +133,7 @@ Do not fake completeness. Adapter status must distinguish catalog/config from ac
 
 Add fixtures for API absence/change.
 
-## Milestone 8 — consistency coordinator
+## Milestone 8 - consistency coordinator
 
 Implement:
 
@@ -146,7 +146,7 @@ Implement:
 
 Only now can `backup` reach a final complete status.
 
-## Milestone 9 — packaging/encryption/destinations
+## Milestone 9 - packaging/encryption/destinations
 
 Implement:
 
@@ -161,7 +161,7 @@ Implement:
 
 Add corruption/encryption/interruption tests.
 
-## Milestone 10 — restore planner
+## Milestone 10 - restore planner
 
 Implement a pure dry-run planner first.
 
@@ -176,7 +176,7 @@ Output: deterministic action graph + manual actions + substitutions.
 
 Unit-test ordering exhaustively.
 
-## Milestone 11 — restore executor
+## Milestone 11 - restore executor
 
 Implement adapters in required dependency order:
 
@@ -195,7 +195,7 @@ Implement adapters in required dependency order:
 
 Add resume/idempotency after each adapter.
 
-## Milestone 12 — semantic parity
+## Milestone 12 - semantic parity
 
 Implement cross-project verifier independent enough to catch restore implementation bugs.
 
@@ -203,7 +203,7 @@ Compare normalized logical state, not volatile IDs where the platform generates 
 
 Output a machine-readable and human-readable report.
 
-## Milestone 13 — live hosted test harness
+## Milestone 13 - live hosted test harness
 
 Provision or use dedicated source/target projects.
 
@@ -213,7 +213,7 @@ This must include a Vault encryption fixture and real File Storage bytes.
 
 If any surface cannot be created in test account/plan, document the exact constraint and create the strongest dedicated test possible; do not silently skip.
 
-## Milestone 14 — release hardening
+## Milestone 14 - release hardening
 
 Complete:
 
@@ -228,7 +228,7 @@ Complete:
 - package naming verification;
 - final API-source revalidation.
 
-## Milestone 15 — release candidate
+## Milestone 15 - release candidate
 
 Run all acceptance criteria.
 

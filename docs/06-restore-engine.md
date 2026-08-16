@@ -154,8 +154,8 @@ Target protected/report outputs include the deterministic plan, result, parity r
 
 Supported top-level policies:
 
-- `fail` — default;
-- `replace` — only for adapters with explicit safe/tested replacement semantics.
+- `fail` - default;
+- `replace` - only for adapters with explicit safe/tested replacement semantics.
 
 There is no vague global merge mode.
 
@@ -171,8 +171,8 @@ Adapters compare before mutation where practical, tolerate exact existing state,
 
 A restore may be:
 
-- `restored` — all applicable restorable state semantically verified;
-- `restored_with_platform_limits` — all possible work succeeded with explicit source/platform limitations or substitutions;
-- `failed` — a required possible operation/parity check failed.
+- `restored` - all applicable restorable state semantically verified;
+- `restored_with_platform_limits` - all possible work succeeded with explicit source/platform limitations or substitutions;
+- `failed` - a required possible operation/parity check failed.
 
 The final hosted E2E in `docs/10-testing.md` remains mandatory proof before this restore path can be considered release-complete.

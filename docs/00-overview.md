@@ -1,4 +1,4 @@
-# 00 — Product overview
+# 00 - Product overview
 
 ## Problem
 

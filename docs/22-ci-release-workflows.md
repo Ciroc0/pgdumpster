@@ -1,4 +1,4 @@
-# 22 — CI and release workflow specification
+# 22 - CI and release workflow specification
 
 This document records both the **current workflow implementation** and the remaining release-workflow requirements.
 
@@ -16,11 +16,11 @@ The repository currently contains:
 
 `ci.yml` currently provides:
 
-- `quality` — frozen install, formatter, lint, strict typecheck and build;
-- `test-unit-contract` — build + full test suite on Node 22;
-- `test-integration` — CLI/simulator integration slice;
-- `test-security` — archive/secret guards plus production dependency audit;
-- `test-os` — Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
+- `quality` - frozen install, formatter, lint, strict typecheck and build;
+- `test-unit-contract` - build + full test suite on Node 22;
+- `test-integration` - CLI/simulator integration slice;
+- `test-security` - archive/secret guards plus production dependency audit;
+- `test-os` - Ubuntu/macOS/Windows × Node 22/24 CLI/config/filesystem/archive coverage.
 
 The earlier validated implementation checkpoint passed the regular CI workflow, including the OS/Node matrix.
 

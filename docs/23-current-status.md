@@ -1,4 +1,4 @@
-# 23 — Current implementation status
+# 23 - Current implementation status
 
 This document is a **status snapshot**, not a replacement for the binding product requirements. When it conflicts with a higher-priority specification, the specification wins and the difference is a remaining implementation task.
 

@@ -1,4 +1,4 @@
-# 03 — Architecture
+# 03 - Architecture
 
 ## Baseline
 
@@ -108,11 +108,11 @@ Never silently switch to a weaker backend.
 
 The database subsystem is split into:
 
-1. **base logical dump** — normal user/project schemas through the documented Supabase-compatible flow;
-2. **schema coverage scanner** — enumerates every non-system schema and extension ownership;
-3. **managed-schema adapter** — Auth/Storage customizations and dedicated Auth data handling;
-4. **extension-state adapters** — persistent state excluded by the normal dump;
-5. **database parity scanner** — proves no recoverable persistent schema vanished between discovery and the bundle.
+1. **base logical dump** - normal user/project schemas through the documented Supabase-compatible flow;
+2. **schema coverage scanner** - enumerates every non-system schema and extension ownership;
+3. **managed-schema adapter** - Auth/Storage customizations and dedicated Auth data handling;
+4. **extension-state adapters** - persistent state excluded by the normal dump;
+5. **database parity scanner** - proves no recoverable persistent schema vanished between discovery and the bundle.
 
 Required explicit extension-state adapters include, when configured:
 

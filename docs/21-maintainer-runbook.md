@@ -1,4 +1,4 @@
-# 21 — Maintainer and release runbook
+# 21 - Maintainer and release runbook
 
 ## Routine dependency/API maintenance
 

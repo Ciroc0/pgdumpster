@@ -1,4 +1,4 @@
-# 20 — Target repository structure
+# 20 - Target repository structure
 
 Codex should converge on a repository close to this shape. Exact filenames may change when an implementation concern justifies it, but the separation of responsibilities is binding.
 

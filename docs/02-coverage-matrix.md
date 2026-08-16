@@ -1,4 +1,4 @@
-# 02 — Coverage matrix
+# 02 - Coverage matrix
 
 This matrix is normative. `spec/coverage-registry.yaml` is the canonical machine-oriented top-level component list.
 

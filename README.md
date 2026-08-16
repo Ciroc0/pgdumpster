@@ -139,7 +139,7 @@ The numbered documentation set is:
 21. `docs/20-target-repository-structure.md`
 22. `docs/21-maintainer-runbook.md`
 23. `docs/22-ci-release-workflows.md`
-24. `docs/23-current-status.md` — non-binding current implementation/evidence snapshot
+24. `docs/23-current-status.md` - non-binding current implementation/evidence snapshot
 
 Agent rules: `AGENTS.md`. Implementation ledger: `PLANS.md`.
 

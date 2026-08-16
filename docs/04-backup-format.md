@@ -1,4 +1,4 @@
-# 04 — Backup bundle format
+# 04 - Backup bundle format
 
 ## Canonical directory
 
