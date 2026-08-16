@@ -268,6 +268,7 @@ export async function dumpManagedSchemaCustomizations(
         ...sourceArgs,
         "--schema",
         "auth,storage",
+        "--use-pg-delta",
         "--output",
         temporaryPath,
       ],

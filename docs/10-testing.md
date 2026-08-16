@@ -275,6 +275,15 @@ this as a manual/platform limit rather than fabricating an exact success.
 
 ## Hosted E2E procedure
 
+The managed `auth`/`storage` customization adapter runs the Supabase CLI's
+Docker-backed shadow-database diff with `--use-pg-delta`. The legacy diff
+engine is not an acceptable fallback for this gate: the current Supabase CLI
+documentation records known failures for publications, Storage buckets and
+`security_invoker` views, which are independently covered by pgDumpster's
+dedicated adapters. The hardened hosted-E2E runner must provide a working
+Docker daemon and must not leave a prior shadow container bound to the CLI
+project port before it starts.
+
 1. Reset source/target fixture state.
 2. Seed source.
 3. Run `doctor`.

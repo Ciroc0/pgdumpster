@@ -295,6 +295,20 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Global coverage: **94.45% statements / 90.51% branches / 91.89% functions / 95.64% lines**.
 - Repository 90% global thresholds: **PASS**.
 
+### 2026-08-16 — managed-schema diff engine compatibility
+
+- Current official Supabase CLI documentation was revalidated. The legacy
+  `db diff` engine has known publication, Storage-bucket and
+  `security_invoker`-view failure modes that occur in the disposable hosted
+  fixture. The current `--use-pg-delta` engine completed a read-only
+  `auth,storage` diff on that fixture with an empty delta.
+- `dumpManagedSchemaCustomizations` now selects `--use-pg-delta` explicitly,
+  rather than inheriting the installed CLI's legacy default. Its exact
+  shell-free invocation is covered by the database-dump regression.
+- Focused database dump/restore validation: **2 test files / 23 tests,
+  PASS**; `pnpm lint` and `pnpm build`: **PASS**. Full candidate validation
+  and a repeat encrypted hosted E2E remain pending.
+
 ### GitHub CI / CodeQL note
 
 The earlier regular CI matrix passed on its validated checkpoint. Current Actions quota is exhausted, so newly pushed commits are expected to be blocked by quota until reset and should not be interpreted as code-quality failures. CodeQL publication remains a separate repository-configuration gate.

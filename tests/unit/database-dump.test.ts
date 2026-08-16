@@ -255,6 +255,7 @@ describe("Supabase logical database dumps", () => {
         "--linked",
         "--schema",
         "auth,storage",
+        "--use-pg-delta",
         "--output",
       ]),
     );
