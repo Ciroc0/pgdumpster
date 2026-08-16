@@ -2,6 +2,7 @@
 
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -53,6 +54,13 @@ const smokeSchema = z
         user_triggers: z.number(),
       }),
     ),
+  })
+  .passthrough();
+const storageObjectsSchema = z
+  .object({
+    rows: z
+      .array(z.object({ bucket: z.string().min(1), name: z.string().min(1) }))
+      .min(1),
   })
   .passthrough();
 const paritySchema = z.object({
@@ -200,6 +208,34 @@ async function assertCleanTarget(targetDatabaseUrl, environment) {
     );
 }
 
+/** @param {string} projectRef @param {string} bucket @param {string} name */
+function storageObjectUrl(projectRef, bucket, name) {
+  const segments = name.split("/");
+  if (
+    name.includes("\0") ||
+    segments.some((segment) => segment === "." || segment === "..")
+  )
+    throw new Error("Storage smoke object identity is invalid.");
+  return `https://${projectRef}.supabase.co/storage/v1/object/${encodeURIComponent(bucket)}/${segments.map(encodeURIComponent).join("/")}`;
+}
+
+/** @param {string} url @param {string} key */
+async function storageDigest(url, key) {
+  const response = await globalThis.fetch(url, {
+    headers: { authorization: `Bearer ${key}`, apikey: key },
+  });
+  if (!response.ok || response.body === null)
+    throw new Error("Storage smoke object could not be read.");
+  const hash = createHash("sha256");
+  let bytes = 0;
+  for await (const chunk of response.body) {
+    const buffer = Buffer.from(chunk);
+    bytes += buffer.length;
+    hash.update(buffer);
+  }
+  return { bytes, sha256: hash.digest("hex") };
+}
+
 async function main() {
   const sourceProjectRef = projectRef("PGDUMPSTER_E2E_SOURCE_PROJECT_REF");
   const targetProjectRef = projectRef("PGDUMPSTER_E2E_TARGET_PROJECT_REF");
@@ -217,6 +253,7 @@ async function main() {
   const identityFile = required("PGDUMPSTER_E2E_AGE_IDENTITY_FILE");
   const accessToken = required("PGDUMPSTER_ACCESS_TOKEN");
   const sourceStorageKey = required("PGDUMPSTER_E2E_SOURCE_STORAGE_KEY");
+  const targetStorageKey = required("PGDUMPSTER_E2E_TARGET_STORAGE_KEY");
   const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-live-e2e-"));
   const configPath = path.join(root, "pgdumpster.yaml");
   /** @type {NodeJS.ProcessEnv} */
@@ -375,6 +412,42 @@ async function main() {
       throw new Error(
         "Post-restore database smoke does not match the source fixture.",
       );
+    const sourceStorage = storageObjectsSchema.parse(
+      JSON.parse(
+        (
+          await supabaseQuery(
+            sourceDatabaseUrl,
+            [
+              "select b.id as bucket, o.name from storage.objects o join storage.buckets b on b.id = o.bucket_id order by b.id, o.name limit 1",
+              "--output",
+              "json",
+            ],
+            environment,
+          )
+        ).stdout,
+      ),
+    ).rows[0];
+    const sourceObjectUrl = storageObjectUrl(
+      sourceProjectRef,
+      sourceStorage.bucket,
+      sourceStorage.name,
+    );
+    const targetObjectUrl = storageObjectUrl(
+      targetProjectRef,
+      sourceStorage.bucket,
+      sourceStorage.name,
+    );
+    const [sourceObject, targetObject] = await Promise.all([
+      storageDigest(sourceObjectUrl, sourceStorageKey),
+      storageDigest(targetObjectUrl, targetStorageKey),
+    ]);
+    if (
+      sourceObject.bytes !== targetObject.bytes ||
+      sourceObject.sha256 !== targetObject.sha256
+    )
+      throw new Error(
+        "Post-restore Storage object smoke does not match the source.",
+      );
 
     const report = {
       schemaVersion: 1,
@@ -385,6 +458,7 @@ async function main() {
       parityStatus: parity.status,
       coverageComponents: coverage.components.length,
       databaseSmoke: "matched",
+      storageSmoke: "matched",
       manualActions: Array.isArray(restore.manualActions)
         ? restore.manualActions.map(({ component, reasonCode }) => ({
             component,
