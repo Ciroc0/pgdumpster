@@ -2,7 +2,7 @@
 
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   lstat,
   mkdtemp,
@@ -73,6 +73,19 @@ const storageObjectsSchema = z
       .array(z.object({ bucket: z.string().min(1), name: z.string().min(1) }))
       .min(1),
   })
+  .passthrough();
+const authUserSchema = z
+  .object({ id: z.string().uuid(), email: z.string().email() })
+  .passthrough();
+const authAdminCreateSchema = z.union([
+  authUserSchema,
+  z
+    .object({ user: authUserSchema })
+    .passthrough()
+    .transform(({ user }) => user),
+]);
+const authPasswordTokenSchema = z
+  .object({ access_token: z.string().min(1), user: authUserSchema })
   .passthrough();
 const paritySchema = z.object({
   status: z.enum(["restored", "restored_with_platform_limits"]),
@@ -290,6 +303,65 @@ async function storageDigest(url, key) {
   return { bytes, sha256: hash.digest("hex") };
 }
 
+/** @param {string} projectRef */
+function authAdminUsersUrl(projectRef) {
+  return `https://${projectRef}.supabase.co/auth/v1/admin/users`;
+}
+
+/** @param {string} projectRef */
+function authPasswordTokenUrl(projectRef) {
+  return `https://${projectRef}.supabase.co/auth/v1/token?grant_type=password`;
+}
+
+/** @param {string} key */
+function privilegedApiHeaders(key) {
+  return { authorization: `Bearer ${key}`, apikey: key };
+}
+
+/** @param {Response} response @returns {Promise<unknown>} */
+async function responseJson(response) {
+  return response.json();
+}
+
+/** @param {string} projectRef @param {string} key */
+async function createAuthFixtureUser(projectRef, key) {
+  const email = `pgdumpster-e2e-${randomUUID()}@example.test`;
+  const password = randomUUID();
+  const response = await globalThis.fetch(authAdminUsersUrl(projectRef), {
+    method: "POST",
+    headers: {
+      ...privilegedApiHeaders(key),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email, password, email_confirm: true }),
+  });
+  if (!response.ok) throw new Error("Auth fixture user could not be created.");
+  const body = await responseJson(response);
+  const user = authAdminCreateSchema.parse(body);
+  if (user.email !== email)
+    throw new Error("Auth fixture user response did not match the request.");
+  return { id: user.id, email, password };
+}
+
+/** @param {string} projectRef @param {string} key @param {{ id: string; email: string; password: string }} user */
+async function assertAuthPasswordLogin(projectRef, key, user) {
+  const response = await globalThis.fetch(authPasswordTokenUrl(projectRef), {
+    method: "POST",
+    headers: {
+      ...privilegedApiHeaders(key),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email: user.email, password: user.password }),
+  });
+  if (!response.ok) throw new Error("Auth password smoke could not sign in.");
+  const body = await responseJson(response);
+  const session = authPasswordTokenSchema.parse(body);
+  if (session.user.id !== user.id || session.user.email !== user.email)
+    throw new Error(
+      "Auth password smoke user does not match the source fixture.",
+    );
+}
+
 /** @param {string} directory @returns {Promise<Set<string>>} */
 async function restoreDirectoryEntries(directory) {
   try {
@@ -374,6 +446,10 @@ async function main() {
 
     await assertCleanTarget(targetDatabaseUrl, environment);
     await seedFixture(sourceDatabaseUrl);
+    const authFixtureUser = await createAuthFixtureUser(
+      sourceProjectRef,
+      sourceStorageKey,
+    );
     const doctor = lastJson(
       (
         await cli(
@@ -541,6 +617,11 @@ async function main() {
       throw new Error(
         "Post-restore Storage object smoke does not match the source.",
       );
+    await assertAuthPasswordLogin(
+      targetProjectRef,
+      targetStorageKey,
+      authFixtureUser,
+    );
 
     const report = {
       schemaVersion: 1,
@@ -555,6 +636,7 @@ async function main() {
       ).length,
       databaseSmoke: "matched",
       storageSmoke: "matched",
+      authSmoke: "matched",
       manualActions: Array.isArray(restore.manualActions)
         ? restore.manualActions.map(({ component, reasonCode }) => ({
             component,
