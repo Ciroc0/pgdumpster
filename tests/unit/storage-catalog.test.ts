@@ -119,6 +119,42 @@ describe("File Storage catalog", () => {
     ).toBeNull();
   });
 
+  it("normalizes a deterministic 100k-object inventory", () => {
+    const objects = Array.from({ length: 100_000 }, (_, index) => ({
+      id: `object-${index}`,
+      bucket_id: "files",
+      name: `fixtures/${String(99_999 - index).padStart(6, "0")}.txt`,
+      owner: null,
+      owner_id: null,
+      version: null,
+      created_at: null,
+      updated_at: null,
+      last_accessed_at: null,
+      metadata: { size: "1" },
+      user_metadata: null,
+    }));
+
+    const catalog = normalizeFileStorageCatalog({
+      buckets: [
+        {
+          id: "files",
+          name: "files",
+          public: false,
+          type: "STANDARD",
+          file_size_limit: null,
+          allowed_mime_types: null,
+          created_at: null,
+          updated_at: null,
+        },
+      ],
+      objects,
+    });
+
+    expect(catalog.objects).toHaveLength(100_000);
+    expect(catalog.objects[0]?.name).toBe("fixtures/000000.txt");
+    expect(catalog.objects.at(-1)?.name).toBe("fixtures/099999.txt");
+  });
+
   it("collects and persists File Storage catalog through linked fixed queries", async () => {
     const root = await mkdtemp(
       path.join(tmpdir(), "pgdumpster-linked-storage-"),
