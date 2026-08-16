@@ -193,7 +193,7 @@ async function cli(args, environment) {
 /** @param {string} database @param {string[]} args @param {NodeJS.ProcessEnv} environment */
 async function supabaseQuery(database, args, environment) {
   return command(
-    "pnpm",
+    process.platform === "win32" ? "pnpm.cmd" : "pnpm",
     ["exec", "supabase", "db", "query", "--db-url", database, ...args],
     environment,
   );
@@ -518,8 +518,11 @@ async function main() {
     );
     process.stdout.write(`${JSON.stringify(report)}\n`);
   } finally {
-    await removeNewRestoreArtifacts(restoreDirectory, previousRestoreEntries);
-    await rm(root, { recursive: true, force: true });
+    try {
+      await removeNewRestoreArtifacts(restoreDirectory, previousRestoreEntries);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   }
 }
 
