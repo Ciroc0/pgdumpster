@@ -317,7 +317,8 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   source-to-clean-target sequence completed locally: backup
   `complete_with_platform_limits`, offline verification `verified`, restore
   and parity `restored_with_platform_limits`, **55** terminal coverage
-  components, and matching database plus direct Storage byte-hash smoke.
+  components, **19** verified planned restore actions, and matching database
+  plus direct Storage byte-hash smoke.
 - The only manual actions were the already classified PgBouncer, Auth secret
   fields/signing material, Edge secret digest and deployed Edge dependency
   platform limits. The short-lived age identity and sanitized local summary
