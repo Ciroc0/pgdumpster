@@ -272,6 +272,7 @@ The earlier regular CI matrix passed on its validated checkpoint. Current Action
 
 ## Next implementation order
 
-1. CodeQL result publication and finding disposition;
-2. protected current-candidate CI/live-E2E plus tagged trusted-publishing release workflow;
-3. published-artifact verification and final acceptance audit.
+1. deterministic Management API simulator and the specified Storage scale/stream evidence;
+2. protected full-fixture hosted E2E (Vault, Edge/secrets, Auth/service config and application smoke) and resolve any resulting fidelity gap;
+3. CodeQL result publication/current-candidate CI when GitHub configuration/quota permit it;
+4. trusted-publisher setup, SemVer/tagged release workflow, published-artifact verification and final acceptance audit.

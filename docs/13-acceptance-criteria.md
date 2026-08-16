@@ -2,6 +2,45 @@
 
 This file is the final “done” contract. A feature is not complete merely because code exists.
 
+## Evidence audit — 2026-08-16
+
+The checkboxes below remain the binding criterion-level ledger. This audit records their current classification without converting code review into acceptance. **Implemented + evidenced** means current local tests and/or recorded disposable live evidence; **implemented but evidence missing** means the code exists but needs current-candidate, scale or protected live proof; **implementation missing** means a required path is absent; **platform/manual limit** means automatic exact fidelity is not available and requires an operator procedure; **release-time/external gate** requires GitHub/npm/repository action.
+
+| Criteria                 | Classification                   | Evidence / remaining action                                                                                                                                         |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A.1–A.2, A.5–A.6         | implemented + evidenced          | Strict ESM build, frozen lockfile and local `pnpm check` pass.                                                                                                      |
+| A.3–A.4                  | implemented but evidence missing | Node 22/24 and OS matrix workflow exist; current candidate needs a successful remote matrix run.                                                                    |
+| A.7–A.8                  | implemented but evidence missing | Package metadata/license/community files exist; final clean-history and candidate-package audit remain release gates.                                               |
+| B.18–B.24, B.26–B.27     | implemented + evidenced          | CLI/parser, JSON/error/redaction regressions exist.                                                                                                                 |
+| B.25                     | implemented + evidenced          | `--non-interactive` parser regression added on 2026-08-16.                                                                                                          |
+| C                        | implemented + evidenced          | Data-driven registry requires one terminal result and explicit limits.                                                                                              |
+| D                        | implemented + evidenced          | Database dump/inventory/adapters and focused regressions exist; full hosted extension fixture remains under Q.                                                      |
+| E.60–E.63                | implemented + evidenced          | Protected root-key capture/restore ordering and leak regressions exist.                                                                                             |
+| E.64                     | implemented but evidence missing | Requires a hosted encrypted Vault fixture whose target decryption proves key continuity.                                                                            |
+| F                        | implemented + evidenced          | Auth capture/restore contracts and non-exportable signing-material reporting are covered locally.                                                                   |
+| G.78–G.82, G.84          | implemented + evidenced          | Modern/legacy replacement and protected rotation-map flows have regressions.                                                                                        |
+| G.83                     | platform/manual limit            | Export only what the current Edge secret API exposes; plaintext-unavailable values require documented substitution, not fake exact restoration.                     |
+| H.88–H.92                | implemented + evidenced          | Deployed-representation capture and restore handlers are covered locally.                                                                                           |
+| H.93                     | implemented but evidence missing | Requires live target inventory/parity after deployed function restore.                                                                                              |
+| I.97–I.100, I.102–I.105  | implemented + evidenced          | Streamed catalog/object capture, adversarial keys, resume and clean-target private-object verification exist.                                                       |
+| I.101                    | implemented but evidence missing | Streaming code exists; specified large-object memory evidence remains absent.                                                                                       |
+| J                        | platform/manual limit            | Vector/Analytics use separate capability outcomes; unsupported data is never labeled a full export.                                                                 |
+| K.117–K.127              | implemented but evidence missing | Capture/classification is covered; every mutable control-plane path needs a current documented write contract or remains an explicit limit.                         |
+| L–M                      | implemented + evidenced          | Consistency, resume, archive integrity, `age`, hostile archive and corruption tests pass.                                                                           |
+| N                        | implemented + evidenced          | Multipart/resume/marker/integrity tests plus live Cloudflare R2 interoperability passed.                                                                            |
+| O.163–O.174              | implemented + evidenced          | Guarded `--apply`, immutable plan/checkpoint, conflict/billable gates, dependency ordering and disposable source→target observations exist.                         |
+| P.178–P.184              | implemented + evidenced          | Threat model, shell-free process wrappers, redaction and archive protections have local tests.                                                                      |
+| P.185                    | release-time/external gate       | CodeQL publication is blocked by repository code-scanning configuration; no clean result may be claimed.                                                            |
+| P.186                    | release-time/external gate       | SBOM is generated by the implemented tagged workflow, which must not run for the current private development package.                                               |
+| Q.190–Q.192, Q.195–Q.200 | implemented + evidenced          | Unit/contract/local integration, consistency, resume, corruption, secret and archive regressions exist; prior OS-matrix evidence is not current-candidate evidence. |
+| Q.193                    | implementation missing           | No deterministic Management API simulator with the specified latency/reset/eventual-consistency fault controls exists.                                              |
+| Q.194                    | implementation missing           | No specified Storage scale/stress harness exists.                                                                                                                   |
+| Q.201–Q.203              | implemented but evidence missing | Disposable database/File Storage observation exists; protected full fixture must still cover Vault, Edge/secrets, Auth/service config and application smoke.        |
+| R.207–R.215              | implemented but evidence missing | Docs and local clean-package smoke exist; final candidate/install/manual-limit review remains.                                                                      |
+| R.216                    | release-time/external gate       | Official contracts must be revalidated at the actual release candidate.                                                                                             |
+
+The immediate local implementation order is therefore: Management API simulator, Storage scale/stream evidence, and a complete hosted fixture/harness. External gates do not block that work.
+
 ## A. Repository and build
 
 - [ ] TypeScript project builds with strict type checking.

@@ -134,10 +134,11 @@ No documentation should describe the full hosted source-to-target recovery gate 
 
 The shortest safe path to the release gate is:
 
-1. fix the GitHub CodeQL repository-setting blocker and disposition any findings;
-2. rerun current-candidate CI and execute the protected hosted E2E for that candidate;
-3. configure npm trusted publishing, finalize version/changelog and run the tagged release workflow;
-4. verify the published artifact, then complete the final documentation/acceptance audit.
+1. implement deterministic Management API simulator and Storage scale/stream evidence required by `docs/10-testing.md`;
+2. execute the protected full-fixture hosted E2E and resolve any fidelity gap without weakening fail-closed behavior;
+3. fix the GitHub CodeQL repository-setting blocker, disposition any findings and rerun current-candidate CI;
+4. configure npm trusted publishing, finalize version/changelog and run the tagged release workflow;
+5. verify the published artifact, then complete the final documentation/acceptance audit.
 
 ## Definition of done
 
