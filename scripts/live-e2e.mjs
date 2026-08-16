@@ -192,11 +192,31 @@ async function cli(args, environment) {
 
 /** @param {string} database @param {string[]} args @param {NodeJS.ProcessEnv} environment */
 async function supabaseQuery(database, args, environment) {
-  return command(
-    process.platform === "win32" ? "pnpm.cmd" : "pnpm",
-    ["exec", "supabase", "db", "query", "--db-url", database, ...args],
-    environment,
-  );
+  const pnpmArguments = [
+    "exec",
+    "supabase",
+    "db",
+    "query",
+    "--db-url",
+    database,
+    ...args,
+  ];
+  if (process.platform === "win32") {
+    const pnpmEntrypoint = path.join(
+      process.env.APPDATA ?? "",
+      "npm",
+      "node_modules",
+      "pnpm",
+      "bin",
+      "pnpm.cjs",
+    );
+    return command(
+      process.execPath,
+      [pnpmEntrypoint, ...pnpmArguments],
+      environment,
+    );
+  }
+  return command("pnpm", pnpmArguments, environment);
 }
 
 /** @param {string} targetDatabaseUrl @param {NodeJS.ProcessEnv} environment */
