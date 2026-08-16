@@ -388,6 +388,17 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
   not substitute for the separately required protected GitHub Environment
   workflow execution.
 
+### 2026-08-16 — Cloudflare R2 load baseline
+
+- A second disposable 128 MiB multipart upload used 5 MiB parts and
+  concurrency 4. It completed in **9,408 ms** (**13.61 MiB/s**), made **34**
+  observed S3 requests with **0** observed retry attempts, reached
+  **154,140,672 bytes** peak RSS and exercised persisted upload-state
+  checkpointing. The object and completion marker were removed after success.
+- This is a clean-provider baseline, not synthetic fault evidence: comparative
+  retry and checkpoint-overhead measurements under provider fault/load remain
+  open.
+
 ### GitHub CI / CodeQL note
 
 The earlier regular CI matrix passed on its validated checkpoint. GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so remote Actions/CodeQL cannot provide current-candidate evidence. CodeQL publication remains a separate repository-configuration gate.
