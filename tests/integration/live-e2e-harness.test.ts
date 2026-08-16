@@ -12,11 +12,24 @@ describe("live E2E harness", () => {
 
     expect(harness).toContain("assertTargetEdgeFunctionsEmpty");
     expect(harness).toContain(
-      "edgeFunctionInventorySchema = z\n  .array(z.object({ slug: z.string().min(1) }).passthrough())\n  .max(0)",
+      "const edgeFunctionInventorySchema = edgeFunctionListSchema.max(0)",
     );
     expect(harness.indexOf("await assertCleanTarget(")).toBeLessThan(
       harness.indexOf('currentStage = "source fixture seeding"'),
     );
+  });
+
+  it("requires an explicit opt-in before destructively resetting the target", async () => {
+    const harness = await readFile("scripts/live-e2e.mjs", "utf8");
+    const workflow = await readFile(".github/workflows/live-e2e.yml", "utf8");
+
+    expect(harness).toContain("function resetTargetRequested(value)");
+    expect(harness).toContain('value === "true"');
+    expect(harness.indexOf("await resetTarget(")).toBeLessThan(
+      harness.indexOf("await assertCleanTarget("),
+    );
+    expect(workflow).toContain("reset_target:");
+    expect(workflow).toContain("PGDUMPSTER_E2E_RESET_TARGET");
   });
 
   it("fails before invoking external commands when protected configuration is absent", async () => {

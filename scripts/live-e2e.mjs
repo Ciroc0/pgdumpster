@@ -17,6 +17,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, URL } from "node:url";
 
+import { StorageClient } from "@supabase/storage-js";
 import pg from "pg";
 import { z } from "zod";
 
@@ -97,9 +98,13 @@ const edgeSmokeSchema = z.object({
   type: z.literal("pgdumpster-e2e-edge"),
   schemaVersion: z.literal(1),
 });
-const edgeFunctionInventorySchema = z
-  .array(z.object({ slug: z.string().min(1) }).passthrough())
-  .max(0);
+const edgeFunctionListSchema = z.array(
+  z.object({ slug: z.string().min(1) }).passthrough(),
+);
+const edgeFunctionInventorySchema = edgeFunctionListSchema.max(0);
+const storageBucketInventorySchema = z.array(
+  z.object({ id: z.string().min(1) }).passthrough(),
+);
 const paritySchema = z.object({
   status: z.enum(["restored", "restored_with_platform_limits"]),
   actions: z
@@ -346,6 +351,78 @@ async function assertCleanTarget(
   await assertTargetEdgeFunctionsEmpty(targetProjectRef, accessToken);
 }
 
+/** @param {string | undefined} value */
+function resetTargetRequested(value) {
+  if (value === undefined || value === "false") return false;
+  if (value === "true") return true;
+  throw new Error("Live E2E target reset opt-in is invalid.");
+}
+
+/** @param {string} database */
+async function removeTargetFixtureDatabaseState(database) {
+  const client = new pg.Client({ connectionString: database });
+  await client.connect();
+  try {
+    await client.query("drop schema if exists pgdumpster_e2e cascade");
+    await client.query(
+      "delete from auth.users where email like 'pgdumpster-e2e-%@example.test'",
+    );
+  } finally {
+    await client.end();
+  }
+}
+
+/** @param {string} projectRef @param {string} storageKey */
+async function removeTargetStorage(projectRef, storageKey) {
+  const client = new StorageClient(
+    `https://${projectRef}.supabase.co/storage/v1`,
+    privilegedApiHeaders(storageKey),
+  );
+  const listed = await client.listBuckets();
+  if (listed.error)
+    throw new Error("Target Storage inventory could not be cleared.");
+  const buckets = storageBucketInventorySchema.parse(listed.data);
+  for (const bucket of buckets) {
+    const emptied = await client.emptyBucket(bucket.id);
+    if (emptied.error)
+      throw new Error("Target Storage bucket could not be emptied.");
+    const deleted = await client.deleteBucket(bucket.id);
+    if (deleted.error)
+      throw new Error("Target Storage bucket could not be deleted.");
+  }
+}
+
+/** @param {string} projectRef @param {string} accessToken */
+async function removeTargetEdgeFunctions(projectRef, accessToken) {
+  const inventory = await globalThis.fetch(
+    `https://api.supabase.com/v1/projects/${encodeURIComponent(projectRef)}/functions`,
+    { headers: { authorization: `Bearer ${accessToken}` } },
+  );
+  if (!inventory.ok)
+    throw new Error("Target Edge Function inventory could not be cleared.");
+  const functions = edgeFunctionListSchema.parse(await inventory.json());
+  for (const function_ of functions) {
+    const response = await globalThis.fetch(
+      `https://api.supabase.com/v1/projects/${encodeURIComponent(projectRef)}/functions/${encodeURIComponent(function_.slug)}`,
+      { method: "DELETE", headers: { authorization: `Bearer ${accessToken}` } },
+    );
+    if (!response.ok)
+      throw new Error("Target Edge Function could not be deleted.");
+  }
+}
+
+/** @param {string} targetDatabaseUrl @param {string} targetProjectRef @param {string} accessToken @param {string} targetStorageKey */
+async function resetTarget(
+  targetDatabaseUrl,
+  targetProjectRef,
+  accessToken,
+  targetStorageKey,
+) {
+  await removeTargetStorage(targetProjectRef, targetStorageKey);
+  await removeTargetFixtureDatabaseState(targetDatabaseUrl);
+  await removeTargetEdgeFunctions(targetProjectRef, accessToken);
+}
+
 /** @param {string} projectRef @param {string} bucket @param {string} name */
 function storageObjectUrl(projectRef, bucket, name) {
   const segments = name.split("/");
@@ -498,6 +575,9 @@ async function main() {
   const accessToken = required("PGDUMPSTER_ACCESS_TOKEN");
   const sourceStorageKey = required("PGDUMPSTER_E2E_SOURCE_STORAGE_KEY");
   const targetStorageKey = required("PGDUMPSTER_E2E_TARGET_STORAGE_KEY");
+  const shouldResetTarget = resetTargetRequested(
+    process.env.PGDUMPSTER_E2E_RESET_TARGET,
+  );
   const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-live-e2e-"));
   const configPath = path.join(root, "pgdumpster.yaml");
   const restoreDirectory = path.join(process.cwd(), ".pgdumpster-restore");
@@ -530,6 +610,15 @@ async function main() {
       { encoding: "utf8", mode: 0o600 },
     );
 
+    if (shouldResetTarget) {
+      currentStage = "explicit target reset";
+      await resetTarget(
+        targetDatabaseUrl,
+        targetProjectRef,
+        accessToken,
+        targetStorageKey,
+      );
+    }
     currentStage = "target-cleanliness preflight";
     await assertCleanTarget(
       targetDatabaseUrl,

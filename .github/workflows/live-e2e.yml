@@ -2,6 +2,12 @@ name: Live hosted E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      reset_target:
+        description: Destructively clear the dedicated disposable target before recovery.
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -25,6 +31,7 @@ jobs:
       PGDUMPSTER_E2E_AGE_IDENTITY: ${{ secrets.PGDUMPSTER_E2E_AGE_IDENTITY }}
       PGDUMPSTER_E2E_SOURCE_STORAGE_KEY: ${{ secrets.PGDUMPSTER_E2E_SOURCE_STORAGE_KEY }}
       PGDUMPSTER_E2E_TARGET_STORAGE_KEY: ${{ secrets.PGDUMPSTER_E2E_TARGET_STORAGE_KEY }}
+      PGDUMPSTER_E2E_RESET_TARGET: ${{ inputs.reset_target }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
