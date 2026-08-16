@@ -340,14 +340,19 @@ async function assertCleanTarget(
   );
   const result = cleanTargetSchema.parse(JSON.parse(stdout));
   const row = result.rows[0];
-  if (
-    row.fixture_absent !== true ||
-    row.storage_empty !== true ||
-    row.auth_fixture_absent !== true
-  )
-    throw new Error(
-      "Target is not clean. Reset or recreate the protected disposable target before running live E2E.",
-    );
+  if (row.fixture_absent !== true) {
+    currentStage = "target fixture database freshness preflight";
+    throw new Error("Target fixture database state is not clean.");
+  }
+  if (row.storage_empty !== true) {
+    currentStage = "target Storage freshness preflight";
+    throw new Error("Target Storage state is not clean.");
+  }
+  if (row.auth_fixture_absent !== true) {
+    currentStage = "target E2E Auth freshness preflight";
+    throw new Error("Target E2E Auth state is not clean.");
+  }
+  currentStage = "target Edge Function freshness preflight";
   await assertTargetEdgeFunctionsEmpty(targetProjectRef, accessToken);
 }
 

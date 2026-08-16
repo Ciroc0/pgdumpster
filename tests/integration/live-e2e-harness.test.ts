@@ -33,6 +33,15 @@ describe("live E2E harness", () => {
       'currentStage = "target database and E2E Auth reset"',
     );
     expect(harness).toContain('currentStage = "target Edge Function reset"');
+    expect(harness).toContain(
+      'currentStage = "target fixture database freshness preflight"',
+    );
+    expect(harness).toContain(
+      'currentStage = "target Storage freshness preflight"',
+    );
+    expect(harness).toContain(
+      'currentStage = "target E2E Auth freshness preflight"',
+    );
     expect(workflow).toContain("reset_target:");
     expect(workflow).toContain("PGDUMPSTER_E2E_RESET_TARGET");
   });
