@@ -12,7 +12,7 @@ Build the production-ready pgDumpster CLI described by the binding repository sp
 
 **Release convergence — encrypted publication, restore apply/parity, hosted recovery proof and release hardening.**
 
-The broad capture/restore architecture, cross-service consistency layer, standard local `age` encryption and S3-compatible publication path now exist. Remaining work is concentrated in live S3-provider evidence, hosted restore/parity E2E and release/security hardening.
+The broad capture/restore architecture, cross-service consistency layer, standard local `age` encryption and S3-compatible publication path now exist. Remaining work is concentrated in final release/security hardening.
 
 ## Current evidence
 
@@ -22,7 +22,7 @@ Latest complete local gates on 2026-08-16 after live-restore regression hardenin
 - **114 test files / 718 tests: PASS**;
 - global coverage: **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
-- the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; S3-provider interoperability remains pending;
+- the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
@@ -61,7 +61,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [x] Re-run global coverage after the completed consistency slice and keep all configured thresholds green.
 - [x] Wire standard `age` encryption into local backup publication and verified bundle input; keep plaintext secret output behind explicit opt-in.
 - [x] Implement S3-compatible streaming/multipart publication, completion marker, remote integrity verification and interruption recovery with local fault-injection coverage.
-- [ ] Run an S3-provider interoperability validation; mock/local transport tests do not prove a configured provider's wire compatibility or credentials.
+- [x] Run S3-provider interoperability validation against a scoped Cloudflare R2 bucket.
 - [ ] Complete CLI `restore --apply`: a blocked plan is now rejected before target credential/resource discovery; executable plans assemble handlers against the verified bundle root, validate handler completeness and all action materials before checkpoint/mutation, discover target Storage credentials only when needed, and can bind checkpoint resume to an immutable prior plan. Auth config/SSO/TPA plus modern/legacy API-key state use current validated contracts. Modern keys create target replacements and atomically write a `0600` protected rotation map; Auth SSO/TPA use exact semantic verification; default `fail` performs no mutation on target conflict and explicit `replace` is limited to documented scoped replacement operations. Read-only PgBouncer, backup-schedule and custom-hostname captures are explicit platform limits. Remaining: API/project handlers and hosted semantic-parity evidence.
 - [ ] Complete the Management API simulator/stress/performance/release-evidence gaps required by `docs/10-testing.md` where not already covered by current tests.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
@@ -76,7 +76,7 @@ The CLI continues to fail closed for unfinished release behavior:
 - backup consistency defaults to `verified`; `verified`, `best-effort` and `quiesced` are all implemented through the product consistency layer;
 - standard local `age` encryption is implemented: `encryption.mode: age` requires `encryption.recipient`, outputs `.tar.zst.age`, and encrypted input uses configured `encryption.identityFile`;
 - non-encrypted secret-bearing backup still requires explicit `--allow-plaintext-secrets`;
-- configured S3 destination → resumable multipart publication, remote byte/SHA-256 verification and an observable completion marker written last; provider interoperability remains a live validation gate;
+- configured S3 destination → resumable multipart publication, remote byte/SHA-256 verification and an observable completion marker written last; Cloudflare R2 interoperability is live-validated.
 - `restore --apply` → `RESTORE_ADAPTER_MISSING` when any planned component lacks a concrete handler; this is intentionally pre-mutation. The remaining unsupported automatic components must receive documented handlers or explicit platform/manual classifications before a full plan can execute.
 - `restore --apply` → `RESTORE_PLAN_BLOCKED` before reading target credentials or calling target APIs when backup/source/policy constraints make the plan non-executable.
 
