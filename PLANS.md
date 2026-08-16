@@ -38,7 +38,7 @@ Latest complete local gates on 2026-08-16 after Edge Function source-tree restor
 - inspect/coverage/verify and restore dry-run accept `.tar.zst.age` with a configured identity-file reference;
 - Windows encrypted-output publication behavior is covered by the local test suite.
 
-GitHub Actions quota is currently exhausted for this account, so remote CI cannot provide a meaningful new branch signal until the quota resets. Local `pnpm check` and `pnpm test:coverage` remain the active quality gates during that period. The earlier regular CI matrix passed on its validated checkpoint. CodeQL analysis previously reached SARIF generation, but result publication/status remained blocked by repository code-scanning configuration.
+GitHub Actions quota exhaustion and CodeQL publication failure are historical evidence, not verified current status. This unattended environment cannot query the private repository's Actions or code-scanning endpoints anonymously and has no GitHub CLI. Local `pnpm check` and `pnpm test:coverage` remain the current local gates; authenticate and inspect remote runs before treating current-candidate CI/CodeQL as evidence. The earlier regular CI matrix passed on its validated checkpoint, while CodeQL previously reached SARIF generation but failed result publication/status because of repository code-scanning configuration.
 
 The disposable hosted source → encrypted verified backup → offline verify →
 clean-target restore → semantic-parity observation is **PASS with explicit
@@ -390,11 +390,11 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 ### GitHub CI / CodeQL note
 
-The earlier regular CI matrix passed on its validated checkpoint. Current Actions quota is exhausted, so newly pushed commits are expected to be blocked by quota until reset and should not be interpreted as code-quality failures. CodeQL publication remains a separate repository-configuration gate.
+The earlier regular CI matrix passed on its validated checkpoint. Historical quota failure must not be interpreted as a current code-quality result: remote Actions/CodeQL state needs authenticated inspection. CodeQL publication remains a separate repository-configuration gate.
 
 ## Next implementation order
 
 1. deterministic Management API simulator and the specified Storage scale/stream evidence;
 2. protected full-fixture hosted E2E (Vault, Edge/secrets, Auth/service config and application smoke) and resolve any resulting fidelity gap;
-3. CodeQL result publication/current-candidate CI when GitHub configuration/quota permit it;
+3. authenticated CodeQL result publication/current-candidate CI once GitHub configuration permits it;
 4. trusted-publisher setup, SemVer/tagged release workflow, published-artifact verification and final acceptance audit.

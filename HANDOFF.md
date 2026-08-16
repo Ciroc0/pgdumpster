@@ -32,7 +32,7 @@ Latest complete local gate on 2026-08-16 after Edge Function source-tree restore
 - database/control-plane/Auth/API-key/File Storage restore handlers are implemented; unsupported automatic restore surfaces are explicit manual/platform limits and a blocked plan fails before target mutation;
 - disposable managed-Supabase source → encrypted backup → offline verify → clean-target restore passed with database semantic parity, separately verified private Storage object restoration and restored Auth-user password login.
 
-The account's GitHub Actions quota is currently exhausted, so newly pushed workflows may be blocked by quota. Use local `pnpm check` and `pnpm test:coverage` as the active quality gates until reset; do not interpret quota failures as code failures.
+The earlier GitHub Actions quota exhaustion is historical evidence, not a current-status assertion. This unattended environment cannot query the private repository's Actions or code-scanning state anonymously and has no GitHub CLI. Use local `pnpm check` and `pnpm test:coverage` as quality gates, then authenticate and inspect current remote workflow status before treating CI/CodeQL as release evidence; do not interpret quota failures as code failures.
 
 ## Consistency boundary
 
@@ -63,7 +63,7 @@ The current CLI has no intentionally unwired S3 or restore-apply path. The remai
 
 - a protected current-candidate hosted E2E in `docs/10-testing.md` still needs application smoke for every automatically restorable configured component. The existing disposable observation covers database, File Storage, restored Auth password login and executable control-plane paths; the guarded Edge Function source-tree adapter still needs managed source-to-target proof. Vault ciphertext, Edge secret plaintext, and private Auth signing material are explicit manual/platform limits, not automatic-fixture gaps;
 - CodeQL result publication is blocked by repository code-scanning configuration/access, so there is no current clean CodeQL evidence or finding disposition;
-- current-candidate remote CI still needs a fresh successful run once GitHub Actions quota permits execution;
+- current-candidate remote CI still needs a fresh authenticatedly observed successful run; the historical quota failure is not a current-state claim;
 - the implemented release workflow has not and must not run for the private `0.0.0-development` package. It additionally requires final SemVer/changelog, npm trusted-publisher configuration, public-release visibility/provenance eligibility, tag and the actual publication event.
 
 The safe implementation order is recorded in `PLANS.md`.

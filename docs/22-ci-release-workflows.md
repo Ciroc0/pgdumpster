@@ -24,7 +24,7 @@ The repository currently contains:
 
 The earlier validated implementation checkpoint passed the regular CI workflow, including the OS/Node matrix.
 
-Earlier GitHub Actions quota exhaustion blocked newly pushed workflow runs before meaningful execution. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. Current candidate commits still require a fresh successful remote CI run before they count as release evidence.
+Earlier GitHub Actions quota exhaustion blocked newly pushed workflow runs before meaningful execution. Such quota/billing failures are **not** code-quality failures and must not be reported as a failed implementation gate. The current unattended audit cannot query this private repository's Actions or code-scanning endpoints anonymously (both return 404) and has no GitHub CLI, so it does not classify quota as the current blocker. Current candidate commits still require a fresh authenticatedly observed successful remote CI run before they count as release evidence.
 
 The latest complete local result after Edge Function source-tree restore hardening is:
 
@@ -33,7 +33,7 @@ The latest complete local result after Edge Function source-tree restore hardeni
 - **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
-Once quota is available again, the current branch must be rerun through the normal CI matrix before release evidence is considered current.
+Once authenticated remote execution is available, the current branch must be rerun through the normal CI matrix before release evidence is considered current.
 
 ### Contract drift
 
