@@ -737,7 +737,7 @@ async function main() {
 
     currentStage = "database smoke";
     const smokeSql =
-      "select (select count(*) from pgdumpster_e2e.accounts) as accounts, (select count(*) from pgdumpster_e2e.jobs) as jobs, (select count(*) from pgdumpster_e2e.jobs where checksum = encode(digest(payload::text, 'sha256'), 'hex')) as valid_checksums, (select count(*) from pg_policies where schemaname = 'pgdumpster_e2e') as rls_policies, (select count(*) from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'pgdumpster_e2e' and tablename = 'jobs') as realtime_membership, (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pgdumpster_e2e' and c.relname = 'jobs' and not t.tgisinternal) as user_triggers";
+      "select (select count(*)::integer from pgdumpster_e2e.accounts) as accounts, (select count(*)::integer from pgdumpster_e2e.jobs) as jobs, (select count(*)::integer from pgdumpster_e2e.jobs where checksum = encode(digest(payload::text, 'sha256'), 'hex')) as valid_checksums, (select count(*)::integer from pg_policies where schemaname = 'pgdumpster_e2e') as rls_policies, (select count(*)::integer from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'pgdumpster_e2e' and tablename = 'jobs') as realtime_membership, (select count(*)::integer from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pgdumpster_e2e' and c.relname = 'jobs' and not t.tgisinternal) as user_triggers";
     const [sourceSmoke, targetSmoke] = await Promise.all([
       postgresQuery(sourceDatabaseUrl, smokeSql),
       postgresQuery(targetDatabaseUrl, smokeSql),

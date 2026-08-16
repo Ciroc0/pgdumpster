@@ -51,6 +51,7 @@ describe("live E2E harness", () => {
 
     expect(harness).toContain("async function postgresQuery(database, query)");
     expect(harness).not.toContain("async function supabaseQuery(");
+    expect(harness).toContain("count(*)::integer from pgdumpster_e2e.accounts");
   });
 
   it("maps the protected access token to the non-interactive Supabase CLI contract", async () => {
