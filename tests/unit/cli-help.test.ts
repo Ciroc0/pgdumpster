@@ -32,4 +32,32 @@ describe("CLI command help", () => {
     expect(stdout.join("")).toContain("pgDumpster");
     expect(stderr).toEqual([]);
   });
+
+  it("accepts --non-interactive as a global deterministic-mode flag", async () => {
+    const { stdout, stderr, io } = ioBuffers();
+
+    const exitCode = await runCli(
+      ["--non-interactive", "backup", "--help"],
+      io,
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout.join("")).toContain("pgdumpster");
+    expect(stderr).toEqual([]);
+  });
+
+  it("rejects duplicate --non-interactive flags", async () => {
+    const { stdout, stderr, io } = ioBuffers();
+
+    const exitCode = await runCli(
+      ["--non-interactive", "--non-interactive", "--help"],
+      io,
+    );
+
+    expect(exitCode).toBe(2);
+    expect(stdout).toEqual([]);
+    expect(stderr.join("")).toContain(
+      "--non-interactive may only be specified once",
+    );
+  });
 });

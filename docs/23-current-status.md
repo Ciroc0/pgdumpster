@@ -10,10 +10,10 @@ Latest complete local validation after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
 - test files: **114 passed**;
-- tests: **718 passed**;
-- statements: **94.62%**;
-- branches: **90.05%**;
-- functions: **92.52%**;
+- tests: **720 passed**;
+- statements: **94.61%**;
+- branches: **90.04%**;
+- functions: **92.55%**;
 - lines: **95.65%**.
 
 All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.

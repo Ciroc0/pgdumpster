@@ -4,7 +4,7 @@
 
 This document separates the **currently implemented CLI** from the **binding target UX**. Options listed only under target behavior are not available merely because they are specified here.
 
-Current implementation snapshot: **2026-08-15**.
+Current implementation snapshot: **2026-08-16**.
 
 ## Binary
 
@@ -17,13 +17,14 @@ pgdumpster
 ```text
 --config <path>
 --json
+--non-interactive
 --version
 --help
 ```
 
-The parser rejects duplicate `--json` / `--config` declarations and missing config paths.
+The parser rejects duplicate `--json`, `--non-interactive` and `--config` declarations and missing config paths. pgDumpster does not prompt during normal execution; `--non-interactive` makes that CI-safe intent explicit without weakening the existing mandatory `--apply` mutation guard.
 
-Target global UX still includes additional non-interactive/logging/terminal options such as `--quiet`, `--verbose`, `--no-color`, `--non-interactive` and `--log-file`; those are not current CLI claims.
+Target global UX still includes additional logging/terminal options such as `--quiet`, `--verbose`, `--no-color` and `--log-file`; those are not current CLI claims.
 
 Secrets must not be accepted through flags when that would predictably expose them in process listings. Database URLs and other credentials are passed through environment-variable names or environment configuration. `age` private-key material is referenced through an identity-file path in config rather than passed as a secret CLI value.
 
@@ -206,9 +207,9 @@ Machine consumers should rely on the documented category/structured error contra
 
 The output/error layer uses the central redactor. Bearer tokens, database credentials, project secret/service-role keys, Edge secret values, Vault root-key material, `age` identity contents and other registered secret values must not appear in ordinary stdout/stderr/error serialization.
 
-## Non-interactive target behavior
+## Non-interactive behavior
 
-The final CLI contract requires deterministic no-prompt operation for CI/non-interactive use and explicit `--apply` for mutation. `--non-interactive` itself is a target option and is not currently part of the implemented global parser.
+The CLI is prompt-free. `--non-interactive` is accepted as a global explicit CI mode, remains deterministic and does not bypass the mandatory `--apply` requirement for mutation.
 
 ## Accessibility and terminal compatibility
 

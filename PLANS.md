@@ -19,8 +19,8 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
-- **114 test files / 718 tests: PASS**;
-- global coverage: **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**;
+- **114 test files / 720 tests: PASS**;
+- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
@@ -146,6 +146,11 @@ The backed-up function body is the deployed representation returned by the platf
 Current Realtime contract drift, including optional `postgres_changes_pool` and numeric writable settings, is runtime-validated. Nullable read fields are not guessed into unsupported PATCH values.
 
 ## Validation log
+
+### 2026-08-16 — explicit non-interactive CLI contract
+
+- Added global `--non-interactive` parsing with duplicate rejection. The CLI remains prompt-free and this flag does not bypass mandatory restore `--apply` behavior.
+- Local validation: focused CLI-help regression **8 tests, PASS**; `pnpm check`: **PASS**; `pnpm test:coverage`: **114 test files / 720 tests, PASS**. Global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**; all 90% global thresholds: **PASS**.
 
 ### 2026-08-16 — command-help release smoke repair
 

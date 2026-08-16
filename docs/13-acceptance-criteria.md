@@ -22,7 +22,7 @@ This file is the final “done” contract. A feature is not complete merely bec
 - [ ] `pgdumpster coverage`.
 - [ ] `pgdumpster restore`.
 - [ ] `--json` stable machine mode.
-- [ ] `--non-interactive` deterministic behavior.
+- [x] `--non-interactive` deterministic behavior. Evidence: global parser accepts the explicit prompt-free mode, rejects duplicates and regression coverage is in `tests/unit/cli-help.test.ts` (2026-08-16 local gate).
 - [ ] stable exit codes.
 - [ ] no secret values in normal output.
 

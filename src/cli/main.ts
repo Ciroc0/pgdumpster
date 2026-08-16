@@ -96,18 +96,19 @@ export interface CliContext {
 const HELP = `pgDumpster
 
 Usage:
-  pgdumpster doctor [--project-ref <ref>] [--json]
-  pgdumpster backup --project-ref <ref> (--linked|--db-url-env <name>) [options]
-  pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
-  pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
-  pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
-  pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply) [--resume <checkpoint>]
+  pgdumpster [--non-interactive] doctor [--project-ref <ref>] [--json]
+  pgdumpster [--non-interactive] backup --project-ref <ref> (--linked|--db-url-env <name>) [options]
+  pgdumpster [--non-interactive] inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+  pgdumpster [--non-interactive] coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+  pgdumpster [--non-interactive] verify <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+  pgdumpster [--non-interactive] restore <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply) [--resume <checkpoint>]
   pgdumpster --version
   pgdumpster --help
 `;
 
 interface ParsedGlobalArguments {
   json: boolean;
+  nonInteractive: boolean;
   configPath?: string;
   positional: string[];
 }
@@ -262,12 +263,17 @@ function configurationHash(value: Readonly<Record<string, unknown>>): string {
 function parseGlobalArguments(argv: readonly string[]): ParsedGlobalArguments {
   const positional: string[] = [];
   let json = false;
+  let nonInteractive = false;
   let configPath: string | undefined;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index]!;
     if (argument === "--json") {
       if (json) throw new Error("--json may only be specified once");
       json = true;
+    } else if (argument === "--non-interactive") {
+      if (nonInteractive)
+        throw new Error("--non-interactive may only be specified once");
+      nonInteractive = true;
     } else if (argument === "--config") {
       if (configPath !== undefined) {
         throw new Error("--config may only be specified once");
@@ -284,6 +290,7 @@ function parseGlobalArguments(argv: readonly string[]): ParsedGlobalArguments {
   }
   return {
     json,
+    nonInteractive,
     positional,
     ...(configPath === undefined ? {} : { configPath }),
   };
