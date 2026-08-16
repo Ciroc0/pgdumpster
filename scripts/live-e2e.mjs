@@ -2,7 +2,7 @@
 
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -36,6 +36,7 @@ const coverageSchema = z.object({
 const planSchema = z.object({ target: z.object({ projectRef: z.string() }) });
 const restoreSchema = z.object({
   status: z.enum(["restored", "restored_with_platform_limits"]),
+  parityReportPath: z.string(),
   manualActions: z
     .array(z.object({ component: z.string(), reasonCode: z.string() }))
     .optional(),
@@ -54,6 +55,12 @@ const smokeSchema = z
     ),
   })
   .passthrough();
+const paritySchema = z.object({
+  status: z.enum(["restored", "restored_with_platform_limits"]),
+  manualActions: z.array(
+    z.object({ component: z.string(), reasonCode: z.string() }),
+  ),
+});
 
 /** @param {string} name */
 function required(name) {
@@ -209,6 +216,7 @@ async function main() {
   const recipient = required("PGDUMPSTER_E2E_AGE_RECIPIENT");
   const identityFile = required("PGDUMPSTER_E2E_AGE_IDENTITY_FILE");
   const accessToken = required("PGDUMPSTER_ACCESS_TOKEN");
+  const sourceStorageKey = required("PGDUMPSTER_E2E_SOURCE_STORAGE_KEY");
   const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-live-e2e-"));
   const configPath = path.join(root, "pgdumpster.yaml");
   /** @type {NodeJS.ProcessEnv} */
@@ -217,6 +225,8 @@ async function main() {
     PGDUMPSTER_ACCESS_TOKEN: accessToken,
     PGDUMPSTER_E2E_SOURCE_DB_URL: sourceDatabaseUrl,
     PGDUMPSTER_E2E_TARGET_DB_URL: targetDatabaseUrl,
+    PGDUMPSTER_DB_URL: sourceDatabaseUrl,
+    PGDUMPSTER_STORAGE_KEY: sourceStorageKey,
   };
   try {
     await writeFile(
@@ -242,6 +252,18 @@ async function main() {
       ["--file", "scripts/live-e2e-fixture.sql"],
       environment,
     );
+    const doctor = lastJson(
+      (
+        await cli(
+          ["doctor", "--project-ref", sourceProjectRef, "--json"],
+          environment,
+        )
+      ).stdout,
+      "doctor",
+      z.object({ ok: z.boolean() }).passthrough(),
+    );
+    if (!doctor.ok)
+      throw new Error("Doctor did not report a ready source project.");
 
     const backup = lastJson(
       (
@@ -324,6 +346,14 @@ async function main() {
       "restore apply",
       restoreSchema,
     );
+    const parity = paritySchema.parse(
+      JSON.parse(await readFile(restore.parityReportPath, "utf8")),
+    );
+    if (
+      parity.status !== restore.status ||
+      parity.manualActions.length !== (restore.manualActions?.length ?? 0)
+    )
+      throw new Error("Restore parity report does not match the apply result.");
 
     const smokeSql =
       "select (select count(*) from pgdumpster_e2e.accounts) as accounts, (select count(*) from pgdumpster_e2e.jobs) as jobs, (select count(*) from pgdumpster_e2e.jobs where checksum = encode(digest(payload::text, 'sha256'), 'hex')) as valid_checksums, (select count(*) from pg_policies where schemaname = 'pgdumpster_e2e') as rls_policies, (select count(*) from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'pgdumpster_e2e' and tablename = 'jobs') as realtime_membership, (select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pgdumpster_e2e' and c.relname = 'jobs' and not t.tgisinternal) as user_triggers";
@@ -352,6 +382,7 @@ async function main() {
       backupStatus: backup.status,
       verificationStatus: verification.status,
       restoreStatus: restore.status,
+      parityStatus: parity.status,
       coverageComponents: coverage.components.length,
       databaseSmoke: "matched",
       manualActions: Array.isArray(restore.manualActions)
