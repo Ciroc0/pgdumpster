@@ -29,7 +29,7 @@ Earlier GitHub Actions quota exhaustion blocked newly pushed workflow runs befor
 The latest complete local result after hosted restore regression hardening is:
 
 - `pnpm check`: **PASS**;
-- **115 test files / 723 tests: PASS**;
+- **115 test files / 724 tests: PASS**;
 - **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 

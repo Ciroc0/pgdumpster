@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -20,6 +20,54 @@ afterEach(async () => {
 });
 
 describe("File Storage object download", () => {
+  it("streams a 32 MiB object in bounded chunks without constructing its full body", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-storage-"));
+    temporaryDirectories.push(root);
+    const totalBytes = 32 * 1024 * 1024;
+    const chunkBytes = 64 * 1024;
+    let emittedBytes = 0;
+    let emittedChunks = 0;
+    const expectedDigest = createHash("sha256");
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (emittedBytes === totalBytes) {
+          controller.close();
+          return;
+        }
+        const nextBytes = Math.min(chunkBytes, totalBytes - emittedBytes);
+        const chunk = new Uint8Array(nextBytes).fill(emittedChunks % 251);
+        expectedDigest.update(chunk);
+        emittedBytes += nextBytes;
+        emittedChunks += 1;
+        controller.enqueue(chunk);
+      },
+    });
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(body, { status: 200 }));
+
+    const object = await downloadStorageObject(
+      {
+        bucket: "large",
+        name: "streamed.bin",
+        expectedBytes: totalBytes,
+      },
+      {
+        projectRef: "abcdefghijklmnopqrst",
+        storageKey: new SecretValue("storage-key-canary", new Redactor()),
+        outputDirectory: root,
+        fetch: request,
+      },
+    );
+
+    expect(emittedChunks).toBe(totalBytes / chunkBytes);
+    expect(object.bytes).toBe(totalBytes);
+    expect(object.sha256).toBe(expectedDigest.digest("hex"));
+    expect(
+      await stat(path.join(root, ...object.path.split("/"))),
+    ).toMatchObject({ size: totalBytes });
+  });
+
   it("streams adversarial keys into a content-addressed safe path", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "pgdumpster-storage-"));
     temporaryDirectories.push(root);

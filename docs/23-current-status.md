@@ -10,7 +10,7 @@ Latest complete local validation after live-restore regression hardening:
 
 - `pnpm check`: **PASS**;
 - test files: **114 passed**;
-- tests: **723 passed**;
+- tests: **724 passed**;
 - statements: **94.61%**;
 - branches: **90.04%**;
 - functions: **92.55%**;
