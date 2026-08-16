@@ -20,9 +20,10 @@ Latest complete local gates on 2026-08-16 after live-restore regression hardenin
 
 - `pnpm check`: **PASS**;
 - **116 test files / 727 tests: PASS**;
-- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
+- global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
+- the current candidate's local live-E2E harness completed the same encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database plus direct Storage byte-hash smokes matched; the protected GitHub Environment execution remains separate release evidence;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
 - current `npm pack --dry-run --json` package audit reports 364 files, includes the compiled CLI/contracts/schemas, contains no development-only test/docs/scripts/workflow paths and remains `private: true`; this is package-content evidence only, not a release claim;
@@ -73,7 +74,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 100k inventory and bounded 32 MiB streaming regressions are complete.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
-- [ ] Run a current-candidate protected hosted E2E with application smoke for every automatically restorable configured component. The database/File Storage/control-plane observation is complete; Vault ciphertext, Edge secret plaintext and private Auth signing material remain documented manual/platform limits.
+- [ ] Run the already locally passing current-candidate hosted E2E through its protected GitHub Environment with application smoke for every automatically restorable configured component. The database/File Storage/control-plane observation is complete; Vault ciphertext, Edge secret plaintext and private Auth signing material remain documented manual/platform limits.
 - [x] Add a protected `workflow_dispatch` hosted-E2E harness which validates distinct source/target pooler bindings, rejects a non-clean target, seeds the deterministic database fixture, requires a passing source `doctor`, runs encrypted verified backup/offline verify/terminal-coverage/dry-run/apply, validates the parity report and compares post-restore database plus direct stream-hashed File Storage smoke state. It emits only a sanitized terminal summary and removes temporary config, bundle, age identity and new UUID-named restore artifacts without touching existing local restore files. Execution against a protected Environment remains separate evidence.
 - [ ] Perform the final `docs/13-acceptance-criteria.md` evidence audit and release only when every applicable item is satisfied.
 
@@ -308,6 +309,22 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - Focused database dump/restore validation: **2 test files / 23 tests,
   PASS**; `pnpm lint` and `pnpm build`: **PASS**. Full candidate validation
   and a repeat encrypted hosted E2E remain pending.
+
+### 2026-08-16 — current-candidate local hosted E2E
+
+- Re-ran the hardened live harness after explicitly selecting `pg-delta` for
+  managed `auth`/`storage` schema customizations. The encrypted verified
+  source-to-clean-target sequence completed locally: backup
+  `complete_with_platform_limits`, offline verification `verified`, restore
+  and parity `restored_with_platform_limits`, **55** terminal coverage
+  components, and matching database plus direct Storage byte-hash smoke.
+- The only manual actions were the already classified PgBouncer, Auth secret
+  fields/signing material, Edge secret digest and deployed Edge dependency
+  platform limits. The short-lived age identity and sanitized local summary
+  were removed after observation.
+- This is real managed-Supabase evidence for the current candidate. It does
+  not substitute for the separately required protected GitHub Environment
+  workflow execution.
 
 ### GitHub CI / CodeQL note
 

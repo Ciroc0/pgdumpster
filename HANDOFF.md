@@ -16,7 +16,7 @@ Latest complete local gate on 2026-08-16 after live-restore regression hardening
 
 - `pnpm check`: **PASS**;
 - **116 test files / 727 tests: PASS**;
-- global coverage: **94.61% statements / 90.04% branches / 92.55% functions / 95.65% lines**;
+- global coverage: **94.63% statements / 90.07% branches / 92.55% functions / 95.65% lines**;
 - all independent 90% coverage thresholds: **PASS**;
 - all 10 product backup steps have consistency adapters and step-owned partial cleanup;
 - default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;
