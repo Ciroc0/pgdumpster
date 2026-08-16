@@ -15,8 +15,8 @@ This repository is no longer a pre-implementation bootstrap package. It contains
 Latest complete local gate on 2026-08-16 after Edge Function source-tree restore hardening:
 
 - `pnpm check`: **PASS**;
-- **118 test files / 754 tests: PASS**;
-- global coverage: **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
+- **118 test files / 755 tests: PASS**;
+- global coverage: **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - all independent 90% coverage thresholds: **PASS**;
 - all 10 product backup steps have consistency adapters and step-owned partial cleanup;
 - default `verified`, explicit `quiesced` and `best-effort` flow through the backup CLI;
@@ -61,7 +61,7 @@ Standard `age` archive encryption is implemented for local publication.
 
 The current CLI has no intentionally unwired S3 or restore-apply path. The remaining gates are evidence/external-release gates:
 
-- a protected current-candidate hosted E2E in `docs/10-testing.md` still needs application smoke for every automatically restorable configured component. The existing disposable observation covers database, File Storage, restored Auth password login and executable control-plane paths; the guarded Edge Function source-tree adapter still needs managed source-to-target proof. Vault ciphertext, Edge secret plaintext, and private Auth signing material are explicit manual/platform limits, not automatic-fixture gaps;
+- a protected current-candidate hosted E2E in `docs/10-testing.md` still needs GitHub Environment execution. Local managed evidence now covers database, File Storage, restored Auth password login, executable control-plane paths and Edge Function source-tree deploy/invocation. Vault ciphertext, Edge secret plaintext, and private Auth signing material are explicit manual/platform limits, not automatic-fixture gaps;
 - CodeQL result publication is blocked by repository code-scanning configuration/access, so there is no current clean CodeQL evidence or finding disposition;
 - current-candidate remote CI still needs a fresh authenticatedly observed successful run; the historical quota failure is not a current-state claim;
 - the implemented release workflow has not and must not run for the private `0.0.0-development` package. It additionally requires final SemVer/changelog, npm trusted-publisher configuration, public-release visibility/provenance eligibility, tag and the actual publication event.

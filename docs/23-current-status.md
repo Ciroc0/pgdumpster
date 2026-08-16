@@ -10,11 +10,11 @@ Latest complete local validation after Edge Function source-tree restore hardeni
 
 - `pnpm check`: **PASS**;
 - test files: **118 passed**;
-- tests: **754 passed**;
-- statements: **94.48%**;
+- tests: **755 passed**;
+- statements: **94.47%**;
 - branches: **90.02%**;
-- functions: **92.65%**;
-- lines: **95.45%**.
+- functions: **92.66%**;
+- lines: **95.44%**.
 
 All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.
 
@@ -59,7 +59,7 @@ The implementation currently includes:
 - deterministic queued Management API fault simulator for latency, reset, 429, stale ETag and eventual-consistency scenarios;
 - Auth config/SSO/TPA/signing-key capture;
 - modern/legacy API-key capture and target replacement/rotation semantics;
-- Edge Function metadata/secret inventory plus guarded CLI-source-tree capture and deploy handler; managed source-to-target live evidence remains pending;
+- Edge Function metadata/secret inventory plus guarded CLI-source-tree capture and deploy handler; managed source-to-target deployment and invocation evidence passed;
 - Vault root-key capture and guarded restore handler;
 - project/add-on/branch/health/advisor/database/service/network/domain/private-link/log-drain/JIT related control-plane coverage;
 - CLI commands for `doctor`, `backup`, `inspect`, `coverage`, `verify`, restore dry-run, `--help` and `--version`;
@@ -74,7 +74,7 @@ These are the remaining deliberate fail-closed gates in the current CLI:
 - **Encrypted input**: `.tar.zst.age` is supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`. pgDumpster never needs the private key value as a CLI argument.
 - **Destination**: local and configured S3-compatible destinations are exposed. S3 uses resumable multipart publication, writes a completion marker last and independently verifies the referenced remote object; a scoped Cloudflare R2 provider passed encrypted publication, marker and materialized offline verification. A separate disposable 128 MiB R2 multipart observation completed at 15.06 MiB/s with 152,346,624-byte peak RSS and removed its object/marker; comparative retry/request/checkpoint-under-load measurements remain open.
 - **Restore**: integrity-first dry-run planning and the checkpointed executor are exposed through CLI `--apply`. A blocked plan is rejected before target credential/resource discovery; executable plans derive database, Management and privileged Storage credential needs from planned automatic capabilities. The CLI validates all planned handlers and artifacts, then atomically persists the immutable plan, checkpoint and final parity report with restrictive permissions around mutation. Auth config, SSO, Third-party Auth and legacy API-key state have current-contract handlers; modern API keys create replacements and a local `0600` protected rotation map. SSO/TPA default to no-mutation conflict failure and require explicit `--conflict replace` for scoped delete/recreate. Edge Functions archive a CLI-downloaded source tree with safe paths and checksums, reconstruct an isolated workdir and deploy through the current supported CLI path; the invalid Management API deployed body is never used as deployment input. Read-only PgBouncer, backup-schedule, custom-hostname/vanity-subdomain, Analytics metadata/data, disk/autoscale, add-ons, read replicas, log-drains, PrivateLink and JIT-access sources are explicit platform limits until a current documented mutation contract and semantic handler exist. It fails closed for any unimplemented planned component.
-- **Hosted E2E**: disposable-source encrypted backup, offline verify and clean-target restore completed as `restored_with_platform_limits`. Database checks verified account/job counts, enum, RLS, trigger/checksum behavior and Realtime publication after resume recovery. A current local execution of `live-e2e.yml`'s harness against separate managed source/clean-target projects also completed with backup `complete_with_platform_limits`, offline verification `verified`, restore/parity `restored_with_platform_limits`, 55 terminal coverage components, 19 verified planned restore actions, matching database plus direct stream-hashed private Storage object smoke, and a target password login for the restored disposable Auth user. A subsequent Edge Function fixture probe demonstrated that the captured Management API body cannot be submitted as a target deployment. The guarded CLI source-tree replacement is locally covered but its first managed source-to-target deployment/invocation proof remains pending, alongside PgBouncer, Auth secret/signing and Edge-secret-digest manual limits. Short-lived age material and sanitized probe output were removed. This does not replace the first protected GitHub Environment execution, which remains pending. Cloudflare R2 S3 interoperability passed.
+- **Hosted E2E**: a current local execution against separate managed source/clean-target projects completed with backup `complete_with_platform_limits`, offline verification `verified`, restore/parity `restored_with_platform_limits`, 55 terminal coverage components, 20 verified planned restore actions, matching database, direct stream-hashed private Storage, restored Auth password login and restored Edge Function invocation smokes. Supabase returns worker-local `file:///tmp/...` metadata after deploy; this is normalized as non-portable while the CLI-downloaded source tree remains the deploy authority. PgBouncer, Auth secret/signing and Edge-secret-digest remain manual/platform limits. This does not replace the first protected GitHub Environment execution, which remains pending. Cloudflare R2 S3 interoperability passed.
 - **CodeQL**: analysis has run, but result publication remains blocked on repository configuration/access. Any eventual findings must still be dispositioned.
 - **Release**: normal CI exists. `.github/workflows/release.yml` is implemented for public npm trusted publishing through GitHub Actions OIDC, CI-built package smoke, CycloneDX SBOM, SHA-256 checksums, GitHub artifact attestation and GitHub Releases. It deliberately rejects the current private `0.0.0-development` package, and has not run for a valid release tag. Current-candidate CI/CodeQL, protected release-candidate E2E, trusted-publisher setup, tag/version/changelog finalization and published-artifact verification remain required.
 

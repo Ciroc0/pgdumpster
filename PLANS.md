@@ -19,8 +19,8 @@ The broad capture/restore architecture, cross-service consistency layer, standar
 Latest complete local gates on 2026-08-16 after Edge Function source-tree restore hardening:
 
 - `pnpm check`: **PASS**;
-- **118 test files / 754 tests: PASS**;
-- global coverage: **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
+- **118 test files / 755 tests: PASS**;
+- global coverage: **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
 - the current candidate's local live-E2E harness completed the same encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database, direct Storage byte-hash plus restored Auth password-login smokes matched; the protected GitHub Environment execution remains separate release evidence;
@@ -74,7 +74,7 @@ See `docs/23-current-status.md` for the concise operator-facing snapshot.
 - [ ] Complete the remaining provider-scale/performance and release-evidence gaps required by `docs/10-testing.md`; the deterministic Management API simulator, 10k small-object orchestration, 100k inventory, bounded 32 MiB object streaming and 64 MiB database-dump streaming regressions are complete.
 - [ ] Enable/fix CodeQL result publication and disposition any actual high/critical findings.
 - [ ] Execute the implemented SBOM/provenance/package-smoke/release workflow for a valid candidate, then complete final source-of-truth revalidation.
-- [ ] Run the current-candidate hosted E2E through its protected GitHub Environment with application smoke for every automatically restorable configured component. The database/File Storage/Auth/control-plane observation is complete; the new Edge Function source-tree adapter requires its first managed source-to-target proof. Vault ciphertext, Edge secret plaintext, and private Auth signing material remain documented manual/platform limits.
+- [ ] Run the current-candidate hosted E2E through its protected GitHub Environment. Local managed evidence now includes database/File Storage/Auth/control-plane plus Edge Function source-tree deploy/invocation; Vault ciphertext, Edge secret plaintext, and private Auth signing material remain documented manual/platform limits.
 - [x] Add a protected `workflow_dispatch` hosted-E2E harness which validates distinct source/target pooler bindings, rejects a target containing a dedicated database, Storage, Auth or Edge Function fixture, seeds deterministic database and Auth fixtures, requires a passing source `doctor`, runs encrypted verified backup/offline verify/terminal-coverage/dry-run/apply, validates the parity report and compares post-restore database, direct stream-hashed File Storage, Auth password-login and Edge Function invocation smoke state. It emits only a sanitized terminal summary and removes temporary config, bundle, age identity and new UUID-named restore artifacts without touching existing local restore files. Execution against a protected Environment remains separate evidence.
 - [ ] Perform the final `docs/13-acceptance-criteria.md` evidence audit and release only when every applicable item is satisfied.
 

@@ -455,6 +455,38 @@ describe("Edge Function source-tree restore", () => {
     expect(commands).toHaveLength(1);
   });
 
+  it("uses the downloaded index default when the API reports a worker-local entrypoint URI", async () => {
+    const value = await fixture();
+    await rewriteIndex(value, (document) => {
+      const functions = document["functions"] as { metadata: Metadata }[];
+      functions[0]!.metadata.entrypoint_path =
+        "file:///tmp/user_fn_project/source/supabase/functions/hello-world/index.ts";
+      functions[0]!.metadata.import_map_path =
+        "file:///tmp/user_fn_project/source/supabase/functions/hello-world/deno.json";
+    });
+    const client = new FakeClient();
+    const commands: string[][] = [];
+    const handler = createEdgeSourceTreeRestoreHandler({
+      ...options(value, client, commands, () => undefined, "fail"),
+      runProcess: async (_command, args) => {
+        commands.push([...args]);
+        const workdir = args[args.indexOf("--workdir") + 1]!;
+        const config = await readFile(
+          path.join(workdir, "supabase", "config.toml"),
+          "utf8",
+        );
+        expect(config).not.toContain("entrypoint =");
+        expect(config).not.toContain("import_map =");
+        client.values.push({ ...value.metadata, id: "target-id" });
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    });
+
+    const applied = await handler.apply({ action: action(value), attempt: 1 });
+    expect(typeof applied.fingerprint).toBe("string");
+    expect(commands).toHaveLength(1);
+  });
+
   it("rejects duplicate source files and missing configured entrypoints before CLI deployment", async () => {
     const client = new FakeClient();
     const commands: string[][] = [];

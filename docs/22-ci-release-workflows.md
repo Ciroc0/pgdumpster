@@ -29,8 +29,8 @@ GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), blo
 The latest complete local result after Edge Function source-tree restore hardening is:
 
 - `pnpm check`: **PASS**;
-- **118 test files / 754 tests: PASS**;
-- **94.48% statements / 90.02% branches / 92.65% functions / 95.45% lines**;
+- **118 test files / 755 tests: PASS**;
+- **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - every configured 90% global coverage threshold: **PASS**.
 
 Once authenticated remote execution is available, the current branch must be rerun through the normal CI matrix before release evidence is considered current.

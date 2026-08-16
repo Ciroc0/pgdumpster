@@ -119,14 +119,19 @@ function edgeError(
   });
 }
 
+function portableMetadataPath(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  return value.replaceAll("\\", "/").startsWith("file:///") ? null : value;
+}
+
 function semanticMetadata(value: FunctionMetadata) {
   return {
     slug: value.slug,
     name: value.name,
     verifyJwt: value.verify_jwt ?? true,
     importMap: value.import_map ?? false,
-    entrypointPath: value.entrypoint_path ?? null,
-    importMapPath: value.import_map_path ?? null,
+    entrypointPath: portableMetadataPath(value.entrypoint_path),
+    importMapPath: portableMetadataPath(value.import_map_path),
   };
 }
 
@@ -174,8 +179,12 @@ function sourceRelativePath(slug: string, artifact: string): string {
   return relative;
 }
 
-function metadataSourcePath(slug: string, value: string): string {
+function metadataSourcePath(slug: string, value: string): string | undefined {
   const normalized = value.replaceAll("\\", "/");
+  // The Management API reports a worker-local file URI after CLI deployment.
+  // It is not a portable source-tree path; Supabase CLI's default entrypoint is
+  // the downloaded function's index.ts, so callers must use that default.
+  if (normalized.startsWith("file:///")) return undefined;
   const projectRelativePrefix = `./functions/${slug}/`;
   const bareProjectRelativePrefix = `functions/${slug}/`;
   const sourcePath = normalized.startsWith(projectRelativePrefix)
@@ -218,22 +227,37 @@ function configToml(source: readonly SourceFunction[]): string {
         entry.metadata.slug,
         entry.metadata.import_map_path,
       );
-      if (!paths.has(relative))
+      if (relative === undefined) {
+        // Supabase can report a worker-local file URI. It is not portable and
+        // the CLI-downloaded source tree remains the deployable authority.
+      } else if (!paths.has(relative))
         throw edgeError(
           "RESTORE_ARTIFACT_INVALID",
           "integrity",
           "Edge Function import map was not included in the source tree.",
           { slug: entry.metadata.slug },
         );
-      lines.push(
-        `import_map = ${tomlString(`./functions/${entry.metadata.slug}/${relative}`)}`,
-      );
+      else
+        lines.push(
+          `import_map = ${tomlString(`./functions/${entry.metadata.slug}/${relative}`)}`,
+        );
     }
     if (entry.metadata.entrypoint_path !== undefined) {
       const relative = metadataSourcePath(
         entry.metadata.slug,
         entry.metadata.entrypoint_path,
       );
+      if (relative === undefined) {
+        if (!paths.has("index.ts"))
+          throw edgeError(
+            "RESTORE_ARTIFACT_INVALID",
+            "integrity",
+            "Edge Function worker-local entrypoint has no downloaded index.ts default.",
+            { slug: entry.metadata.slug },
+          );
+        sections.push(lines.join("\n"));
+        continue;
+      }
       if (!paths.has(relative))
         throw edgeError(
           "RESTORE_ARTIFACT_INVALID",
