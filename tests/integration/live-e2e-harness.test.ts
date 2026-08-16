@@ -53,6 +53,13 @@ describe("live E2E harness", () => {
     expect(harness).not.toContain("async function supabaseQuery(");
   });
 
+  it("emits a PostgreSQL SQLSTATE without logging database credentials", async () => {
+    const harness = await readFile("scripts/live-e2e.mjs", "utf8");
+
+    expect(harness).toContain("PostgreSQL SQLSTATE ${databaseErrorCode}");
+    expect(harness).not.toContain("error.message}`;");
+  });
+
   it("fails before invoking external commands when protected configuration is absent", async () => {
     await expect(
       executeFile(process.execPath, ["scripts/live-e2e.mjs"], {

@@ -827,13 +827,21 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   try {
     await main();
   } catch (error) {
+    const databaseErrorCode =
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      typeof error.code === "string" &&
+      /^[0-9A-Z]{5}$/u.test(error.code)
+        ? error.code
+        : undefined;
     const message =
       error instanceof Error &&
       error.message.startsWith(
         "Missing required live-E2E environment variable:",
       )
         ? error.message
-        : `Live E2E failed during ${currentStage}.`;
+        : `Live E2E failed during ${currentStage}${databaseErrorCode ? ` (PostgreSQL SQLSTATE ${databaseErrorCode})` : ""}.`;
     process.stderr.write(`${message}\n`);
     process.exitCode = 1;
   }
