@@ -22,7 +22,7 @@ Latest complete local gates on 2026-08-16 after live-restore regression hardenin
 - **114 test files / 718 tests: PASS**;
 - global coverage: **94.62% statements / 90.05% branches / 92.52% functions / 95.65% lines**;
 - all independent 90% global thresholds: **PASS**;
-- the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and narrow database semantic-parity checks with explicit platform limits; File Storage was not configured on that source, so this is meaningful hosted evidence but not the final complete E2E gate;
+- the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; S3-provider interoperability remains pending;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
 - all 10 product backup steps have concrete consistency adapters and partial-cleanup wiring;
@@ -165,6 +165,11 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 - On separate disposable managed-Supabase projects, an encrypted `verified` backup completed with 44 files and offline verification passed. Restore onto a clean target completed as `restored_with_platform_limits`; all 16 planned mutations were verified, with six documented non-exportable/manual platform limits.
 - Database semantic checks matched source and target for the fixture's account/job counts, enum, RLS policies, trigger behavior/checksums and Realtime publication. This is a real hosted source-to-target recovery observation, including resume recovery after an intentional live failure.
 - The fixture had no File Storage bucket/object and no external S3-compatible destination. Therefore Storage streaming/provider interoperability and the final fully applicable hosted E2E remain pending.
+
+### 2026-08-16 — hosted File Storage restore observation
+
+- A private source bucket containing one 38-byte marker object was captured in a second encrypted, offline-verified 45-file archive. Restore onto a fresh target completed with Storage service configuration, bucket, object and metadata actions all verified.
+- Direct target Storage API verification found the private bucket and exactly one restored `fixtures/marker.txt` object at 38 bytes. This closes the managed-Storage streaming E2E evidence; a separate external S3-compatible provider remains untested.
 
 ### 2026-08-16 — S3 capability/status reconciliation
 
