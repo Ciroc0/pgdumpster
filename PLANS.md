@@ -23,7 +23,7 @@ Latest complete local gates on 2026-08-16 after Edge Function source-tree restor
 - global coverage: **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**;
 - all independent 90% global thresholds: **PASS**;
 - the disposable hosted fixture completed encrypted backup, offline verification, clean-target restore and database/File Storage semantic checks with explicit platform limits; the private Storage bucket/object was restored and directly verified on target; Cloudflare R2 S3 publication, completion-marker, materialization and offline verification passed;
-- the current candidate's local live-E2E harness completed the same encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database, direct Storage byte-hash plus restored Auth password-login smokes matched; the protected GitHub Environment execution remains separate release evidence;
+- the current candidate's local live-E2E harness completed the encrypted source-to-clean-target sequence after the managed-schema `pg-delta` repair: backup/verify/restore/parity reached their expected terminal states, all 55 coverage components were terminal, and database, direct Storage byte-hash, restored Auth password-login and Edge Function invocation smokes matched; the protected GitHub Environment execution remains separate release evidence;
 - current official Supabase/OpenAPI, Storage and changelog contract snapshots: **MATCH**;
 - a consumer install of the generated `pgdumpster-0.0.0-development.tgz` passed `--version`, `doctor --help` and `restore --help`; this is local package smoke evidence only, not a public publish/release claim;
 - current `npm pack --dry-run --json` package audit reports 372 files, includes the compiled CLI/contracts/schemas, contains no development-only test/docs/scripts/workflow paths and remains `private: true`; this is package-content evidence only, not a release claim;
@@ -154,7 +154,7 @@ Source modern API-key values can be captured when the official reveal contract e
 
 ### Edge deployed representation
 
-The backed-up Management API function body is a deployed representation, not a claim to recover the original Git repository. A live probe established that this body is not accepted by the current Management API deploy endpoint, so pgDumpster never uses it as deployment input. It instead archives the bounded, regular-file CLI `functions download --use-api` source tree with checksums and reconstructs an isolated `supabase/` workdir plus per-function `config.toml` for `functions deploy --use-api`. The local handler and safety regressions exist; a managed source-to-target function deploy/invocation proof remains required. Function secret responses that expose digests are likewise not misrepresented as original secret values.
+The backed-up Management API function body is a deployed representation, not a claim to recover the original Git repository. A live probe established that this body is not accepted by the current Management API deploy endpoint, so pgDumpster never uses it as deployment input. It instead archives the bounded, regular-file CLI `functions download --use-api` source tree with checksums and reconstructs an isolated `supabase/` workdir plus per-function `config.toml` for `functions deploy --use-api`. Managed source-to-target deploy/invocation passed on 2026-08-16; worker-local `file:///tmp/...` metadata is deliberately normalized as non-portable. Function secret responses that expose digests are likewise not misrepresented as original secret values.
 
 ### Realtime contract boundary
 
@@ -172,7 +172,7 @@ Current Realtime contract drift, including optional `postgres_changes_pool` and 
 
 - Replaced the non-deployable Management API body restore route with a Supabase CLI `functions download --use-api` source-tree capture. The capture accepts only bounded regular files under an isolated work directory, rejects path/case collisions and records each artifact SHA-256.
 - The restore handler validates all indexed source files before target discovery/mutation, reconstructs an isolated `supabase/functions/<slug>` tree and generated per-function `config.toml`, then invokes `functions deploy --use-api` through argument arrays. Target semantic metadata/inventory is verified after deployment; command output and credentials are never included in errors.
-- Local tests cover source download failures, malformed source trees/indexes, checksum/artifact integrity, conflict behavior, import-map/entrypoint configuration, default CLI resolution and deploy failures. Managed source-to-target invocation evidence remains open.
+- Local tests cover source download failures, malformed source trees/indexes, checksum/artifact integrity, conflict behavior, import-map/entrypoint configuration, default CLI resolution and deploy failures. Managed source-to-target invocation passed on 2026-08-16.
 
 ### 2026-08-16 — bounded large Storage stream regression
 
