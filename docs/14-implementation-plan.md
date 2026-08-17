@@ -236,9 +236,9 @@ No known P0/P1 bug, secret leak, false-completeness path, restore parity failure
 
 Tag/publish only from CI after the release gate passes.
 
-## Anti-shortcut rules for Codex
+## Non-negotiable scope controls
 
-Codex must not:
+Implementations must not:
 
 - narrow the scope to database + Storage;
 - call missing components “future work”;
@@ -254,7 +254,7 @@ Codex must not:
 - add telemetry by default;
 - silently catch adapter errors and mark success.
 
-When a current Supabase API makes a requirement impossible, Codex must:
+When a current Supabase API makes a requirement impossible, maintainers must:
 
 1. prove the limitation from the current official source/API;
 2. mark it `not_exportable`;

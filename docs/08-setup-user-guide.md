@@ -1,16 +1,16 @@
 # User guide and setup
 
-## Development-status warning
+## Release status
 
-pgDumpster is not production-ready yet. This guide distinguishes **commands that work in the current development build** from target release workflows that are still blocked.
+pgDumpster `0.1.2` is publicly available on npm. This guide describes the supported CLI workflow and its explicit platform/manual limits.
 
-For exact current status, read `docs/23-current-status.md` and `PLANS.md`.
+For current evidence and platform limits, read `docs/23-current-status.md`.
 
 ## Scope
 
 pgDumpster targets one **hosted Supabase Platform project** at a time and accounts for every component in the canonical coverage registry. Platform state that cannot be exported is reported explicitly rather than silently ignored.
 
-## Prerequisites for the current build
+## Prerequisites
 
 - supported Node.js (`>=22.15.0 <23` or `>=24 <25`);
 - pnpm through the repository's `packageManager` pin;
@@ -27,7 +27,7 @@ S3-compatible publication is supported when `destination.type: s3` is configured
 ## Source development install
 
 ```bash
-git clone <repository>
+git clone https://github.com/Ciroc0/pgdumpster.git
 cd pgdumpster
 corepack enable
 pnpm install --frozen-lockfile
@@ -35,7 +35,13 @@ pnpm build
 pnpm check
 ```
 
-The `0.1.0` package is a local release candidate only. Do not document a public registry install command until the tagged release has actually been published.
+## Install from npm
+
+```bash
+npm install -g pgdumpster
+pgdumpster --version
+pgdumpster doctor --help
+```
 
 ## Credentials
 
@@ -227,7 +233,7 @@ The following target workflows intentionally fail closed in the current CLI:
 
 Do not work around those guards by relabeling a local/dry-run workflow as the final release workflow.
 
-## Target release workflow
+## Supported recovery workflow
 
 The final supported recovery procedure is:
 
@@ -240,18 +246,18 @@ The final supported recovery procedure is:
 7. perform required protected key substitutions;
 8. run semantic parity and application smoke checks.
 
-Steps 1–7 have current implementation support, including encrypted backup/input, guarded `restore --apply`, immutable checkpointed plans and semantic parity reporting. A disposable source-to-clean-target database/File Storage observation passed, but the protected full hosted fixture and release-candidate evidence remain release blockers. The complete procedure must not be represented as passed until the dedicated hosted E2E succeeds.
+The complete procedure has protected hosted-E2E evidence for `v0.1.2`, including encrypted backup/input, guarded `restore --apply`, immutable checkpointed plans and semantic parity reporting. Platform values that Supabase does not expose or cannot recreate exactly remain explicit manual/platform actions; they are not silently represented as restored.
 
 ## Scheduling and retention
 
-pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Disposable hosted database/File Storage recovery observations have passed with explicit platform limits, but protected current-candidate E2E and release gates remain open, so do not treat the development build as release-complete automation.
+pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Validate any scheduler integration with a recovery drill and retain platform limits in the resulting coverage/parity report.
 
-## Updating the development checkout
+## Updating a source checkout
 
 Before relying on a newer commit:
 
 1. read `CHANGELOG.md` and `docs/23-current-status.md`;
 2. install with the frozen lockfile;
 3. run `pnpm check` and `pnpm test:coverage`;
-4. inspect GitHub CI status when Actions quota permits meaningful execution;
+4. inspect the current commit's GitHub CI status;
 5. keep previous recovery artifacts until a real restore drill proves the new build.

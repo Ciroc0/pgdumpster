@@ -1,6 +1,6 @@
 # 20 - Target repository structure
 
-Codex should converge on a repository close to this shape. Exact filenames may change when an implementation concern justifies it, but the separation of responsibilities is binding.
+The repository should converge on a structure close to this shape. Exact filenames may change when an implementation concern justifies it, but the separation of responsibilities is binding.
 
 ```text
 .
@@ -83,8 +83,6 @@ Codex should converge on a repository close to this shape. Exact filenames may c
 │   ├── security/
 │   └── e2e/
 │       └── hosted/
-├── AGENTS.md
-├── PLANS.md
 ├── CHANGELOG.md
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md

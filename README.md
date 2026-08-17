@@ -8,7 +8,7 @@ Its product promise is strict:
 
 A successful run must never silently omit a registered component.
 
-## Current development status
+## Current release status
 
 pgDumpster `0.1.2` is published. The repository continues to document explicit platform limits and the evidence required for every future release.
 
@@ -34,9 +34,9 @@ Current branch snapshot as of 2026-08-16:
 - release SHA `dd0d42c128907de473f71024196a62da2f124bcb` passed GitHub CI, CodeQL, official-contract drift and protected Live hosted E2E before `v0.1.2` was published;
 - disposable hosted source → encrypted backup → offline verify → clean-target restore has passed both locally and in the protected E2E workflow, with database, private File Storage, Auth password-login and Edge Function invocation parity plus explicit platform limits.
 
-`v0.1.2` passed the tagged workflow's package/SBOM/provenance/attestation/published-artifact verification and is published from GitHub OIDC trusted publishing without a retained npm token. The remaining post-release gates are the final acceptance/documentation audit and website install-copy update. Every future release must repeat CI, CodeQL, official-contract and protected hosted-E2E evidence for its exact SHA. Cloudflare R2/S3 performance and interoperability are not release blockers.
+`v0.1.2` passed the tagged workflow's package/SBOM/provenance/attestation/published-artifact verification and is published from GitHub OIDC trusted publishing without a retained npm token. Every future release must repeat CI, CodeQL, official-contract and protected hosted-E2E evidence for its exact SHA. Cloudflare R2/S3 performance and interoperability are not release blockers.
 
-The authoritative implementation ledger is [PLANS.md](PLANS.md). A concise current snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
+A concise implementation and evidence snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
 
 ## Why this exists
 
@@ -65,7 +65,7 @@ The binding target includes:
 - optional standard `age` encryption;
 - integrity-first restore followed by semantic parity verification.
 
-A target capability is not considered delivered merely because it appears in this list. Current implementation state is recorded in `PLANS.md` and `docs/23-current-status.md`.
+A target capability is not considered delivered merely because it appears in this list. Current implementation state is recorded in `docs/23-current-status.md`.
 
 ## Encryption
 
@@ -113,7 +113,7 @@ Branch topology/configuration is inventoried, but each branch is a separate envi
 
 ## Documentation order
 
-Binding authority is defined in `AGENTS.md`. In particular, product requirements, coverage requirements and acceptance criteria outrank lower-priority implementation documents.
+Product requirements, coverage requirements and acceptance criteria outrank lower-priority implementation documents.
 
 The numbered documentation set is:
 
@@ -141,8 +141,6 @@ The numbered documentation set is:
 22. `docs/21-maintainer-runbook.md`
 23. `docs/22-ci-release-workflows.md`
 24. `docs/23-current-status.md` - non-binding current implementation/evidence snapshot
-
-Agent rules: `AGENTS.md`. Implementation ledger: `PLANS.md`.
 
 ## Trademark
 

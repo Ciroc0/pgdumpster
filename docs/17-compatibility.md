@@ -4,14 +4,14 @@
 
 Supabase, Node.js, PostgreSQL tooling and operating systems evolve. pgDumpster documents separately what is **supported by policy**, what has been **exercised by CI/local gates**, and what still requires full hosted E2E evidence.
 
-Status snapshot: **2026-08-16**.
+Status snapshot: **2026-08-17**.
 
 ## Runtime matrix
 
-- **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. Earlier GitHub CI checkpoints exercised Node 22 and 24 successfully. GitHub Actions quota remains exhausted (maintainer-confirmed on 2026-08-16), so a current-candidate remote matrix remains unavailable until quota is restored.
-- **pnpm**: the repository `packageManager` pin is authoritative. Frozen-lockfile installs are part of the CI contract and were exercised on the earlier validated CI checkpoint.
-- **Supabase CLI**: supported policy is `>=2.111.0 <3.0.0`; the development dependency is pinned to `2.111.0`. Fixture/CLI behavior is validated and dedicated live observations also exist for newer 2.x behavior. A disposable hosted recovery has passed with explicit platform limits; a protected release-candidate workflow run remains required.
-- **Hosted Supabase**: compatibility is based on dated official Management API/CLI/product contracts. A disposable source-to-clean-target encrypted backup/restore passed database, File Storage, Auth password-login and Edge Function invocation smokes with explicit platform limits; this does not certify an eventual release candidate.
+- **Node.js**: supported policy is `>=22.15.0 <23` or `>=24 <25`. Release CI run `31979435085` exercised Node 22 and 24 on Ubuntu, macOS and Windows for the `v0.1.2` release SHA.
+- **pnpm**: the repository `packageManager` pin is authoritative. Frozen-lockfile installs are part of the CI contract and were exercised by the `v0.1.2` release evidence.
+- **Supabase CLI**: supported policy is `>=2.111.0 <3.0.0`; the development dependency is pinned to `2.111.0`. Fixture/CLI behavior is validated and dedicated live observations also exist for newer 2.x behavior. A protected `v0.1.2` release-candidate workflow run passed with explicit platform limits.
+- **Hosted Supabase**: compatibility is based on dated official Management API/CLI/product contracts. The protected `v0.1.2` source-to-clean-target encrypted backup/restore passed database, File Storage, Auth password-login and Edge Function invocation smokes with explicit platform limits.
 - **PostgreSQL**: the target is a Supabase-managed PostgreSQL version compatible with captured logical state. Database backup/restore primitives are tested; the dedicated hosted projects are PostgreSQL 17 generation, and the applicable fixture parity checks passed after restore.
 - **Ubuntu**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
 - **macOS**: first-class. Earlier GitHub-hosted CI exercised Node 22 and 24 successfully.
@@ -19,7 +19,7 @@ Status snapshot: **2026-08-16**.
 - **`age`**: standard `age` recipient encryption/decryption is implemented for local archive publication/input. Tooling is detected by `doctor`; runtime operations also fail through the dependency error domain when the executable cannot be started.
 - **S3-compatible destination**: publication/recovery is locally implemented and fault-injection tested. Scoped Cloudflare R2 interoperability passed encrypted publication, completion-marker, materialization and offline verification; the latest 128 MiB multipart baseline reached 13.61 MiB/s with 34 requests, zero observed retries and 154,140,672-byte peak RSS, then removed its test artifacts. AWS and MinIO have not been exercised.
 
-The latest complete local gate after Edge Function source-tree restore hardening is `pnpm check` plus `pnpm test:coverage` with **118 test files / 755 tests passing** and **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**. That local result does not replace current-candidate cross-platform CI evidence, and the earlier OS matrix plus disposable hosted observation do not replace a protected release-candidate E2E.
+The latest complete local gate after Edge Function source-tree restore hardening is `pnpm check` plus `pnpm test:coverage` with **118 test files / 761 tests passing** and **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**. Local validation remains supplementary; every future release candidate must produce its own cross-platform CI and protected hosted-E2E evidence.
 
 ## Management API contracts
 
@@ -35,7 +35,7 @@ Use these terms precisely:
 - **live-observed**: a specific endpoint/CLI behavior was observed against a dedicated hosted test project;
 - **live-E2E validated**: the complete source → encrypted verified backup → offline verify → fresh-target restore → semantic parity procedure passed.
 
-The repository has fixture-tested surfaces, selected live observations and a disposable source-to-clean-target recovery observation. It must **not** describe the overall product or a release candidate as live-E2E validated until the protected release procedure succeeds.
+The repository has fixture-tested surfaces, selected live observations and a protected `v0.1.2` source-to-clean-target recovery validation. A newer release candidate must not inherit that evidence.
 
 ## Bundle compatibility
 
@@ -89,7 +89,7 @@ Adapters fail closed on source-contract shapes or cleanup conditions that would 
 
 Standard local `age` publication/input is implemented. Current behavior requires a recipient for encrypted backup and an identity-file path reference for encrypted input. Private identity contents are not normal CLI arguments.
 
-S3-compatible publication is implemented with streaming/multipart publication, completion semantics, remote integrity verification and interruption-recovery coverage. Cloudflare R2 is the exercised provider; a release candidate still requires its protected E2E and release workflow gates.
+S3-compatible publication is implemented with streaming/multipart publication, completion semantics, remote integrity verification and interruption-recovery coverage. Cloudflare R2 is the exercised provider. AWS and MinIO remain unexercised providers.
 
 ## Deprecation
 

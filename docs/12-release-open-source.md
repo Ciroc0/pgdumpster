@@ -22,9 +22,6 @@ CONTRIBUTING.md
 CODE_OF_CONDUCT.md
 SUPPORT.md
 CHANGELOG.md
-AGENTS.md
-PLANS.md
-CODEX_GOAL.md
 docs/
 schemas/
 spec/

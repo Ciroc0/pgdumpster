@@ -205,8 +205,9 @@ No entry may escape extraction root.
 
 This is a **release blocker**.
 
-The protected GitHub Environment execution passed for the preceding candidate
-SHA. It remains a release blocker for each newer candidate because the release
+The protected GitHub Environment execution passed for release SHA
+`dd0d42c128907de473f71024196a62da2f124bcb` before `v0.1.2` was published.
+It remains a release blocker for each newer candidate because the release
 workflow requires a successful run whose `head_sha` is exactly the tagged SHA.
 
 Maintain dedicated disposable source and target projects.
@@ -313,7 +314,7 @@ whose target cannot accept the captured ciphertext/private material, the E2E
 must record the specific manual action and continue to verify all executable
 actions. It must not silently skip the component or claim exact fidelity.
 
-If live credentials/projects are unavailable, the release gate is **not passed**. Codex/CI must report the goal incomplete rather than replacing this test with mocks.
+If live credentials/projects are unavailable, the release gate is **not passed**. Automation and CI must report the release gate as incomplete rather than replacing this test with mocks.
 
 ## Cross-platform matrix
 

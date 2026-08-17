@@ -12,14 +12,12 @@ A Contributor License Agreement will be introduced before external code contribu
 
 Read:
 
-1. `AGENTS.md`
-2. `docs/01-product-requirements.md`
-3. `docs/02-coverage-matrix.md`
-4. `docs/09-security-threat-model.md`
-5. `docs/10-testing.md`
-6. `docs/13-acceptance-criteria.md`
-
-For substantial work, add/update the execution plan in `PLANS.md`.
+1. `docs/01-product-requirements.md`
+2. `docs/02-coverage-matrix.md`
+3. `docs/09-security-threat-model.md`
+4. `docs/10-testing.md`
+5. `docs/13-acceptance-criteria.md`
+6. `docs/23-current-status.md`
 
 ## Development setup
 

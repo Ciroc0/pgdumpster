@@ -4,9 +4,7 @@ pgDumpster handles database contents, authentication state, object storage, cryp
 
 ## Supported versions
 
-Until the first public release, only the current development branch is supported.
-
-After release, this table must list actively supported major/minor versions.
+The current supported release line is `0.1.x`. Report vulnerabilities against the latest published `0.1.x` version. Older releases may be assessed case by case; no fixed support-window promise is made yet.
 
 ## Reporting a vulnerability
 

@@ -16,7 +16,7 @@ As of 2026-08-16:
 - the CLI exposes `--dry-run` and guarded `--apply`;
 - `--apply` executes only from a verified bundle root and rejects a blocked plan before reading target credentials or discovering target resources. For an executable plan, it acquires the target database URL and Management credential only when an actually planned handler requires each credential; it atomically persists the immutable plan with restrictive permissions before executor checkpoint/mutation, rejects unsupported planned components and unsafe/missing planned artifacts, and uses the checkpointed executor for supported actions.
 
-This is not a release-completeness claim. Final parity reporting is implemented and a disposable hosted source-to-target database/File Storage observation exists; the required protected full-fixture hosted validation remains incomplete.
+This does not imply automatic fidelity for components that Supabase does not expose or cannot recreate exactly. Final parity reporting is implemented, and the protected `v0.1.2` source-to-target hosted validation passed for database, File Storage, Auth password-login and Edge Function invocation with explicit platform/manual limits.
 
 The remaining sections describe the **binding target restore contract**. They must not be read as a claim that unsupported platform/manual-limit components are automatically restorable.
 
