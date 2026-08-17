@@ -175,4 +175,4 @@ A restore may be:
 - `restored_with_platform_limits` - all possible work succeeded with explicit source/platform limitations or substitutions;
 - `failed` - a required possible operation/parity check failed.
 
-The final hosted E2E in `docs/10-testing.md` remains mandatory proof before this restore path can be considered release-complete.
+The hosted E2E in `docs/10-testing.md` passed for `v0.1.2`. It remains mandatory evidence for every new release candidate; evidence from an earlier SHA does not transfer to a newer candidate.

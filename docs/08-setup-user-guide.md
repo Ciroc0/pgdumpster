@@ -183,6 +183,20 @@ pgdumpster verify ./backups/<bundle>.tar.zst.age --config ./pgdumpster.yaml
 
 Encrypted input is decrypted into a restricted temporary area, then processed through the same archive extraction and bundle verification path. Temporary decrypted material is removed after the operation completes or fails normally.
 
+The same encrypted bundle input is accepted for both restore modes. Start with `--dry-run`; use `--apply` only after reviewing the resulting plan and confirming the target.
+
+### Verify an S3-compatible backup
+
+When the same S3 destination is configured in `pgdumpster.yaml`, every offline bundle command can read a completed remote backup by its `s3://` locator:
+
+```bash
+pgdumpster verify s3://<bucket>/<prefix>/<backup>.tar.zst.age --config ./pgdumpster.yaml
+pgdumpster coverage s3://<bucket>/<prefix>/<backup>.tar.zst.age --config ./pgdumpster.yaml
+pgdumpster inspect s3://<bucket>/<prefix>/<backup>.tar.zst.age --config ./pgdumpster.yaml
+```
+
+The completion marker and remote object are validated before pgDumpster accepts the remote input. `s3://` configuration is operator-controlled; Cloudflare R2 is the provider with live interoperability evidence for `0.1.2`.
+
 ## Resume an interrupted backup
 
 The backup command accepts:
@@ -195,7 +209,7 @@ Resume is bound to the original run/project/configuration and revalidates comple
 
 For an encrypted backup, the working directory remains the resumable plaintext/protected workspace until final archive encryption succeeds. Keep the output volume protected accordingly.
 
-## Restore: current dry-run path
+## Restore: dry-run first
 
 Set target credentials through environment variables:
 
@@ -225,6 +239,8 @@ pgdumpster restore ./backups/<bundle>.tar.zst.age \
 
 The CLI performs guarded target mutation only with explicit `restore --apply` after integrity verification, executable-plan validation, credential preflight and handler-completeness checks. It writes an immutable plan/checkpoint and emits a parity report. Components that lack exact source material or a supported target write contract remain fail-closed manual/platform actions rather than simulated restore success.
 
+The same `s3://<bucket>/<prefix>/<backup>` locator can be used for dry-run and apply when the configured destination credentials can materialize and verify it.
+
 ## Not currently available
 
 The following target workflows intentionally fail closed in the current CLI:
@@ -248,9 +264,11 @@ The final supported recovery procedure is:
 
 The complete procedure has protected hosted-E2E evidence for `v0.1.2`, including encrypted backup/input, guarded `restore --apply`, immutable checkpointed plans and semantic parity reporting. Platform values that Supabase does not expose or cannot recreate exactly remain explicit manual/platform actions; they are not silently represented as restored.
 
+The same disposable source-to-clean-target recovery flow has also passed as a **local live E2E**. That local evidence is the closest proof of normal operator execution. The protected GitHub Actions E2E is separate release evidence for its exact release SHA and uses CI-specific networking, credentials and runner setup; it does not replace a local recovery drill, and a local drill does not prove that every CI environment can reach a project.
+
 ## Scheduling and retention
 
-pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. Validate any scheduler integration with a recovery drill and retain platform limits in the resulting coverage/parity report.
+pgDumpster performs one run and exits. Scheduling/retention belongs to a trusted external scheduler/storage policy. GitHub Actions is one environment-dependent scheduler option, not the product's local recovery model. Validate any scheduler integration and the normal local recovery path separately, then retain platform limits in the resulting coverage/parity report.
 
 ## Updating a source checkout
 

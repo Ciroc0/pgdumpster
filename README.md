@@ -26,7 +26,7 @@ Current branch snapshot as of 2026-08-16:
 - hard-interruption resume cleanup is step-scoped and symlink-safe;
 - standard `age` encryption is implemented for local backup publication;
 - encrypted backups are published as `.tar.zst.age`; successful publication removes the plaintext archive and working bundle;
-- encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore dry-run when config supplies `encryption.identityFile`;
+- encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore when config supplies `encryption.identityFile`;
 - plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
 - S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2. Two scoped 128 MiB multipart observations measured 15.06 and 13.61 MiB/s; the latter observed 34 requests, zero retries, 154,140,672-byte peak RSS and persisted checkpoint state. Comparative provider fault/load testing is optional additional confidence, not a release gate;
 - latest local validation: **118 test files / 761 tests, PASS**;

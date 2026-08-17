@@ -1,22 +1,34 @@
 {
   "schemaVersion": 1,
+  "planId": "019ffcf4-d0b6-7b40-847b-668eb570a987",
+  "planSha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "backupOperationId": "019ffcf4-d0b6-7b40-847b-668eb570a988",
   "status": "restored_with_platform_limits",
   "sourceProjectRef": "abcdefghijklmnopqrst",
   "targetProjectRef": "uvwxyzabcdefghijklmn",
-  "integrity": "verified",
-  "parity": "verified_with_documented_substitutions",
-  "substitutions": [
-    {
-      "component": "api.modern_keys",
-      "kind": "credential_rotation",
-      "secretValueIncluded": false,
-      "protectedRotationMap": "restore/rotation-map.age"
-    }
-  ],
+  "completedAt": "2026-08-17T00:00:00.000Z",
+  "completedActions": 1,
+  "skippedActions": 0,
   "manualActions": [
     {
-      "component": "external.dns",
-      "action": "Create/validate required external DNS records for restored custom domain."
+      "id": "manual.auth.signing_keys",
+      "component": "auth.signing_keys",
+      "reasonCode": "SUPABASE_PRIVATE_SIGNING_MATERIAL_NOT_EXPOSED",
+      "message": "Recreate or rotate private signing material using the target project's supported procedure."
     }
-  ]
+  ],
+  "actionEvidence": [
+    {
+      "id": "restore.database.schema",
+      "component": "database.schema",
+      "planStatus": "planned",
+      "sourceStatus": "backed_up",
+      "declaredFidelity": "exact",
+      "outcome": "verified",
+      "verification": "applied_and_verified"
+    }
+  ],
+  "planPath": ".pgdumpster-restore/019ffcf4-d0b6-7b40-847b-668eb570a987.plan.json",
+  "checkpointPath": ".pgdumpster-restore/019ffcf4-d0b6-7b40-847b-668eb570a987.checkpoint.json",
+  "parityReportPath": ".pgdumpster-restore/019ffcf4-d0b6-7b40-847b-668eb570a987.parity.json"
 }

@@ -4,7 +4,7 @@
 
 This document separates the **currently implemented CLI** from the **binding target UX**. Options listed only under target behavior are not available merely because they are specified here.
 
-Current implementation snapshot: **2026-08-16**.
+Current implementation snapshot: **pgDumpster 0.1.2**.
 
 ## Binary
 
@@ -24,7 +24,7 @@ pgdumpster
 
 The parser rejects duplicate `--json`, `--non-interactive` and `--config` declarations and missing config paths. pgDumpster does not prompt during normal execution; `--non-interactive` makes that CI-safe intent explicit without weakening the existing mandatory `--apply` mutation guard.
 
-Target global UX still includes additional logging/terminal options such as `--quiet`, `--verbose`, `--no-color` and `--log-file`; those are not current CLI claims.
+The product requirements describe possible future terminal UX such as `--quiet`, `--verbose`, `--no-color` and `--log-file`; those options are not part of the current CLI.
 
 Secrets must not be accepted through flags when that would predictably expose them in process listings. Database URLs and other credentials are passed through environment-variable names or environment configuration. `age` private-key material is referenced through an identity-file path in config rather than passed as a secret CLI value.
 
@@ -98,7 +98,7 @@ Other important current gates:
 ### `inspect`
 
 ```bash
-pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
 ```
 
 Reads a verified bundle and summarizes metadata without printing protected values. Encrypted input requires config with `encryption.mode: age` and `encryption.identityFile`.
@@ -106,7 +106,7 @@ Reads a verified bundle and summarizes metadata without printing protected value
 ### `coverage`
 
 ```bash
-pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
 ```
 
 Prints/evaluates every registered component outcome. Encrypted input uses the same identity-file requirement as `inspect`.
@@ -114,7 +114,7 @@ Prints/evaluates every registered component outcome. Encrypted input uses the sa
 ### `verify`
 
 ```bash
-pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
+pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
 ```
 
 Performs offline bundle/schema/integrity verification and archive safety checks. `.tar.zst.age` is decrypted into a restricted temporary workspace, verified as the normal deterministic archive form, and cleaned afterward.
@@ -124,7 +124,7 @@ Performs offline bundle/schema/integrity verification and archive safety checks.
 Current syntax:
 
 ```bash
-pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age> \
+pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> \
   --target-project-ref <ref> \
   --target-db-url-env PGDUMPSTER_TARGET_DB_URL \
   --dry-run
@@ -138,12 +138,13 @@ Implemented restore options:
 --dry-run | --apply
 --conflict fail|replace
 --allow-billable-resources
+--resume <checkpoint>
 ```
 
 Current behavior:
 
 - bundle integrity is verified before plan generation;
-- encrypted input is supported for dry-run when `encryption.identityFile` is configured;
+- encrypted input is supported for both dry-run and `--apply` when `encryption.identityFile` is configured;
 - source==target is rejected by the restore planning contract;
 - deterministic restore plan generation exists;
 - core restore executor/checkpoint/handlers exist in the repository;
@@ -164,7 +165,7 @@ PGDUMPSTER_TARGET_PROJECT_REF=
 PGDUMPSTER_TARGET_DB_URL=
 ```
 
-S3 publication uses the configured credential source. A scoped Cloudflare R2 run passed encrypted publication, completion-marker, materialization and offline verification; other S3-compatible providers remain unexercised.
+S3 publication and `s3://` bundle input use the configured credential source. A scoped Cloudflare R2 run passed encrypted publication, completion-marker, materialization and offline verification; other S3-compatible providers remain unexercised.
 
 ## Configuration file
 

@@ -21,7 +21,7 @@ Read:
 
 ## Development setup
 
-The implementation must provide the exact commands below before first release:
+The repository provides the following development verification commands:
 
 ```bash
 corepack enable

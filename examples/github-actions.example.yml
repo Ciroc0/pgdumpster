@@ -1,6 +1,10 @@
-# Example only. Adapt after pgDumpster has a real published install path.
-# Do not copy this as a release workflow without pinning third-party actions
-# by immutable commit SHA and reviewing secret exposure.
+# Environment-dependent scheduled-backup template. It is not the local live
+# recovery workflow and it is not evidence that GitHub-hosted runners can
+# reach a given Supabase project. Enable it only after the runner's network,
+# Docker daemon, Supabase access and destination access are validated against
+# a disposable project. Perform a separate local recovery drill before relying
+# on any resulting backup.
+# Third-party actions are pinned by immutable commit SHA.
 
 name: Supabase backup
 
@@ -11,16 +15,38 @@ on:
 
 jobs:
   backup:
+    if: ${{ vars.PGDUMPSTER_CI_BACKUP_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Install pgDumpster
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Install age and pgDumpster
         run: |
-          echo "Replace with the verified install command for the published release."
-          exit 1
-
+          sudo apt-get update
+          sudo apt-get install --yes age
+          npm install --global pgdumpster@0.1.2
+          pgdumpster --version
+      - name: Write non-secret backup configuration
+        run: |
+          cat > pgdumpster.yaml <<'YAML'
+          backup:
+            consistency: verified
+          encryption:
+            mode: age
+            recipient: ${{ secrets.PGDUMPSTER_AGE_RECIPIENT }}
+          destination:
+            type: s3
+            endpoint: ${{ vars.PGDUMPSTER_S3_ENDPOINT }}
+            bucket: ${{ vars.PGDUMPSTER_S3_BUCKET }}
+            prefix: pgdumpster
+          YAML
       - name: Run backup
         env:
           PGDUMPSTER_ACCESS_TOKEN: ${{ secrets.PGDUMPSTER_ACCESS_TOKEN }}
@@ -29,11 +55,10 @@ jobs:
           PGDUMPSTER_STORAGE_KEY: ${{ secrets.PGDUMPSTER_STORAGE_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
-          PGDUMPSTER_S3_ENDPOINT: ${{ secrets.PGDUMPSTER_S3_ENDPOINT }}
-          PGDUMPSTER_S3_BUCKET: ${{ secrets.PGDUMPSTER_S3_BUCKET }}
         run: |
           pgdumpster backup \
+            --config pgdumpster.yaml \
             --project-ref "$PGDUMPSTER_PROJECT_REF" \
-            --destination s3 \
+            --db-url-env PGDUMPSTER_DB_URL \
             --consistency verified \
             --non-interactive
