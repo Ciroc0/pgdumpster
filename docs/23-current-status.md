@@ -18,7 +18,7 @@ Latest complete local validation after Edge Function source-tree restore hardeni
 
 All independent repository coverage thresholds remain at 90% and pass. No production file was excluded and no threshold was lowered to recover coverage.
 
-Current official Supabase/OpenAPI, Storage and changelog contract snapshots match. A consumer installation of the generated development `.tgz` passed `--version`, `doctor --help`, `backup --help` and `restore --help`; it is local package-smoke evidence, not a public publish/release claim.
+Current official Supabase/OpenAPI, Storage and changelog contract snapshots match. A consumer installation of the generated development `.tgz` passed `--version` and the CLI help path. The current CLI prints its top-level summary for `doctor --help`, `backup --help` and `restore --help`, so those are package-install smokes rather than command-specific option tests. This is local package-smoke evidence, not a public publish/release claim.
 
 A current read-only `npm pack --dry-run --json` audit reports 372 package files with compiled CLI, contracts and schemas included and no test/docs/scripts/workflow paths. `v0.1.2` published this package; the audit records package contents rather than a future-release claim.
 
@@ -93,10 +93,10 @@ Implemented commands:
 ```text
 pgdumpster doctor [--project-ref <ref>] [--json]
 pgdumpster backup --project-ref <ref> (--linked|--db-url-env <name>) [options]
-pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
-pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
-pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age> [--json]
-pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply)
+pgdumpster inspect <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+pgdumpster coverage <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+pgdumpster verify <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> [--json]
+pgdumpster restore <bundle-directory|archive.tar.zst|archive.tar.zst.age|s3://backup-locator/> --target-project-ref <ref> --target-db-url-env <name> (--dry-run|--apply) [--resume <checkpoint>]
 ```
 
 Backup consistency accepts `verified|best-effort|quiesced`; omitted consistency defaults to `verified`. Best-effort output distinguishes `best_effort` from `drift_detected`.

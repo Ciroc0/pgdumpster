@@ -136,11 +136,10 @@ From the published artifact on a clean environment:
 
 ```bash
 pgdumpster --version
-pgdumpster doctor --help
-pgdumpster backup --help
-pgdumpster verify --help
-pgdumpster restore --help
+pgdumpster --help
 ```
+
+The current CLI prints the same top-level summary for subcommand `--help` forms. This is a binary-install smoke only; validate the option contract against `docs/07-cli-and-ux.md` and command tests.
 
 Run a small test-project encrypted backup and verify it.
 

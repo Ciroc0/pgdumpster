@@ -12,6 +12,8 @@ Current implementation snapshot: **pgDumpster 0.1.2**.
 pgdumpster
 ```
 
+`pgdumpster --help` prints the current command summary. The binary does not yet render command-specific help: `pgdumpster backup --help` and equivalent subcommand forms print that same top-level summary. This document is therefore the authoritative reference for the implemented options below.
+
 ## Currently implemented global options
 
 ```text

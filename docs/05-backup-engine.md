@@ -445,7 +445,7 @@ Checkpoint rules:
 - refuse resume if immutable configuration changed incompatibly;
 - revalidate already-completed payload checksum before trusting it.
 
-`pgdumpster backup --resume <run-id-or-path>` continues a compatible interrupted run.
+`pgdumpster backup --resume <workspace-or-checkpoint-path>` continues a compatible interrupted run. The CLI accepts an existing workspace directory or its checkpoint file; a run ID alone is not a valid resume argument.
 
 ## Exit codes
 

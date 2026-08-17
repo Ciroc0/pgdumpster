@@ -40,10 +40,14 @@ pnpm check
 ```bash
 npm install -g pgdumpster
 pgdumpster --version
-pgdumpster doctor --help
+pgdumpster --help
 ```
 
+The current binary has one top-level help screen. `pgdumpster backup --help` and the other subcommand-help forms currently print that same command summary; use [the CLI reference](07-cli-and-ux.md) for the implemented option lists.
+
 ## Credentials
+
+Set credentials in the environment of the command process. On PowerShell, use `$env:NAME = "value"`; the examples below use POSIX shell expansion. Never pass a database URL directly as a flag.
 
 Common environment variables:
 
@@ -103,6 +107,8 @@ destination:
 `recipient` is required for encrypted backup. `identityFile` is required only when the same config is used to open a `.tar.zst.age` bundle. A relative identity-file path is resolved relative to the config file.
 
 The identity file contains private key material. Keep it outside source control and restrict filesystem access. pgDumpster passes the path to `age`; it does not require the private key contents as a normal CLI argument.
+
+The complete accepted schema, including S3 destination and concurrency fields, is shown in [examples/backup.config.example.yaml](../examples/backup.config.example.yaml). Unknown configuration fields are rejected.
 
 ## Create an encrypted backup with the current build
 

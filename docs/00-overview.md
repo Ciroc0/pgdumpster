@@ -1,5 +1,7 @@
 # 00 - Product overview
 
+> **Reader guide:** Start with the repository [README](../README.md) and the [user guide](08-setup-user-guide.md) to operate pgDumpster. This document defines the product boundary; it is not a substitute for the current CLI reference.
+
 ## Problem
 
 Supabase project state is distributed across Postgres, Storage and multiple hosted control-plane APIs. A PostgreSQL backup alone is not a project backup. Supabase explicitly documents that database backups do not contain actual Storage object bytes.
@@ -47,10 +49,11 @@ It does not mean bypassing Supabase security boundaries. If Supabase returns onl
 ## Canonical flow
 
 ```bash
-pgdumpster doctor
-pgdumpster backup --project-ref "$SUPABASE_PROJECT_REF" --linked --output ./backups
+# Source environment credentials must be set first; see docs/08-setup-user-guide.md.
+pgdumpster doctor --project-ref "$PGDUMPSTER_PROJECT_REF"
+pgdumpster backup --project-ref "$PGDUMPSTER_PROJECT_REF" --linked --output ./backups
 # Explicit fallback for an unlinked workspace:
-pgdumpster backup --project-ref "$SUPABASE_PROJECT_REF" --db-url-env PGDUMPSTER_DB_URL --output ./backups
+pgdumpster backup --project-ref "$PGDUMPSTER_PROJECT_REF" --db-url-env PGDUMPSTER_DB_URL --output ./backups
 pgdumpster verify ./backups/<bundle>
 pgdumpster inspect ./backups/<bundle>
 ```
@@ -58,8 +61,8 @@ pgdumpster inspect ./backups/<bundle>
 Restore:
 
 ```bash
-pgdumpster restore ./backups/<bundle> --target-project-ref "$TARGET_PROJECT_REF" --target-db-url-env TARGET_DB_URL --dry-run
-pgdumpster restore ./backups/<bundle> --target-project-ref "$TARGET_PROJECT_REF" --target-db-url-env TARGET_DB_URL
+pgdumpster restore ./backups/<bundle> --target-project-ref "$PGDUMPSTER_TARGET_PROJECT_REF" --target-db-url-env PGDUMPSTER_TARGET_DB_URL --dry-run
+pgdumpster restore ./backups/<bundle> --target-project-ref "$PGDUMPSTER_TARGET_PROJECT_REF" --target-db-url-env PGDUMPSTER_TARGET_DB_URL --apply
 ```
 
 ## Non-goals

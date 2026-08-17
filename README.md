@@ -1,155 +1,160 @@
 # pgDumpster
 
-pgDumpster is a source-available backup, verification, inspection, and restore tool for **hosted Supabase Platform projects**. The repository, package, and CLI name are `pgdumpster`; the project domain is `pgdumpster.com`.
+pgDumpster is a CLI for backing up, verifying, inspecting, and restoring one **hosted Supabase project**. It treats a database dump as only one part of recovery: the bundle also accounts for applicable project configuration, Storage, Auth, Edge Functions, API keys, Vault, and other registered surfaces.
 
-Its product promise is strict:
+It does not claim that Supabase state is one atomic snapshot. When Supabase does not expose a value, or does not let pgDumpster recreate it exactly, the bundle and restore plan report that as a platform/manual limit instead of silently calling recovery complete.
 
-> Capture every project-scoped state surface that Supabase exposes and makes exportable, copy every recoverable data object, verify the result, and explicitly inventory anything that Supabase itself does not allow to be exported or recreated exactly.
+## Start here
 
-A successful run must never silently omit a registered component.
+The normal recovery path is:
 
-## Current release status
+1. Install pgDumpster and its prerequisites.
+2. Configure encrypted output with an `age` recipient.
+3. Run `doctor` against the source project.
+4. Create an encrypted backup.
+5. Verify and inspect that exact backup offline.
+6. Dry-run a restore to a **different, fresh target project**.
+7. Run `restore --apply` only after reviewing the plan.
 
-pgDumpster `0.1.2` is published. The repository continues to document explicit platform limits and the evidence required for every future release.
+The commands below are PowerShell examples. Use the matching shell syntax for environment variables on macOS/Linux.
 
-Current branch snapshot as of 2026-08-16:
+### 1. Install prerequisites
 
-- strict TypeScript ESM build and CLI are implemented;
-- the 55-component coverage registry is enforced during backup finalization;
-- hosted-project capture adapters exist for database state, Auth, API keys, Edge, Vault, File Storage, specialized Storage and the documented Management API/control-plane surfaces;
-- secure bundle generation, SHA-256 integrity, offline inspect/coverage/verify, deterministic `.tar.zst`, checkpointing and resume are implemented;
-- restore planning, checkpoints, database/control-plane/publication/Vault handlers and semantic verification primitives are implemented;
-- `restore --apply` verifies the bundle, validates target credentials, assembles the implemented handlers and proves handler completeness before it creates a checkpoint or mutates a target; plans containing any unimplemented component still fail closed with `RESTORE_ADAPTER_MISSING`;
-- backup consistency supports `verified`, `best-effort` and `quiesced`; omitted consistency defaults to `verified`;
-- all 10 product backup steps participate in the consistency contract with source snapshots, drift handling and step-owned partial cleanup;
-- best-effort reports `drift_detected` when observable drift occurs and preserves that evidence through resume;
-- hard-interruption resume cleanup is step-scoped and symlink-safe;
-- standard `age` encryption is implemented for local backup publication;
-- encrypted backups are published as `.tar.zst.age`; successful publication removes the plaintext archive and working bundle;
-- encrypted `.tar.zst.age` inputs are supported by inspect/coverage/verify and restore when config supplies `encryption.identityFile`;
-- plaintext secret-bearing backups still require explicit `--allow-plaintext-secrets` when `age` is not configured;
-- S3-compatible publication and verified `s3://` recovery are implemented; encrypted publication, completion-marker, materialization and offline verification passed against Cloudflare R2. Two scoped 128 MiB multipart observations measured 15.06 and 13.61 MiB/s; the latter observed 34 requests, zero retries, 154,140,672-byte peak RSS and persisted checkpoint state. Comparative provider fault/load testing is optional additional confidence, not a release gate;
-- latest local validation: **118 test files / 761 tests, PASS**;
-- current global coverage is **94.47% statements / 90.02% branches / 92.66% functions / 95.44% lines**, with all independent 90% thresholds passing;
-- release SHA `dd0d42c128907de473f71024196a62da2f124bcb` passed GitHub CI, CodeQL, official-contract drift and protected Live hosted E2E before `v0.1.2` was published;
-- disposable hosted source → encrypted backup → offline verify → clean-target restore has passed both locally and in the protected E2E workflow, with database, private File Storage, Auth password-login and Edge Function invocation parity plus explicit platform limits.
+You need Node.js `>=22.15.0 <23` or `>=24 <25`, a supported Supabase CLI (`>=2.111.0 <3.0.0`), a reachable Docker-compatible daemon for the Supabase database workflow, and [`age`](https://age-encryption.org/) for the recommended encrypted path.
 
-`v0.1.2` passed the tagged workflow's package/SBOM/provenance/attestation/published-artifact verification and is published from GitHub OIDC trusted publishing without a retained npm token. Every future release must repeat CI, CodeQL, official-contract and protected hosted-E2E evidence for its exact SHA. Cloudflare R2/S3 performance and interoperability are not release blockers.
+```powershell
+npm install -g pgdumpster
+pgdumpster --version
+```
 
-A concise implementation and evidence snapshot is maintained in [docs/23-current-status.md](docs/23-current-status.md). The numbered product documents describe the required end state unless they explicitly label a section as current implementation status.
+For a source checkout, use the pinned package manager instead:
 
-## Why this exists
+```powershell
+corepack enable
+pnpm install --frozen-lockfile
+pnpm build
+```
 
-A Supabase database backup is not a complete project backup. Project state also exists in Storage object bytes, Auth configuration, API keys, JWT signing-key metadata, Edge Functions and secrets, Realtime/PostgREST/Storage service configuration, networking/domain configuration, Vault key material and other platform settings.
+### 2. Set source credentials
 
-pgDumpster is designed to unify those surfaces into one deterministic, coverage-accounted backup bundle.
+Set these in the session where you run pgDumpster. Do not put real values in `.env.example`, commit them, or pass a database URL directly on the command line.
 
-The current database backend uses the Supabase CLI and a reachable Docker-compatible daemon. A linked Supabase workspace is the preferred backup source because the CLI can obtain a short-lived database login; an explicit database URL remains available for unlinked automation. Docker is not bundled with pgDumpster.
+```powershell
+$env:PGDUMPSTER_PROJECT_REF = "abcdefghijklmnopqrst"
+$env:PGDUMPSTER_ACCESS_TOKEN = "<Supabase Management API token>"
+$env:PGDUMPSTER_DB_URL = "postgresql://..."
+$env:PGDUMPSTER_STORAGE_KEY = "<privileged Storage key>"
+```
 
-## Target capability contract
+`doctor` currently requires all four values, including `PGDUMPSTER_DB_URL` and `PGDUMPSTER_STORAGE_KEY`. A linked workspace is preferred for the backup database step, but it does not remove those current `doctor` checks.
 
-The binding target includes:
+### 3. Configure encryption
 
-- full logical PostgreSQL state plus explicitly captured state omitted by the normal Supabase dump path;
-- Auth data/config, SSO/TPA metadata and signing-key limitations;
-- Cron, Queues, Database Webhooks, Vault ciphertext and Vault root-key handling;
-- File Storage buckets, metadata and streamed object bytes;
-- Vector and Analytics/Iceberg capability adapters with explicit platform limits;
-- Edge Function metadata/secret inventory and CLI-downloadable deployable source trees;
-- modern/legacy API-key handling and protected target rotation mapping;
-- Realtime, PostgREST, Storage, database/pooler/SSL, networking/domain, backup schedule, log-drain and project configuration;
-- deterministic integrity manifests and complete coverage reporting;
-- cross-service verified/best-effort/quiesced consistency semantics;
-- resumable backup and restore;
-- local and S3-compatible destinations;
-- optional standard `age` encryption;
-- integrity-first restore followed by semantic parity verification.
+Copy [examples/backup.config.example.yaml](examples/backup.config.example.yaml) to `pgdumpster.yaml`, then replace the example project ref and `age` recipient. Keep the identity file private; it is required later to read the encrypted backup.
 
-A target capability is not considered delivered merely because it appears in this list. Current implementation state is recorded in `docs/23-current-status.md`.
+```yaml
+projectRef: abcdefghijklmnopqrst
 
-## Encryption
+backup:
+  output: ./backups
+  consistency: verified
 
-For local encrypted publication, configure `age` in the YAML config with a recipient. pgDumpster creates the deterministic `.tar.zst` transport form internally, encrypts it to `.tar.zst.age`, and removes the normal plaintext archive/workspace after successful publication. `--archive` is not required separately for encrypted output.
+encryption:
+  mode: age
+  recipient: age1replace_with_your_recipient
+  identityFile: ./age-identity.txt
 
-Reading an encrypted bundle requires an `encryption.identityFile` reference in config. The identity file path may be relative to the config file. Private identity material is not accepted as a normal CLI flag or printed in output. See `examples/backup.config.example.yaml` and `docs/08-setup-user-guide.md` for the current config shape.
+destination:
+  type: local
+```
 
-`doctor` checks whether `age` tooling is available. A missing executable during encryption/decryption is also mapped to the dependency error domain. A hard process termination can still leave the protected resumable workspace/checkpoint; normal encryption cleanup and crash recovery are separate concerns.
+### 4. Preflight and back up
 
-When encryption is not configured, any backup that may contain secrets requires explicit `--allow-plaintext-secrets`.
+If the workspace is linked, link it and use `--linked`:
 
-## Consistency semantics
+```powershell
+supabase link --project-ref $env:PGDUMPSTER_PROJECT_REF
+pgdumpster doctor --project-ref $env:PGDUMPSTER_PROJECT_REF
+pgdumpster backup --config ./pgdumpster.yaml --project-ref $env:PGDUMPSTER_PROJECT_REF --linked
+```
 
-`verified` is the default backup mode. pgDumpster takes the strongest stable source fingerprints available to each product surface, copies the step, compares post-copy state and retries a drifting step only after its provisional output has been safely removed. Drift that is detected directly during copy is promoted into the same policy.
+For an unlinked source, replace `--linked` with `--db-url-env PGDUMPSTER_DB_URL`:
 
-`quiesced` uses the same observation layer but fails immediately when observable source state changes. It is intended for runs where application writes have deliberately been stopped.
+```powershell
+pgdumpster backup --config ./pgdumpster.yaml --project-ref $env:PGDUMPSTER_PROJECT_REF --db-url-env PGDUMPSTER_DB_URL
+```
 
-`best-effort` performs a valid copy without verified retry semantics. When pre/post evidence shows source drift, the final manifest reports `drift_detected` rather than falsely claiming verification.
+The successful encrypted command prints the output path and produces a `.tar.zst.age` archive. It creates the `.tar.zst` transport archive itself; do not add `--archive`. On normal success, plaintext staging is removed. A hard interruption can leave the resumable working directory, so protect the output volume.
 
-These are application-level cross-service consistency guarantees. Supabase does not expose one atomic transaction spanning PostgreSQL, Storage, Management APIs, Edge and every managed service, so pgDumpster does not claim one.
+### 5. Verify and inspect the backup
 
-## “Full backup” semantics
+Use the exact path printed by the backup command. Encrypted input needs the `identityFile` configured above.
 
-A result is:
+```powershell
+pgdumpster verify <backup-path>.tar.zst.age --config ./pgdumpster.yaml
+pgdumpster coverage <backup-path>.tar.zst.age --config ./pgdumpster.yaml
+pgdumpster inspect <backup-path>.tar.zst.age --config ./pgdumpster.yaml
+```
 
-- `complete`: every applicable exportable component was backed up and verified according to the active consistency contract;
-- `complete_with_platform_limits`: every exportable component succeeded, but the platform prevents one or more values from being exported or recreated exactly;
-- `failed`: one or more applicable exportable components failed.
+Do not treat a backup as recoverable until `verify` succeeds and `coverage` shows a terminal outcome for every component.
 
-Every registered component has exactly one terminal status:
+### 6. Plan and apply a restore
 
-- `backed_up`
-- `not_configured`
-- `not_applicable`
-- `not_exportable`
-- `failed`
+Restores target a different project. Start with a dry run; it verifies the input and produces an integrity-first plan without mutating the target.
 
-No registered component can disappear from the report.
+```powershell
+$env:PGDUMPSTER_TARGET_PROJECT_REF = "zyxwvutsrqponmlkjihg"
+$env:PGDUMPSTER_TARGET_DB_URL = "postgresql://..."
 
-## Scope boundary
+pgdumpster restore <backup-path>.tar.zst.age --config ./pgdumpster.yaml --target-project-ref $env:PGDUMPSTER_TARGET_PROJECT_REF --target-db-url-env PGDUMPSTER_TARGET_DB_URL --dry-run
+```
 
-pgDumpster backs up **one hosted Supabase project ref**. Organization membership, billing history, account identity, external DNS, SMTP-provider resources, OAuth-provider-side resources, source Git repositories and other third-party systems are outside the project backup boundary.
+Only after reviewing that plan, run the explicit mutation command:
 
-Branch topology/configuration is inventoried, but each branch is a separate environment and its data must be backed up independently when needed.
+```powershell
+pgdumpster restore <backup-path>.tar.zst.age --config ./pgdumpster.yaml --target-project-ref $env:PGDUMPSTER_TARGET_PROJECT_REF --target-db-url-env PGDUMPSTER_TARGET_DB_URL --apply
+```
 
-## Documentation order
+`--apply` fails before mutation if a planned action has no supported restore handler. It can also produce explicit manual/platform actions—for example where Supabase withholds private source material or cannot import it on the target.
 
-Product requirements, coverage requirements and acceptance criteria outrank lower-priority implementation documents.
+## What the commands do
 
-The numbered documentation set is:
+| Command             | Purpose                                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `doctor`            | Checks source credentials, Supabase CLI, Docker, database/Storage access, local capacity, and `age`.                   |
+| `backup`            | Creates a coverage-accounted backup. Encryption is recommended; plaintext output requires `--allow-plaintext-secrets`. |
+| `verify`            | Validates bundle structure, integrity, and archive safety offline.                                                     |
+| `coverage`          | Shows the final result for every registered component.                                                                 |
+| `inspect`           | Shows non-secret bundle metadata.                                                                                      |
+| `restore --dry-run` | Builds a verified restore plan without target mutation.                                                                |
+| `restore --apply`   | Executes a fully supported, preflighted restore plan.                                                                  |
 
-1. `docs/00-overview.md`
-2. `docs/01-product-requirements.md`
-3. `docs/02-coverage-matrix.md`
-4. `docs/03-architecture.md`
-5. `docs/04-backup-format.md`
-6. `docs/05-backup-engine.md`
-7. `docs/06-restore-engine.md`
-8. `docs/07-cli-and-ux.md`
-9. `docs/08-setup-user-guide.md`
-10. `docs/09-security-threat-model.md`
-11. `docs/10-testing.md`
-12. `docs/11-operations-reliability.md`
-13. `docs/12-release-open-source.md`
-14. `docs/13-acceptance-criteria.md`
-15. `docs/14-implementation-plan.md`
-16. `docs/15-source-of-truth.md`
-17. `docs/16-troubleshooting.md`
-18. `docs/17-compatibility.md`
-19. `docs/18-data-classification.md`
-20. `docs/19-error-model.md`
-21. `docs/20-target-repository-structure.md`
-22. `docs/21-maintainer-runbook.md`
-23. `docs/22-ci-release-workflows.md`
-24. `docs/23-current-status.md` - non-binding current implementation/evidence snapshot
+All commands accept `--json` for machine-readable output, `--config <path>` for configuration, and `--non-interactive` for explicit CI use. The CLI is prompt-free; `--non-interactive` does not make restore destructive.
 
-## Trademark
+## Important limits and safety rules
 
-pgDumpster is an independent third-party project and is not affiliated with, endorsed by, sponsored by, or maintained by Supabase. “Supabase” and related marks belong to their respective owners.
+- pgDumpster backs up one hosted Supabase project ref. It does not back up organization membership, billing, external DNS/SMTP/OAuth resources, source Git repositories, or historical Storage versions already deleted before backup.
+- Branch topology may be inventoried, but each branch/environment with its own data must be backed up separately.
+- `verified` is the default consistency mode. It is an application-level stabilization check across observable services, not a single Supabase-wide transaction.
+- A plaintext backup can contain highly sensitive data. Use the encrypted path in normal operation. Plaintext output requires explicit `--allow-plaintext-secrets`.
+- A `complete_with_platform_limits` or `restored_with_platform_limits` result is not an error, but it requires you to read the associated coverage/plan/parity output and complete listed manual actions.
+- Test recovery with a fresh target before relying on a new environment, Supabase configuration, or pgDumpster release.
 
-## License
+## Documentation
 
-This project is source-available under the [PolyForm Shield License 1.0.0](LICENSE).
+| Need                                                                  | Read                                          |
+| --------------------------------------------------------------------- | --------------------------------------------- |
+| Detailed setup, S3 input/output, resume, troubleshooting hand-off     | [User guide](docs/08-setup-user-guide.md)     |
+| Every implemented flag, config field, output mode, and exit code      | [CLI reference](docs/07-cli-and-ux.md)        |
+| Recovery limitations and common failures                              | [Troubleshooting](docs/16-troubleshooting.md) |
+| Compatibility policy and evidence boundaries                          | [Compatibility](docs/17-compatibility.md)     |
+| Current implementation and release evidence                           | [Current status](docs/23-current-status.md)   |
+| Product requirements, architecture, coverage, and maintainer material | [Documentation index](docs/README.md)         |
 
-Internal and non-competing use is permitted under the license. Using this software to provide a competing hosted, managed, white-label, or commercial backup product or service requires a separate commercial license.
+The documents above distinguish current implementation from requirements and planned design. The compiled CLI and [CLI reference](docs/07-cli-and-ux.md) are the command contract; [current status](docs/23-current-status.md) is evidence for a specific release, not a promise for future versions.
 
-See [LICENSING.md](LICENSING.md) for details.
+## License and trademark
+
+pgDumpster is source-available under the [PolyForm Shield License 1.0.0](LICENSE). Internal and non-competing use is permitted; operating a competing hosted, managed, white-label, or commercial backup product/service requires a separate commercial license. See [LICENSING.md](LICENSING.md).
+
+pgDumpster is independent of Supabase and is not affiliated with, endorsed by, sponsored by, or maintained by Supabase. “Supabase” and related marks belong to their respective owners.
