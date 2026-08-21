@@ -70,12 +70,12 @@
     "@types/pg": "8.20.4",
     "@types/tar-stream": "3.1.4",
     "@vitest/coverage-v8": "4.1.10",
-    "eslint": "10.8.0",
+    "eslint": "10.8.1",
     "fast-check": "4.9.0",
     "prettier": "3.9.6",
     "supabase": "2.111.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.66.0",
+    "typescript-eslint": "8.67.0",
     "vitest": "4.1.10"
   }
 }
