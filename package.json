@@ -59,7 +59,7 @@
     "@supabase/storage-js": "2.111.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
-    "pg": "8.22.0",
+    "pg": "8.23.0",
     "tar-stream": "3.2.0",
     "yaml": "2.9.0",
     "zod": "4.4.3"
@@ -67,7 +67,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.13.3",
-    "@types/pg": "8.20.4",
+    "@types/pg": "8.23.1",
     "@types/tar-stream": "3.1.4",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "10.8.0",
