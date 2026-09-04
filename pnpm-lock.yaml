@@ -18,8 +18,8 @@ importers:
         specifier: 3.1105.0
         version: 3.1105.0(@aws-sdk/client-s3@3.1105.0)
       '@supabase/storage-js':
-        specifier: 2.111.0
-        version: 2.111.0
+        specifier: 2.112.4
+        version: 2.112.4
       ajv:
         specifier: 8.20.0
         version: 8.20.0
@@ -431,8 +431,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@supabase/storage-js@2.111.0':
-    resolution: {integrity: sha512-UEViNmTzVOxE8dqUA81wls+n9xgmlvSFfhfwo6QxrO4kQOytCYyw3ciYFoi4XoD4Jl95NJ3jnndHN5iIudWzqw==}
+  '@supabase/storage-js@2.112.4':
+    resolution: {integrity: sha512-lQ0JemuTlMIXVKgSci1qez8yPnM5hyDngeAfEBjZS2Om4D+Cus0EE5BE6glFobrxdyii1OF4UzWfF0zcQgDq5A==}
     engines: {node: '>=22.0.0'}
 
   '@types/chai@5.2.3':
@@ -1682,7 +1682,7 @@ snapshots:
   '@supabase/cli-windows-x64@2.111.0':
     optional: true
 
-  '@supabase/storage-js@2.111.0':
+  '@supabase/storage-js@2.112.4':
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
