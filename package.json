@@ -56,7 +56,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1105.0",
     "@aws-sdk/lib-storage": "3.1105.0",
-    "@supabase/storage-js": "2.111.0",
+    "@supabase/storage-js": "2.112.4",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "pg": "8.22.0",
