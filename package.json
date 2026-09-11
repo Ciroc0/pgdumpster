@@ -76,6 +76,6 @@
     "supabase": "2.111.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.66.0",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }
